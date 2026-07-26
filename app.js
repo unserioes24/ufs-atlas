@@ -197,7 +197,49 @@ function profileToCatches(raw) {
         if (st.fish || st.bites || st.time || st.weight) fisheries[id] = st;
     });
 
+    // Die fünf Rutensets: Set 1 ohne Index, Sets 2–5 mit Index im Schlüssel
+    const SLOTS = [
+        ['ROD', 'Rute'], ['ICE_ROD', 'Eisrute'], ['REEL', 'Rolle'], ['LINE', 'Schnur'],
+        ['FLOAT', 'Pose'], ['HOOK', 'Haken'], ['BOILIE', 'Boilie'], ['FEEDER', 'Feeder'],
+        ['FEEDER_BAIT', 'Feederköder'], ['ROD_STAND', 'Ständer'], ['BITE_INDICATOR', 'Bissanzeiger']
+    ];
+    const sets = [];
+    for (let n = 1; n <= 5; n++) {
+        const eq = n === 1 ? 'currentEquipment_' : 'currentEquipment_' + n + '_';
+        const bt = n === 1 ? 'currentBaits_' : 'currentBaits_' + n + '_';
+        const sfx = n === 1 ? '' : n + '_';
+        const parts = [];
+        SLOTS.forEach(function (s) {
+            const v = raw[eq + s[0]];
+            if (typeof v === 'string' && v) parts.push({ slot: s[1], id: v });
+        });
+        const baits = [];
+        for (let i = 0; i < 3; i++) {
+            const v = raw[bt + i];
+            if (typeof v === 'string' && v) baits.push(v);
+        }
+        if (!parts.length && !baits.length) continue;
+        sets.push({
+            n: n, parts: parts, baits: baits,
+            depth: raw['currentFloatDepth' + sfx],
+            weight: raw['currentFloatWeight' + sfx],
+            hookSize: raw['currentHookSize' + sfx]
+        });
+    }
+
+    // Besitz je Kategorie aus den <ITEM>_isBought-Schlüsseln
+    const owned = {};
+    Object.keys(raw).forEach(function (k) {
+        const m = /^([A-Z][A-Z0-9_]+)_isBought$/.exec(k);
+        if (!m || raw[k] !== true) return;
+        const cat = /^(ICE_ROD|ROD_STAND|FEEDER_BAIT|BITE_INDICATOR|[A-Z]+)/.exec(m[1]);
+        const c = cat ? cat[1] : 'SONST';
+        owned[c] = (owned[c] || 0) + 1;
+    });
+
     const player = {
+        sets: sets,
+        owned: owned,
         name: raw.playerName || null,
         level: raw.playersLevel || 0,
         score: raw.playersScore || 0,
@@ -995,6 +1037,66 @@ function RecordsPage(props) {
                 })))));
 }
 
+/* ------------------------------------------------------------- Rutensets */
+
+/** Item-Kürzel aus dem Spielstand -> lesbarer Name (Köder über die Spielsprache). */
+const ITEM_NAMES = {};
+(function () {
+    const cats = (G.glossary || {}).categories || [];
+    cats.forEach(function (c) {
+        c.items.forEach(function (it) {
+            const seg = String(it.key).split('/').pop();
+            if (seg) ITEM_NAMES[seg] = it.de;
+        });
+    });
+})();
+
+const CATEGORY_LABELS = {
+    ROD: 'Ruten', ICE_ROD: 'Eisruten', ROD_STAND: 'Ständer', REEL: 'Rollen', LINE: 'Schnüre',
+    FLOAT: 'Posen', HOOK: 'Haken', BAIT: 'Naturköder', BOILIE: 'Boilies', FEEDER: 'Feeder',
+    FEEDER_BAIT: 'Feederköder', BITE_INDICATOR: 'Bissanzeiger', LURE: 'Kunstköder',
+    SPOON: 'Blinker', SPINNER: 'Spinner', WOBBLER: 'Wobbler', SOFT: 'Gummiköder',
+    FLY: 'Fliegen', BOAT: 'Boote', DRILLER: 'Bohrer', FISHING: 'Kescher',
+    GAS: 'Gaskocher', BEER: 'Getränke', FILLET: 'Filets', ICE: 'Eis-Ausrüstung'
+};
+function categoryLabel(c) { return CATEGORY_LABELS[c] || c.replace(/_/g, ' '); }
+
+function itemLabel(id) {
+    if (!id) return null;
+    let s = String(id).replace(/^(FEEDER_BAIT|BAIT|BOILIE)_/, '');
+    if (ITEM_NAMES[s]) return ITEM_NAMES[s];
+    const noNum = s.replace(/_\d+$/, '');
+    if (ITEM_NAMES[noNum]) return ITEM_NAMES[noNum];
+    // Produktbezeichnungen nur aufhübschen: ROD_ABU_GARCIA_02 -> Abu Garcia 02
+    const parts = String(id).replace(/^(ICE_ROD|ROD_STAND|FEEDER_BAIT|BITE_INDICATOR|[A-Z]+)_/, '').split('_');
+    return parts.map(function (p) {
+        if (/^\d+$/.test(p)) return p.replace(/^0+(?=\d)/, '');
+        return p.charAt(0) + p.slice(1).toLowerCase();
+    }).join(' ');
+}
+
+function RodSets(props) {
+    const sets = props.sets || [];
+    if (!sets.length) return null;
+    return h('div', { className: 'ufs-setgrid' }, sets.map(function (s) {
+        return h('div', { key: s.n, className: 'ufs-setcard' },
+            h('div', { className: 'hd' }, 'Set ' + s.n),
+            h('div', { className: 'rows' },
+                s.parts.map(function (p) {
+                    return h('div', { key: p.slot },
+                        h('span', null, p.slot), h('em', null, itemLabel(p.id)));
+                }),
+                s.baits.length
+                    ? h('div', null, h('span', null, 'Köder'),
+                        h('em', null, s.baits.map(itemLabel).join(', ')))
+                    : null),
+            h('div', { className: 'ft' },
+                typeof s.hookSize === 'number' ? h('span', null, 'Hakenstufe ', h('b', null, s.hookSize)) : null,
+                typeof s.depth === 'number' ? h('span', null, 'Tiefe ', h('b', null, s.depth)) : null,
+                typeof s.weight === 'number' ? h('span', null, 'Schrot ', h('b', null, s.weight)) : null));
+    }));
+}
+
 /* ---------------------------------------------------------- Statistikseite */
 
 function fmtTime(sec) {
@@ -1009,7 +1111,8 @@ function fmtNum(n, d) {
 
 function StatsPage(props) {
     const stats = props.stats;
-    const [tab, setTab] = useState(props.tab === 'fische' ? 'arten' : 'reviere');
+    const TABS = { fische: 'arten', arten: 'arten', sets: 'sets', vergleich: 'vergleich', reviere: 'reviere' };
+    const [tab, setTab] = useState(TABS[props.tab] || 'reviere');
 
     if (!stats || !stats.player) {
         return h('div', { className: 'ufs-spotcard' },
@@ -1018,8 +1121,14 @@ function StatsPage(props) {
                 'Diese Seite wird vollständig aus deinem Spielstand gefüllt: Fänge je Revier, Bisse, ' +
                 'Angelzeit, Punkte und dein größter Fisch je Art. Es wird nichts hochgeladen, die Datei ' +
                 'wird nur im Browser gelesen.'),
-            h('button', { className: 'ufs-btn primary', onClick: props.onImport },
-                h(Icon, { name: 'import' }), 'Spielstand laden'));
+            h('div', { className: 'ufs-row' },
+                h('button', { className: 'ufs-btn primary', onClick: props.onImport },
+                    h(Icon, { name: 'import' }), 'Spielstand laden')),
+            (props.profiles || []).length > 1
+                ? h('div', { style: { marginTop: '1rem' } },
+                    h('h3', null, 'Vergleich'),
+                    h(ComparePage, { profiles: props.profiles, activeId: props.activeId, lang: props.lang }))
+                : null);
     }
 
     const p = stats.player;
@@ -1052,10 +1161,33 @@ function StatsPage(props) {
         h('div', { className: 'ufs-row', style: { margin: '1rem 0 .8rem' } },
             h(Toggle, { active: tab === 'reviere', onClick: function () { setTab('reviere'); } }, 'Reviere'),
             h(Toggle, { active: tab === 'arten', onClick: function () { setTab('arten'); } }, 'Größte Fische'),
+            h(Toggle, { active: tab === 'sets', onClick: function () { setTab('sets'); } }, 'Rutensets'),
+            h(Toggle, { active: tab === 'vergleich', onClick: function () { setTab('vergleich'); } }, 'Vergleich'),
             h('button', { className: 'ufs-btn', onClick: props.onImport }, h(Icon, { name: 'import' }), 'Spielstand neu laden')),
 
+        tab === 'sets'
+            ? h('div', null,
+                h(RodSets, { sets: p.sets }),
+                !p.sets || !p.sets.length
+                    ? h('div', { className: 'ufs-note' }, 'Der Spielstand enthält keine gespeicherten Rutensets.')
+                    : h('div', { className: 'ufs-muted', style: { fontSize: '11.5px', marginTop: '.7rem', lineHeight: 1.55 } },
+                        'Die fünf Sets aus dem Spiel mit Rute, Rolle, Schnur, Pose, Haken, Ködern und Montage. ' +
+                        'Hakenstufe, Tiefe und Schrot sind die zuletzt eingestellten Werte des jeweiligen Sets.'),
+                p.owned && Object.keys(p.owned).length
+                    ? h('div', { className: 'ufs-spotcard', style: { marginTop: '.9rem' } },
+                        h('h3', null, 'Gekaufte Ausrüstung'),
+                        h('div', { className: 'ufs-row' },
+                            Object.keys(p.owned).sort(function (a, b) { return p.owned[b] - p.owned[a]; })
+                                .map(function (c) {
+                                    return h('span', { key: c, className: 'ufs-chip' }, categoryLabel(c) + ': ' + p.owned[c]);
+                                })))
+                    : null)
+            : null,
+
+        tab === 'vergleich' ? h(ComparePage, { profiles: props.profiles, activeId: props.activeId, lang: props.lang }) : null,
+
         tab === 'reviere'
-            ? h('div', { className: 'ufs-spotcard' },
+            ? h('div', { className: 'ufs-spotcard', key: 'rev' },
                 h('table', { className: 'ufs-rec' },
                     h('thead', null, h('tr', null,
                         h('th', null, 'Revier'), h('th', null, 'Fische'), h('th', null, 'Bisse'),
@@ -1085,7 +1217,7 @@ function StatsPage(props) {
                             h('td', { className: 'num' }, fmtNum(totals.weight, 1) + ' kg'),
                             h('td', { className: 'num' }, ''),
                             h('td', { className: 'num' }, fmtNum(totals.score))))))
-            : h('div', { className: 'ufs-spotcard' },
+            : tab === 'arten' ? h('div', { className: 'ufs-spotcard' },
                 h('table', { className: 'ufs-rec' },
                     h('thead', null, h('tr', null,
                         h('th', null, 'Art'), h('th', null, 'Dein Rekord'), h('th', null, 'Möglich'),
@@ -1108,7 +1240,79 @@ function StatsPage(props) {
                             h('td', { className: 'num' }, fmtNum(r.b.count)),
                             h('td', { className: 'num' }, r.b.sum ? fmtNum(r.b.sum, 1) + ' kg' : '–'),
                             h('td', { className: 'sub' }, fisheryLabel(r.b.fishery) || '–'));
-                    })))));
+                    }))))
+            : null);
+}
+
+/* --------------------------------------------------------- Profilvergleich */
+
+/** Kennzahlen eines Profils für die Rangliste. */
+function profileMetrics(p) {
+    const st = p.stats;
+    const m = {
+        name: p.name, id: p.id, species: 0, fish: 0, weight: 0, time: 0,
+        bigW: 0, bigWkey: null, bigL: 0, bigLkey: null, score: 0
+    };
+    m.species = Object.keys(p.caught || {}).length;
+    Object.keys(p.bests || {}).forEach(function (k) {
+        const b = p.bests[k];
+        if (b.weight && b.weight > m.bigW) { m.bigW = b.weight; m.bigWkey = k; }
+        if (b.length && b.length > m.bigL) { m.bigL = b.length; m.bigLkey = k; }
+    });
+    if (st) {
+        m.score = (st.player && st.player.score) || 0;
+        Object.keys(st.fisheries || {}).forEach(function (id) {
+            m.fish += st.fisheries[id].fish;
+            m.weight += st.fisheries[id].weight;
+            m.time += st.fisheries[id].time;
+        });
+    }
+    return m;
+}
+
+function ComparePage(props) {
+    const rows = (props.profiles || []).map(profileMetrics);
+    if (rows.length < 2) {
+        return h('div', { className: 'ufs-note' },
+            'Für einen Vergleich braucht es mindestens zwei Profile. Lege oben rechts ein weiteres Profil an ' +
+            'und lade dort den Spielstand des anderen Anglers – oder importiere eine Profildatei, die dir jemand geschickt hat.');
+    }
+    const best = {
+        fish: Math.max.apply(null, rows.map(function (r) { return r.fish; })),
+        species: Math.max.apply(null, rows.map(function (r) { return r.species; })),
+        weight: Math.max.apply(null, rows.map(function (r) { return r.weight; })),
+        bigW: Math.max.apply(null, rows.map(function (r) { return r.bigW; })),
+        bigL: Math.max.apply(null, rows.map(function (r) { return r.bigL; })),
+        score: Math.max.apply(null, rows.map(function (r) { return r.score; }))
+    };
+    function cell(v, isBest, text) {
+        return h('td', { className: cn('num', isBest && 'win') }, (isBest ? '★ ' : '') + text);
+    }
+    const sorted = rows.slice().sort(function (a, b) { return b.fish - a.fish; });
+
+    return h('div', { className: 'ufs-spotcard' },
+        h('table', { className: 'ufs-rec' },
+            h('thead', null, h('tr', null,
+                h('th', null, 'Profil'), h('th', null, 'Arten'), h('th', null, 'Fische'),
+                h('th', null, 'Gewicht'), h('th', null, 'Schwerster'), h('th', null, 'Längster'),
+                h('th', null, 'Punkte'), h('th', null, 'Zeit'))),
+            h('tbody', null, sorted.map(function (r) {
+                return h('tr', { key: r.id },
+                    h('td', { className: cn('n', r.id === props.activeId && 'done') },
+                        (r.id === props.activeId ? '▸ ' : '') + r.name),
+                    cell(r.species, r.species === best.species && r.species > 0, fmtNum(r.species)),
+                    cell(r.fish, r.fish === best.fish && r.fish > 0, fmtNum(r.fish)),
+                    cell(r.weight, r.weight === best.weight && r.weight > 0, fmtNum(r.weight, 1) + ' kg'),
+                    cell(r.bigW, r.bigW === best.bigW && r.bigW > 0,
+                        r.bigW ? r.bigW.toFixed(2) + ' kg' + (r.bigWkey ? ' (' + speciesName(r.bigWkey, props.lang) + ')' : '') : '–'),
+                    cell(r.bigL, r.bigL === best.bigL && r.bigL > 0,
+                        r.bigL ? Math.round(r.bigL * 100) + ' cm' + (r.bigLkey ? ' (' + speciesName(r.bigLkey, props.lang) + ')' : '') : '–'),
+                    cell(r.score, r.score === best.score && r.score > 0, fmtNum(r.score)),
+                    h('td', { className: 'num' }, fmtTime(r.time)));
+            }))),
+        h('div', { className: 'ufs-muted', style: { fontSize: '11.5px', marginTop: '.7rem', lineHeight: 1.55 } },
+            '★ markiert den jeweiligen Spitzenreiter. Die Profile liegen nur in diesem Browser. ' +
+            'Über „Profil teilen" bekommst du eine Datei, die jemand anders bei sich einlesen kann.'));
 }
 
 function Stat(props) {
@@ -1228,6 +1432,94 @@ function SpeciesPage(props) {
         })));
 }
 
+/* --------------------------------------------------------- Profilspeicher */
+
+function newId() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+/** Profile laden; ältere Einzelschlüssel werden einmalig übernommen. */
+function loadProfiles() {
+    try {
+        const p = JSON.parse(localStorage.getItem('ufs-profiles') || 'null');
+        if (p && p.list && p.list.length) return p;
+    } catch (e) { /* fällt auf die Migration zurück */ }
+    let caught = {}, bests = {}, stats = null;
+    try { caught = JSON.parse(localStorage.getItem('ufs-caught') || '{}'); } catch (e) { }
+    try { bests = JSON.parse(localStorage.getItem('ufs-bests') || '{}'); } catch (e) { }
+    try { stats = JSON.parse(localStorage.getItem('ufs-stats') || 'null'); } catch (e) { }
+    const id = newId();
+    const name = (stats && stats.player && stats.player.name) || 'Mein Profil';
+    return { active: id, list: [{ id: id, name: name, caught: caught, bests: bests, stats: stats }] };
+}
+
+function ProfileBar(props) {
+    const [open, setOpen] = useState(false);
+    const fileRef = useRef(null);
+    const p = props.profiles, act = props.active;
+
+    function share() {
+        const blob = new Blob([JSON.stringify({ ufsProfile: 1, profile: act })], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'ufs-profil-' + act.name.replace(/[^\w-]+/g, '_') + '.json';
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+    }
+    function readFile(e) {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        const rd = new FileReader();
+        rd.onload = function () {
+            try {
+                const j = JSON.parse(rd.result);
+                if (!j || !j.profile) throw new Error('kein Profil');
+                props.onAdd(Object.assign({}, j.profile, { id: newId() }));
+                setOpen(false);
+            } catch (err) { alert('Datei konnte nicht gelesen werden: ' + err.message); }
+        };
+        rd.readAsText(f);
+    }
+
+    return h('div', { className: 'ufs-profile' },
+        h('button', {
+            className: cn('ufs-btn', open && 'primary'),
+            onClick: function () { setOpen(!open); },
+            title: 'Profil wechseln'
+        }, '◔ ', act ? act.name : 'Profil', p.list.length > 1 ? ' (' + p.list.length + ')' : ''),
+        open ? h('div', { className: 'ufs-profilemenu' },
+            p.list.map(function (x) {
+                return h('button', {
+                    key: x.id,
+                    className: cn('row', x.id === p.active && 'on'),
+                    onClick: function () { props.onSwitch(x.id); setOpen(false); }
+                },
+                    h('span', null, (x.id === p.active ? '▸ ' : '') + x.name),
+                    h('em', null, Object.keys(x.caught || {}).length + ' Arten'));
+            }),
+            h('div', { className: 'sep' }),
+            h('button', {
+                className: 'row', onClick: function () {
+                    const n = prompt('Name des neuen Profils?');
+                    if (n) { props.onAdd({ id: newId(), name: n, caught: {}, bests: {}, stats: null }); setOpen(false); }
+                }
+            }, h('span', null, '+ Neues Profil')),
+            h('button', {
+                className: 'row', onClick: function () {
+                    const n = prompt('Profil umbenennen:', act.name);
+                    if (n) props.onRename(n);
+                }
+            }, h('span', null, 'Umbenennen')),
+            h('button', { className: 'row', onClick: share }, h('span', null, 'Profil teilen (Datei)')),
+            h('button', { className: 'row', onClick: function () { fileRef.current.click(); } },
+                h('span', null, 'Profil einlesen')),
+            p.list.length > 1 ? h('button', {
+                className: 'row danger', onClick: function () {
+                    if (confirm('Profil „' + act.name + '" löschen?')) { props.onDelete(); setOpen(false); }
+                }
+            }, h('span', null, 'Profil löschen')) : null,
+            h('input', { ref: fileRef, type: 'file', accept: '.json', className: 'ufs-file', onChange: readFile })
+        ) : null);
+}
+
 /* ------------------------------------------------------------------- App */
 
 function App() {
@@ -1252,21 +1544,25 @@ function App() {
     const [favorites, setFavorites] = useState(function () {
         try { return JSON.parse(localStorage.getItem('ufs-favs') || '[]'); } catch (e) { return []; }
     });
-    const [caught, setCaught] = useState(function () {
-        try { return JSON.parse(localStorage.getItem('ufs-caught') || '{}'); } catch (e) { return {}; }
-    });
-    const [bests, setBests] = useState(function () {
-        try { return JSON.parse(localStorage.getItem('ufs-bests') || '{}'); } catch (e) { return {}; }
-    });
-    const [saveStats, setSaveStats] = useState(function () {
-        try { return JSON.parse(localStorage.getItem('ufs-stats') || 'null'); } catch (e) { return null; }
-    });
+    const [profiles, setProfiles] = useState(loadProfiles);
+    const activeProfile = profiles.list.filter(function (x) { return x.id === profiles.active; })[0] || profiles.list[0];
+    const caught = activeProfile.caught || {};
+    const bests = activeProfile.bests || {};
+    const saveStats = activeProfile.stats || null;
+
+    /** Ändert nur das aktive Profil. */
+    function patchActive(patch) {
+        setProfiles(function (p) {
+            return {
+                active: p.active,
+                list: p.list.map(function (x) { return x.id === p.active ? Object.assign({}, x, patch) : x; })
+            };
+        });
+    }
     const searchRef = useRef(null);
 
     useEffect(function () { localStorage.setItem('ufs-favs', JSON.stringify(favorites)); }, [favorites]);
-    useEffect(function () { localStorage.setItem('ufs-caught', JSON.stringify(caught)); }, [caught]);
-    useEffect(function () { localStorage.setItem('ufs-bests', JSON.stringify(bests)); }, [bests]);
-    useEffect(function () { localStorage.setItem('ufs-stats', JSON.stringify(saveStats)); }, [saveStats]);
+    useEffect(function () { localStorage.setItem('ufs-profiles', JSON.stringify(profiles)); }, [profiles]);
     useEffect(function () { localStorage.setItem('ufs-lang', lang); }, [lang]);
     useEffect(function () {
         function fn(e) {
@@ -1401,22 +1697,19 @@ function App() {
         setFavorites(function (x) { return x.indexOf(id) >= 0 ? x.filter(function (y) { return y !== id; }) : x.concat([id]); });
     }
     function toggleCatch(key) {
-        setCaught(function (c) {
-            const n = {};
-            Object.keys(c).forEach(function (k) { n[k] = c[k]; });
-            if (n[key]) delete n[key]; else n[key] = true;
-            return n;
-        });
+        const n = {};
+        Object.keys(caught).forEach(function (k) { n[k] = caught[k]; });
+        if (n[key]) delete n[key]; else n[key] = true;
+        patchActive({ caught: n });
     }
+    /** Ein Import ersetzt den Stand des aktiven Profils vollständig. */
     function applyImport(res) {
-        setCaught(function (c) {
-            const n = {};
-            Object.keys(c).forEach(function (k) { n[k] = c[k]; });
-            Object.keys(res.caught).forEach(function (k) { n[k] = true; });
-            return n;
+        patchActive({
+            caught: res.caught,
+            bests: res.bests,
+            stats: { player: res.player, fisheries: res.fisheries, bests: res.bests, total: res.total },
+            name: (res.player && res.player.name) || activeProfile.name
         });
-        setBests(res.bests);
-        setSaveStats({ player: res.player, fisheries: res.fisheries, bests: res.bests, total: res.total });
     }
 
     const grouped = D.maps.reduce(function (a, m) { (a[m.group] = a[m.group] || []).push(m); return a; }, {});
@@ -1477,6 +1770,18 @@ function App() {
                         className: cn('ufs-btn', view === 'stats' && 'primary'),
                         onClick: function () { setView('stats'); }
                     }, h(Icon, { name: 'scale' }), 'Statistik'),
+                    h(ProfileBar, {
+                        profiles: profiles, active: activeProfile,
+                        onSwitch: function (id) { setProfiles(function (p) { return { active: id, list: p.list }; }); },
+                        onAdd: function (prof) { setProfiles(function (p) { return { active: prof.id, list: p.list.concat([prof]) }; }); },
+                        onRename: function (n) { patchActive({ name: n }); },
+                        onDelete: function () {
+                            setProfiles(function (p) {
+                                const rest = p.list.filter(function (x) { return x.id !== p.active; });
+                                return { active: rest[0].id, list: rest };
+                            });
+                        }
+                    }),
                     h('span', { className: 'ufs-chip ufs-mono', title: 'Gefangene Arten insgesamt' }, '✓ ' + allDone + ' / ' + allKeys.length),
                     h('button', { className: 'ufs-btn', onClick: function () { setImportOpen(true); } }, h(Icon, { name: 'import' }), 'Spielstand'),
                     h('button', { className: 'ufs-btn', onClick: function () { setSourceOpen(true); } }, h(Icon, { name: 'source' }), 'Quellen')))),
@@ -1519,6 +1824,7 @@ function App() {
                 view === 'bait' ? h(BaitPage, { lang: lang })
                 : view === 'stats' ? h(StatsPage, {
                     stats: saveStats, lang: lang, tab: statsTab,
+                    profiles: profiles.list, activeId: profiles.active,
                     onImport: function () { setImportOpen(true); },
                     onOpenMap: function (id) { setSelectedMap(id); setView('map'); },
                     onOpenSpecies: function (k) { setOpenSpecies(k); setView('arten'); }

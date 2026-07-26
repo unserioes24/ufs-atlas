@@ -169,6 +169,49 @@
   color: #64748b; pointer-events: none; letter-spacing: .04em;
 }
 
+/* ---------------------------------------------------------------- Profile */
+.ufs-profile { position: relative; }
+.ufs-profilemenu {
+  position: absolute; right: 0; top: calc(100% + .4rem); z-index: 50; min-width: 250px;
+  background: #08141c; border: 1px solid var(--ufs-line); border-radius: 16px;
+  padding: .35rem; box-shadow: 0 20px 60px rgba(0, 0, 0, .65);
+}
+.ufs-profilemenu .row {
+  display: flex; justify-content: space-between; align-items: center; gap: .8rem; width: 100%;
+  background: none; border: 0; text-align: left; cursor: pointer;
+  padding: .45rem .6rem; border-radius: 10px; font-size: 12.5px; color: #cbd5e1;
+}
+.ufs-profilemenu .row:hover { background: rgba(255, 255, 255, .06); color: #fff; }
+.ufs-profilemenu .row.on { background: rgba(34, 211, 238, .12); color: #cffafe; }
+.ufs-profilemenu .row.danger:hover { background: rgba(244, 63, 94, .14); color: #fecdd3; }
+.ufs-profilemenu .row em { font-style: normal; font-size: 10.5px; color: #64748b; }
+.ufs-profilemenu .sep { height: 1px; background: var(--ufs-line); margin: .3rem .2rem; }
+
+/* ------------------------------------------------------------- Rutensets */
+.ufs-setgrid { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.ufs-setcard {
+  border: 1px solid var(--ufs-line); background: var(--ufs-panel-2);
+  border-radius: 16px; padding: .7rem .85rem;
+}
+.ufs-setcard .hd {
+  font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+  color: #67e8f9; margin-bottom: .5rem;
+}
+.ufs-setcard .rows > div {
+  display: flex; justify-content: space-between; gap: .7rem; font-size: 12px;
+  padding: .2rem 0; border-bottom: 1px solid rgba(255, 255, 255, .05);
+}
+.ufs-setcard .rows > div:last-child { border-bottom: 0; }
+.ufs-setcard .rows span { color: #64748b; }
+.ufs-setcard .rows em { font-style: normal; color: #e2e8f0; text-align: right; }
+.ufs-setcard .ft {
+  display: flex; flex-wrap: wrap; gap: .7rem; margin-top: .55rem; padding-top: .5rem;
+  border-top: 1px solid var(--ufs-line); font-size: 11px; color: #64748b;
+}
+.ufs-setcard .ft b { color: #7dd3fc; font-variant-numeric: tabular-nums; }
+
+.ufs-rec td.win { color: #6ee7b7; font-weight: 700; }
+
 /* -------------------------------------------------------------- Statistik */
 .ufs-statgrid { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .ufs-stat {
