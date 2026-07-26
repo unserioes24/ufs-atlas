@@ -341,12 +341,143 @@ $gl.categories = @(
     [pscustomobject]@{ key = 'gear';    title = 'Montage & Ausrüstung'; note = ''; items = CatItems '^EQUIPMENT/(HOOK|FLOAT|FEEDER|LINE|REEL|ROD|ROD_POD|BITE_INDICATOR|FLOAT_WEIGHT|FISHING_NET)S?$' }
 )
 
+# ------------------------------------ 3b) Köder und Bissmodell aus den Prefabs
+# baits.ps1 liefert je Köder-Prefab die Liste fishInterests, bitecurves.ps1 je
+# Art die neun Gewichtungskurven. Beides wird hier zusammengefasst:
+#  - Prefabs, die sich nur in der laufenden Nummer unterscheiden, werden zu
+#    einem Eintrag verschmolzen (BellamySwimJig_01..03 ist derselbe Köder),
+#  - die Interessen kommen als "Index:Prozent"-Liste in die Datei, sonst wäre
+#    sie um ein Vielfaches größer,
+#  - von den Kurven bleiben die drei, die überhaupt bespielt sind.
+
+function BaitNorm($s) {
+    $x = ($s -replace '[^A-Za-z0-9]', '').ToLower()
+    $x = $x -replace '\d+$', ''
+    return ($x -replace 's$', '')
+}
+# Schreibweisen, die zwischen Prefab und Lokalisierung auseinanderlaufen
+$BAIT_ALIAS = @{
+    'gingerbreadherbal' = 'gingerherbal'
+    'youngfishl' = 'youngfishlarge'; 'youngfishm' = 'youngfishmedium'; 'youngfishs' = 'youngfishsmall'
+}
+# Fliegentypen tragen keinen Ausrüstungsnamen, nur den Typ
+$FLY_NAMES = @{
+    'FlyDry' = @('Dry fly', 'Trockenfliege'); 'FlyWet' = @('Wet fly', 'Nassfliege')
+    'FlyNymph' = @('Nymph', 'Nymphe'); 'FlyStreamer' = @('Streamer', 'Streamer')
+}
+
+$baitTerm = @{}
+foreach ($tk in $terms.Keys) {
+    if ($tk -notmatch '^EQUIPMENT/(NATURAL_BAITS|BOILIE)/') { continue }
+    $kind = if ($tk -like '*BOILIE*') { 'boilie' } else { 'natural' }
+    $n = BaitNorm (($tk -split '/')[-1])
+    if ($n -and -not $baitTerm.ContainsKey($n)) {
+        $baitTerm[$n] = [pscustomobject]@{ en = $terms[$tk].en; de = $terms[$tk].de; kind = $kind }
+    }
+}
+
+# Die Interessenliste nennt Arten teils unter einem Varianten-Schlüssel
+# (TENCH_B) oder umgekehrt ohne den, den die Artenliste führt (RED_DRUM neben
+# RED_DRUM_D). Beides wird auf den Schlüssel der Artenliste gezogen.
+$SPECIES_ALIAS = @{
+    'ATLANTIC_GOLIATH_GROUPER' = 'GIANT_GROUPER_D'; 'BLACK_DRUM' = 'DRUM_BLACK_D'
+    'GIANT_TRAVELLY' = 'GIANT_TREVALLY'; 'KOI_CARP' = 'CARP_KOI'; 'MAHI_MAHI' = 'DORADO'
+    'RED_LIONFISH' = 'COMMON_LIONFISH'; 'GREAT_BARRACUDA_FLORIDA' = 'BARRACUDA'
+}
+$speciesAlias = @{}
+function BaitSpeciesKey($k) {
+    if ($speciesAlias.ContainsKey($k)) { return $speciesAlias[$k] }
+    $res = $null
+    if ($k -like 'old_*') { $res = $null }                       # verworfene Altbestände
+    elseif ($species.Contains($k)) { $res = $k }
+    elseif ($SPECIES_ALIAS.ContainsKey($k) -and $species.Contains($SPECIES_ALIAS[$k])) { $res = $SPECIES_ALIAS[$k] }
+    elseif ($k -match '^(.*)_FLORIDA$' -and $species.Contains($Matches[1])) { $res = $Matches[1] }
+    elseif ($k -match '^(.*)_[A-Z]{1,2}$' -and $species.Contains($Matches[1])) { $res = $Matches[1] }
+    else {
+        foreach ($cand in $species.Keys) {
+            if ($cand -like "$k`_*") { $res = $cand; break }
+        }
+    }
+    $speciesAlias[$k] = $res
+    return $res
+}
+
+$baits = [ordered]@{}
+$baitSpecies = @()
+$baitSpeciesIdx = @{}
+$baitDropped = @{}
+$baitFile = Join-Path $sp 'baits.json'
+if (Test-Path $baitFile) {
+    $raw = Get-Content $baitFile -Raw | ConvertFrom-Json
+    foreach ($p in $raw.PSObject.Properties) {
+        $base = $p.Name -replace '^(Bait_|Boilie_)', '' -replace '_\d+$', ''
+        if ($baits.Contains($base)) { continue }
+
+        $n = BaitNorm $base
+        if ($BAIT_ALIAS.ContainsKey($n)) { $n = $BAIT_ALIAS[$n] }
+        $t = $baitTerm[$n]
+        if ($t) { $en = $t.en; $de = $t.de; $kind = $t.kind }
+        elseif ($FLY_NAMES.ContainsKey($base)) { $en = $FLY_NAMES[$base][0]; $de = $FLY_NAMES[$base][1]; $kind = 'fly' }
+        else {
+            # Produktname: CamelCase auftrennen, Unterstriche zu Leerzeichen
+            $en = ($base -replace '_', ' ')
+            $en = [Regex]::Replace($en, '(?<=[a-z0-9])(?=[A-Z])', ' ')
+            $de = $en; $kind = 'lure'
+        }
+
+        # Varianten derselben Art zusammenfassen, der höhere Wert gewinnt
+        $merged = [ordered]@{}
+        foreach ($f in $p.Value.fish.PSObject.Properties) {
+            $v = [double]$f.Value
+            if ($v -lt 0.05) { continue }
+            $sk = BaitSpeciesKey $f.Name
+            if (-not $sk) { $baitDropped[$f.Name] = $true; continue }
+            if (-not $merged.Contains($sk) -or $merged[$sk] -lt $v) { $merged[$sk] = $v }
+        }
+        $pairs = @()
+        foreach ($sk in $merged.Keys) {
+            if (-not $baitSpeciesIdx.ContainsKey($sk)) {
+                $baitSpeciesIdx[$sk] = $baitSpecies.Count
+                $baitSpecies += $sk
+            }
+            $pairs += ('{0}:{1}' -f $baitSpeciesIdx[$sk], [int][Math]::Round($merged[$sk] * 100))
+        }
+        if ($pairs.Count -eq 0) { continue }
+        $baits[$base] = [ordered]@{ en = $en; de = $de; kind = $kind; i = ($pairs -join ',') }
+    }
+    Write-Host "Köder: $($baits.Count)   Arten in den Tabellen: $($baitSpecies.Count)"
+    if ($baitDropped.Count) {
+        Write-Host ("  ohne Entsprechung in der Artenliste: " + (($baitDropped.Keys | Sort-Object) -join ', '))
+    }
+}
+
+# Nur die drei Kurven, die je Art überhaupt gefüllt sind.
+$curveFile = Join-Path $sp 'bitecurves.json'
+if (Test-Path $curveFile) {
+    $bc = Get-Content $curveFile -Raw | ConvertFrom-Json
+    foreach ($p in $bc.PSObject.Properties) {
+        if (-not $species.Contains($p.Name)) { continue }
+        $bite = [ordered]@{}
+        foreach ($cn in 'wind', 'cloudiness', 'rain') {
+            $cv = $p.Value.curves.$cn
+            if (-not $cv) { continue }
+            $flat = $true
+            foreach ($pt in $cv) { if ([Math]::Abs($pt[1] - 1) -gt 0.001) { $flat = $false; break } }
+            if ($flat) { continue }
+            $bite[$cn] = @($cv | ForEach-Object { , @([Math]::Round($_[0], 2), [Math]::Round($_[1], 2)) })
+        }
+        if ($bite.Count) { $species[$p.Name].bite = $bite }
+    }
+}
+
 $data = [ordered]@{
-    generated = (Get-Date -Format 'yyyy-MM-dd')
-    source    = 'Ultimate Fishing Simulator, Spieldateien (Unity 2017.4.29f1)'
-    species   = $species
-    fisheries = $fisheries
-    glossary  = $gl
+    generated   = (Get-Date -Format 'yyyy-MM-dd')
+    source      = 'Ultimate Fishing Simulator, Spieldateien (Unity 2017.4.29f1)'
+    species     = $species
+    fisheries   = $fisheries
+    glossary    = $gl
+    baitSpecies = $baitSpecies
+    baits       = $baits
 }
 $json = $data | ConvertTo-Json -Depth 12 -Compress
 [IO.File]::WriteAllText("$proj\gamedata.json", $json)

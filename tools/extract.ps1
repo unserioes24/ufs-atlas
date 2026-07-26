@@ -107,6 +107,8 @@ foreach ($m in $MAPS) {
 
 # ------------------------------------------- 5) Zusammenführen zu gamedata
 Write-Host "`n[5/6] Datenaufbereitung" -ForegroundColor Cyan
+& "$PSScriptRoot\baits.ps1"      -Work $Work -Game $Game
+& "$PSScriptRoot\bitecurves.ps1" -Work $Work
 & "$PSScriptRoot\build.ps1"  -Work $Work -Proj $Proj
 & "$PSScriptRoot\build2.ps1" -Work $Work -Proj $Proj
 
