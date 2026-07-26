@@ -41,9 +41,45 @@ Object.keys(SPECIES).forEach(function (k) {
     if (s.de && !deIndex[norm(s.de)]) deIndex[norm(s.de)] = k;
 });
 
+/* Der Guide nennt einige Arten anders als das Spiel: teils eine Kurzform,
+   teils den gebräuchlicheren Handelsnamen. */
+const NAME_ALIAS = {
+    apapa: 'APAPA',                     // im Spiel „Apapá“
+    grayling: 'WHITE_GRAYLING',         // Baikal, im Spiel „White Grayling“
+    commonbleak: 'BLEAK',
+    longfineel: 'LONGFIN_EEL',          // im Spiel „New Zealand longfin eel“
+    redlionfish: 'COMMON_LIONFISH',
+    graysnapper: 'GREY_SNAPER'          // Schreibweise des Spiels
+};
+
+/* Manche Fische stecken doppelt in den Spieldaten, einmal je Revier-Generation.
+   Steht die eine Fassung nicht im Revier, ist die andere gemeint. */
+const EQUIV = [
+    ['GREAT_BARRACUDA', 'BARRACUDA'],
+    ['GRAY_SNAPPER_C', 'GREY_SNAPER'],
+    ['GIANT_GROUPER', 'GIANT_GROUPER_D'],
+    ['BLACKTIP_REEF_SHARK', 'BLACKTIP_SHARK_D']
+];
+
 /** Guide-Eintrag -> Artenschlüssel der Spieldaten (oder null). */
-function speciesKey(name, de) {
-    return enIndex[norm(name)] || deIndex[norm(de)] || enIndex[norm(de)] || deIndex[norm(name)] || null;
+function speciesKey(name, de, mapId) {
+    let k = NAME_ALIAS[norm(name)] || NAME_ALIAS[norm(de)]
+        || enIndex[norm(name)] || deIndex[norm(de)] || enIndex[norm(de)] || deIndex[norm(name)] || null;
+    if (!k || !mapId) return k;
+
+    // Führt der Schlüssel in diesem Revier ins Leere, die Zwillingsart nehmen.
+    const fy = FISHERIES[mapId];
+    if (!fy) return k;
+    const here = {};
+    fy.species.forEach(function (g) { here[g.s] = true; });
+    if (here[k]) return k;
+    for (let i = 0; i < EQUIV.length; i++) {
+        if (EQUIV[i].indexOf(k) < 0) continue;
+        for (let j = 0; j < EQUIV[i].length; j++) {
+            if (here[EQUIV[i][j]]) return EQUIV[i][j];
+        }
+    }
+    return k;
 }
 function speciesName(key, lang) {
     const s = SPECIES[key];
@@ -1320,7 +1356,7 @@ function GlobalOverview(props) {
 const SPECIES_GUIDE = (function () {
     const out = {};
     D.fish.forEach(function (f) {
-        const k = speciesKey(f.name, f.de);
+        const k = speciesKey(f.name, f.de, f.mapId);
         if (!k) return;
         const e = out[k] = out[k] || { baits: {}, methods: {}, hooks: {}, maps: {}, retrieves: {}, depths: {} };
         String(f.bait || '').split(/[,;/]| oder /).forEach(function (b) {
@@ -2125,7 +2161,7 @@ function App() {
 
         const used = {};
         const list = guide.map(function (f) {
-            const key = speciesKey(f.name, f.de);
+            const key = speciesKey(f.name, f.de, f.mapId);
             if (key) used[key] = true;
             return { f: f, key: key, game: key ? gameByKey[key] : null, gameOnly: false };
         });
@@ -2191,7 +2227,7 @@ function App() {
         Object.keys(FISHERIES).forEach(function (id) {
             FISHERIES[id].species.forEach(function (g) { s[g.s] = true; });
         });
-        D.fish.forEach(function (f) { const k = speciesKey(f.name, f.de); if (k) s[k] = true; });
+        D.fish.forEach(function (f) { const k = speciesKey(f.name, f.de, f.mapId); if (k) s[k] = true; });
         return Object.keys(s);
     }, []);
     const allDone = allKeys.filter(function (k) { return caught[k]; }).length;
@@ -2307,7 +2343,7 @@ function App() {
                                 if (fy) fy.species.forEach(function (g) { keys[g.s] = true; });
                                 D.fish.forEach(function (f) {
                                     if (f.mapId !== m.id) return;
-                                    const k = speciesKey(f.name, f.de);
+                                    const k = speciesKey(f.name, f.de, f.mapId);
                                     if (k) keys[k] = true;
                                 });
                                 const ks = Object.keys(keys);

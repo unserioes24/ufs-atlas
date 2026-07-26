@@ -2541,27 +2541,6 @@
     },
     {
       "mapId": "greenland",
-      "name": "Atlantic Halibut",
-      "de": "",
-      "spots": "Sea",
-      "hook": "#11/0–#12/0",
-      "bait": "Live Bait, Cutbait Big/Small",
-      "groundbait": "Bloody Salmon",
-      "depth": "Küstenzone; Sculpin/Redfish eher grundnah",
-      "method": "Naturköder / Kunstköder",
-      "retrieve": "Grundfischen",
-      "time": "variabel",
-      "notes": "",
-      "confidence": "mittel",
-      "sources": [
-        "greenland"
-      ],
-      "dlc": null,
-      "tags": [],
-      "id": "greenland-101-atlantic-halibut"
-    },
-    {
-      "mapId": "greenland",
       "name": "Atlantic Salmon",
       "de": "",
       "spots": "Spots 1–4, 7 und Sea",

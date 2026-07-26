@@ -19,9 +19,9 @@ Zwischenergebnisse landen in `tools/_work/` und können gelöscht werden.
 | --- | --- |
 | Spotnummern und ihre Position auf der Karte | `MapButton`-Objekte im UI der jeweiligen Szene, Position relativ zu `MapImage` |
 | Sommer- und Eis-Spots getrennt | jede Szene hat zwei Kartentafeln, `MapParentNormal` und `MapParentIce`, mit eigenen Buttons |
-| Zusatzarten des New-Fish-Species-DLC | Prefab-Verweise im `GameController` der Szene; diese Arten haben keine eigenen Spawner |
+| Zusatzarten des New-Fish-Species-DLC | `GameController.fishFromDLC`, Anteil aus `fishSpawnersDLCAmount` |
 | Weltkoordinaten eines Spots | Reiseziel (`QuickJump…`), auf das der Kartenbutton verweist |
-| Arten je Revier, Schwarmpunkte, Fischzahl | `FishSpawner_*`-Objekte samt Verweis auf das Fisch-Prefab |
+| Arten je Revier, Schwarmpunkte, Fischzahl | `FishSpawner_*`-Objekte: `fishPrefab` und die Liste `fishPrefabs` |
 | Gewicht, Länge, Beißzeitkurve | Fisch-Prefab in `sharedassets2.assets` (Feldversatz 592 ff., AnimationCurve über 0–24 h) |
 | Deutsche Namen, Beschreibungen, Ködernamen | I2-Localization-Tabelle in `resources.assets` (12 Sprachen) |
 | Kartenbilder | `Map*`-Texturen in den `sharedassets*.resS` (RGB24 bzw. DXT1) |
@@ -41,6 +41,22 @@ Zwischenergebnisse landen in `tools/_work/` und können gelöscht werden.
 - `build2.ps1` – führt alles zu `gamedata.json` zusammen, inklusive Namensauflösung auf
   Lokalisierungsschlüssel (dieselben Schlüssel nutzt auch der Spielstand).
 - `fishimg.ps1` – ordnet Fischtexturen den Arten zu und schneidet sie zu.
+
+## Spawner und DLC-Arten
+
+`FishSpawner` trägt drei Fischfelder, die Reihenfolge stammt aus `Assembly-CSharp.dll`:
+`fishPrefab` (ein Fisch), `fishPrefabs` (Liste, aus der gewürfelt wird) und `fishPrefabsDLC`.
+An Kariba, Grönland, Grönland-See und Thailand ist `fishPrefab` oft leer und nur die Liste
+gefüllt – wer sie überliest, verliert dort mehr als ein Dutzend Arten.
+
+`fishPrefabsDLC` ist in allen 17 Szenen leer, ebenso `GameController.fishSpawnersDLC`.
+Die Arten des New-Fish-Species-DLC haben also keine festen Plätze: `GameController.fishFromDLC`
+nennt nur, welche Arten ein Revier bekommt, und `fishSpawnersDLCAmount` (0,25 bis 0,40),
+welchen Anteil der gewöhnlichen Spawner das Spiel zur Laufzeit an sie abgibt. Betroffen sind
+allein die acht Basisreviere; die DLC-Karten führen keine Zusatzarten.
+
+`tools/dlcfish.ps1` und `tools/dlccheck.ps1` prüfen beides nach, `tools/guidecheck.ps1`
+vergleicht `data.json` gegen die Spieldateien.
 
 ## Grenzen
 

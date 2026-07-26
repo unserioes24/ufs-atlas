@@ -183,30 +183,47 @@ foreach ($fy in $FISH) {
         if ($ns -gt 0) { $e.sp = $ns; $e.d = [int]$nd }
         $spw += [pscustomobject]$e
 
-        if (-not $agg.ContainsKey($name)) { $agg[$name] = @{ points = 0; fish = 0; spots = @{} } }
-        $agg[$name].points++
-        $agg[$name].fish += $cnt
-        if ($ns -gt 0 -and $nd -lt 250) { $agg[$name].spots[$ns] = 1 + $(if ($agg[$name].spots.ContainsKey($ns)) { $agg[$name].spots[$ns] } else { 0 }) }
-        if (-not $speciesAgg.ContainsKey($name)) { $speciesAgg[$name] = @{} }
-        $speciesAgg[$name][$fy.k] = $true
+        # Spawner mit Artenliste würfeln unter mehreren Arten; die Fischzahl
+        # verteilt sich entsprechend, gezählt werden alle beteiligten Arten.
+        $share = $cnt / $names.Count
+        foreach ($nm in $names) {
+            if (-not $agg.ContainsKey($nm)) { $agg[$nm] = @{ points = 0.0; fish = 0.0; spots = @{} } }
+            $agg[$nm].points += 1.0 / $names.Count
+            $agg[$nm].fish += $share
+            if ($ns -gt 0 -and $nd -lt 250) { $agg[$nm].spots[$ns] = 1 + $(if ($agg[$nm].spots.ContainsKey($ns)) { $agg[$nm].spots[$ns] } else { 0 }) }
+            if (-not $speciesAgg.ContainsKey($nm)) { $speciesAgg[$nm] = @{} }
+            $speciesAgg[$nm][$fy.k] = $true
+        }
     }
     if ($bmp) { $bmp.Dispose() }
 
     $sl = @()
     foreach ($kv in ($agg.GetEnumerator() | Sort-Object { -$_.Value.fish })) {
         $topSpots = ($kv.Value.spots.GetEnumerator() | Sort-Object { -$_.Value } | Select-Object -First 6 | ForEach-Object { [int]$_.Key })
-        $sl += [pscustomobject][ordered]@{ s = $kv.Key; points = $kv.Value.points; fish = $kv.Value.fish; spots = @($topSpots) }
+        $sl += [pscustomobject][ordered]@{ s = $kv.Key; points = [Math]::Round($kv.Value.points); fish = [Math]::Round($kv.Value.fish); spots = @($topSpots) }
     }
 
-    # Zusatzarten des New-Fish-Species-DLC: im GameController hinterlegt, ohne Spawner.
+    # Zusatzarten des New-Fish-Species-DLC. Sie stehen im GameController unter
+    # fishFromDLC; feste Spawnplätze haben sie nicht, das Spiel überlässt ihnen
+    # zur Laufzeit den in fishSpawnersDLCAmount hinterlegten Anteil der übrigen.
+    # Aus den Kandidaten wird der genommen, dessen Verweise sich restlos als
+    # Fisch-Prefabs auflösen lassen.
     $dlcNames = @()
-    foreach ($r in $L.extraFish) {
-        $nm = ResolveRef $r $L.externals
-        if ($nm -and $dlcNames -notcontains $nm) { $dlcNames += $nm }
+    $dlcAmount = 0
+    foreach ($cand in $L.dlcCandidates) {
+        $names = @()
+        $allOk = $true
+        foreach ($r in $cand.fish) {
+            $nm = ResolveRef $r $L.externals
+            if (-not $nm) { $allOk = $false; break }
+            if ($names -notcontains $nm) { $names += $nm }
+        }
+        if ($allOk -and $names.Count -gt $dlcNames.Count) { $dlcNames = $names; $dlcAmount = $cand.amount }
     }
 
     $out[$fy.k] = [ordered]@{
         dlcSpecies = @($dlcNames)
+        dlcAmount  = $dlcAmount
         level    = $fy.lvl
         map      = "maps/$($fy.map).jpg"
         mapW     = $fy.mw

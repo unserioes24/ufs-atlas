@@ -42,6 +42,12 @@ $ALIAS = @{
     'AtlanticTarponFlorida'='ATLANTIC_TARPON_D'; 'TarponAtl'='ATLANTIC_TARPON_D'
     'TunnyLittle'='LITTLE_TUNNY_C'; 'TunaBlackfin'='BLACKFIN_TUNA_C'
     'GraySnapperFlorida'='GREY_SNAPER'; 'GreatBaracudaFlorida'='BARRACUDA'
+    # Florida führt einzelne Arten unter eigenen Prefabnamen, teils mit
+    # Ortszusatz oder Tiefenvariante.
+    'DrumBlack_D_under'='DRUM_BLACK_D'; 'AtlanticTarponDryTortugas'='ATLANTIC_TARPON_D'
+    'BlueMarlin_DryTortugas'='BLUE_MARLIN'
+    # Taupo nutzt ein gemeinsames Modell für Regenbogen- und Cutthroat-Forelle.
+    'TroutRain+Cut_D'='RAINBOW_TROUT'; 'TroutRain+Cut'='RAINBOW_TROUT'
 }
 $DROP = @('NearCoast','Test','Rig','Fish','SharkTest')
 
@@ -60,6 +66,7 @@ function ToKey($raw) {
     $n = ($raw -replace '\(Clone\)', '' -replace '\s*\(\d+\)\s*$', '').Trim()
     $n = $n -replace '\s+', ''
     $n = $n -replace '_\d+$', ''
+    $n = $n -replace '_[vV]\d+$', ''      # Versionszusatz, z. B. VunduCatfish_v1
     $base = $n
     if ($DROP -contains ($n -replace '_.*$', '')) { $resolveCache[$raw] = $null; return $null }
 

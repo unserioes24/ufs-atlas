@@ -281,10 +281,23 @@ namespace Ufs
             }
             j.Append(']');
 
-            // Der GameController der Szene listet die Zusatzarten des
-            // New-Fish-Species-DLC, die keine eigenen Spawner in der Szene haben.
-            j.Append(",\"extraFish\":[");
-            bool fx = true;
+            // Zusatzarten des New-Fish-Species-DLC. Im GameController stehen die
+            // drei Felder unmittelbar hintereinander:
+            //
+            //   List<Fish>        fishFromDLC
+            //   float             fishSpawnersDLCAmount
+            //   List<FishSpawner> fishSpawnersDLC
+            //
+            // Das ergibt die Folge [int n][n PPtr][float][int m]. Die Spawnerliste
+            // ist in allen Szenen leer (m == 0): das Spiel gibt den DLC-Arten zur
+            // Laufzeit einen Anteil der gewöhnlichen Spawner, feste Plätze haben
+            // sie nicht. Der Anteil steht in fishSpawnersDLCAmount.
+            // Das Muster ist schmal, aber nicht eindeutig: in einem Block von
+            // mehreren Kilobyte trifft es gelegentlich auch auf andere Felder zu.
+            // Deshalb kommen alle Kandidaten heraus; build.ps1 nimmt den, dessen
+            // Verweise sich sämtlich als Fisch-Prefabs auflösen lassen.
+            j.Append(",\"dlcCandidates\":[");
+            bool firstCand = true;
             foreach (var kv in goName)
             {
                 if (kv.Value != "GameController") continue;
@@ -293,17 +306,40 @@ namespace Ufs
                 foreach (long cid in cps2)
                 {
                     ObjInfo co;
-                    if (!sf.ById.TryGetValue(cid, out co) || co.ClassId != 114) continue;
+                    if (!sf.ById.TryGetValue(cid, out co) || co.ClassId != 114 || co.ByteSize < 300) continue;
                     byte[] d = sf.Read(co);
-                    for (int p = 0; p + 12 <= d.Length; p += 4)
+                    for (int p = 28; p + 12 <= d.Length; p += 4)
                     {
-                        int fid = BitConverter.ToInt32(d, p);
-                        if (fid < 1 || fid > sf.Externals.Count) continue;
-                        long pp = BitConverter.ToInt64(d, p + 4);
-                        if (pp <= 0) continue;
-                        if (!fx) j.Append(',');
-                        fx = false;
-                        j.Append('"').Append(fid).Append(':').Append(pp).Append('"');
+                        int n = BitConverter.ToInt32(d, p);
+                        if (n < 1 || n > 40) continue;
+                        if (p + 4 + n * 12 + 8 > d.Length) continue;
+
+                        var refs = new List<string>();
+                        bool ok = true;
+                        for (int i = 0; i < n && ok; i++)
+                        {
+                            int q = p + 4 + i * 12;
+                            int fid = BitConverter.ToInt32(d, q);
+                            long pp = BitConverter.ToInt64(d, q + 4);
+                            if (fid < 1 || fid > sf.Externals.Count || pp <= 0) { ok = false; break; }
+                            refs.Add(fid + ":" + pp);
+                        }
+                        if (!ok) continue;
+
+                        int e = p + 4 + n * 12;
+                        float amount = BitConverter.ToSingle(d, e);
+                        if (!(amount > 0) || amount > 1) continue;
+                        if (BitConverter.ToInt32(d, e + 4) != 0) continue;   // fishSpawnersDLC ist leer
+
+                        if (!firstCand) j.Append(',');
+                        firstCand = false;
+                        j.Append("{\"amount\":").Append(F(amount)).Append(",\"fish\":[");
+                        for (int i = 0; i < refs.Count; i++)
+                        {
+                            if (i > 0) j.Append(',');
+                            j.Append('"').Append(refs[i]).Append('"');
+                        }
+                        j.Append("]}");
                     }
                 }
             }
@@ -325,9 +361,21 @@ namespace Ufs
                 string species = par > 0 ? nm.Substring(0, par) : nm;
                 species = species.Substring("FishSpawner_".Length);
 
-                // spawner MonoBehaviour: PPtr fish, PPtr[] altFish, int count, ..., float radius, float prob
-                int refFile = 0; long refPath = 0; int cnt = 0; float radius = 0, prob = 0;
+                // FishSpawner, Feldreihenfolge laut Assembly-CSharp.dll:
+                //   Fish.Species species;        int32, in den Szenen durchweg 132
+                //   Fish         fishPrefab;     PPtr
+                //   List<Fish>   fishPrefabs;    int32 Anzahl + PPtr je Eintrag
+                //   List<Fish>   fishPrefabsDLC; ebenso
+                //   int          count;
+                //   sechs bool, jeweils auf 4 Byte ausgerichtet
+                //   float        maxFishAwayDistance, fishSizeMultiplier;
+                //
+                // fishPrefabs ist die Liste der Arten, aus denen dieser Spawner
+                // würfelt. Kariba, Grönland und Thailand nutzen sie stark; eine
+                // frühere Größenschranke hatte genau diese Spawner verworfen.
+                int refFile = 0; long refPath = 0; int cnt = 0; float radius = 0, sizeMul = 0;
                 var alts = new List<string>();
+                var dlcs = new List<string>();
                 long[] cps;
                 if (goComps.TryGetValue(sgo, out cps))
                 {
@@ -335,21 +383,47 @@ namespace Ufs
                     {
                         ObjInfo co;
                         if (!sf.ById.TryGetValue(cid, out co) || co.ClassId != 114) continue;
-                        if (co.ByteSize < 100 || co.ByteSize > 260) continue;
+                        if (co.ByteSize < 100) continue;
                         byte[] d = sf.Read(co);
                         try
                         {
                             Reader r = new Reader(d);
-                            r.Skip(28);                 // header + empty m_Name
-                            int magic = r.I32();
-                            if (magic != 132) continue;
-                            refFile = r.I32(); refPath = r.I64();
+                            r.Skip(12);                 // PPtr m_GameObject
+                            r.Skip(4);                  // m_Enabled samt Ausrichtung
+                            r.Skip(12);                 // PPtr m_Script
+                            // Der FishSpawner trägt keinen Namen; die beiden anderen
+                            // Bausteine am selben Objekt heißen "ObjectIcons/FishSpawner"
+                            // und "FISH_SPAWNER" und scheiden damit aus.
+                            if (r.Str() != "") continue;
+
+                            int speciesId = r.I32();
+                            if (speciesId < 0 || speciesId > 200) continue;
+
+                            // fishPrefab darf leer sein: an Kariba und Grönland ist nur
+                            // die Liste gefüllt, der einzelne Verweis bleibt 0:0.
+                            int rf = r.I32(); long rp = r.I64();
+
+                            var a2 = new List<string>();
                             int na = r.I32();
-                            if (na < 0 || na > 32) continue;
-                            for (int k = 0; k < na; k++) { int ff = r.I32(); long pp = r.I64(); alts.Add(ff + ":" + pp); }
-                            cnt = r.I32();
-                            r.Skip(24);
-                            if (r.Can(8)) { radius = r.F32(); prob = r.F32(); }
+                            if (na < 0 || na > 64) continue;
+                            for (int k = 0; k < na; k++) { int ff = r.I32(); long pp = r.I64(); a2.Add(ff + ":" + pp); }
+
+                            var d2 = new List<string>();
+                            int nd = r.I32();
+                            if (nd < 0 || nd > 64) continue;
+                            for (int k = 0; k < nd; k++) { int ff = r.I32(); long pp = r.I64(); d2.Add(ff + ":" + pp); }
+
+                            int c2 = r.I32();
+                            if (c2 < 0 || c2 > 500) continue;
+                            if (rf <= 0 && a2.Count == 0) continue;   // gar kein Fisch: falscher Baustein
+
+                            r.Skip(24);                 // sechs bool, je auf 4 Byte ausgerichtet
+                            float rad = 0, mul = 0;
+                            if (r.Can(8)) { rad = r.F32(); mul = r.F32(); }
+                            if (rad < 0 || rad > 10000 || mul < 0 || mul > 100) continue;
+
+                            refFile = rf; refPath = rp; cnt = c2; radius = rad; sizeMul = mul;
+                            alts = a2; dlcs = d2;
                             break;
                         }
                         catch { }
@@ -367,7 +441,13 @@ namespace Ufs
                     for (int k = 0; k < alts.Count; k++) { if (k > 0) j.Append(','); j.Append('"').Append(alts[k]).Append('"'); }
                     j.Append(']');
                 }
-                j.Append(",\"n\":").Append(cnt).Append(",\"r\":").Append(F(radius)).Append(",\"p\":").Append(F(prob));
+                if (dlcs.Count > 0)
+                {
+                    j.Append(",\"dlc\":[");
+                    for (int k = 0; k < dlcs.Count; k++) { if (k > 0) j.Append(','); j.Append('"').Append(dlcs[k]).Append('"'); }
+                    j.Append(']');
+                }
+                j.Append(",\"n\":").Append(cnt).Append(",\"r\":").Append(F(radius)).Append(",\"p\":").Append(F(sizeMul));
                 j.Append('}');
             }
             j.Append(']');
