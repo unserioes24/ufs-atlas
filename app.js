@@ -1786,8 +1786,12 @@ function App() {
                     h('button', { className: 'ufs-btn', onClick: function () { setImportOpen(true); } }, h(Icon, { name: 'import' }), 'Spielstand'),
                     h('button', { className: 'ufs-btn', onClick: function () { setSourceOpen(true); } }, h(Icon, { name: 'source' }), 'Quellen')))),
 
-        h('div', { className: 'relative mx-auto grid max-w-[1700px] grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:px-7' },
-            h('aside', { className: 'no-print hidden self-start lg:sticky lg:top-24 lg:block' },
+        h('div', {
+            className: cn('relative mx-auto grid max-w-[1700px] grid-cols-1 gap-6 px-4 py-6 lg:px-7',
+                view === 'map' && 'lg:grid-cols-[300px_minmax(0,1fr)]')
+        },
+            // Kartenliste nur in der Revieransicht
+            view !== 'map' ? null : h('aside', { className: 'no-print hidden self-start lg:sticky lg:top-24 lg:block' },
                 h('div', { className: 'glass scrollbar max-h-[calc(100vh-7rem)] overflow-y-auto rounded-3xl border border-white/10 p-3 shadow-2xl' },
                     h('div', { className: 'px-3 pb-2 pt-2 text-xs font-bold uppercase tracking-[.18em] text-slate-500' }, 'Karten'),
                     Object.keys(grouped).map(function (group) {
@@ -1821,6 +1825,8 @@ function App() {
                     }))),
 
             h('main', { className: 'min-w-0' },
+                view === 'map' ? null : h('h1', { className: 'mb-4 text-2xl font-black tracking-tight text-white' },
+                    view === 'bait' ? 'Köder & Methoden' : view === 'arten' ? 'Fischarten' : 'Statistik'),
                 view === 'bait' ? h(BaitPage, { lang: lang })
                 : view === 'stats' ? h(StatsPage, {
                     stats: saveStats, lang: lang, tab: statsTab,
