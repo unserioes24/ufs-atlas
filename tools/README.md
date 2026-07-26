@@ -77,6 +77,45 @@ Bespielt sind davon nur vier: Uhrzeit, Wind, Bewölkung und Regen. Hunger,
 entscheidet also nicht über die Bissbereitschaft – sie entscheidet nur darüber,
 ob der Köder überhaupt dort ankommt, wo der Schwarm steht.
 
+## Größenstufen
+
+Haken- und Ködergröße rechnet das Spiel über 18 Stufen ab. Im Hauptmenü (`level2`)
+führt `FishManager` vier Listen aus `Vector2`, jede mit einer Zeile je Stufe:
+
+| Liste | Bedeutung |
+| --- | --- |
+| `baitToFishSize` | Ködergröße → Fischlänge in Metern |
+| `hookToFishWeight` | Hakengröße → Fischgewicht in kg |
+| `lureToFishWeight` | dasselbe für Kunstköder |
+| `flyToFishWeight` | dasselbe für Fliegen |
+
+Dazu kommt `EquipmentManager.hookSizesCm` – die Spaltbreite des Hakens, trotz des
+Feldnamens in Metern (6 bis 90 mm). `tools/hooks.ps1` liest alles nach
+`_work/hooks.json`.
+
+Die Spannen überlappen und wandern mit der Größe nach oben: Stufe 1 fängt 0–4 kg,
+Stufe 18 dann 964–3277 kg. Ein zu großer Haken lässt kleine Fische also aus, daher
+die Meldung „Denke über einen kleineren Haken nach“. Kunstköder greifen erst ab
+Stufe 2, Fliegen ab Stufe 4; darunter fangen sie nichts.
+
+Die Beschriftung steht nicht als Tabelle in den Daten, sondern entsteht in
+`UtilitiesUnits.GetHookSizeString(int)`. Der IL-Code dort macht nur zweierlei:
+Index 0 bis 5 wird zu `#12, #8, #6, #4, #2, #1`, alles darüber zu
+`#` + (Index − 5) + `/0`. Ergibt genau die 18 Größen **#12, #8, #6, #4, #2, #1,
+#1/0 … #12/0**; `hooks.ps1` legt sie als Liste mit ab.
+
+## Führung beim Spinnfischen
+
+Hinter den Kurven steht in `Fish` die Liste `spinningMethodFactor`, ein Wert
+zwischen 0 und 1 je Eintrag des Enums `SpinningMethod`: `NONE`, `STRAIGHT_SLOW`,
+`STRAIGHT`, `STRAIGHT_FAST`, `LIFT_DROP`, `STOP_GO`, `TWITCHING`. Danach folgt
+`floatMethodFactor` für das Posenfischen, der bei allen Arten auf 1 steht.
+`bitecurves.ps1` liest beides; für 128 der 134 Arten ist die Liste vorhanden.
+
+Ein Karpfen etwa steht auf `Straight langsam` bei 100 %, auf `Lift & Drop` und
+`Stop & Go` bei 60 % und auf `Straight`, `Straight schnell` und `Twitching` bei 0 –
+diese drei Führungen bringen bei ihm also gar nichts.
+
 ## Grenzen
 
 - Die Welt→Karte-Abbildung wird aus den Spotpaaren geschätzt. Liegen die Spots fast auf einer

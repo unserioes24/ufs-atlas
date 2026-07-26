@@ -109,6 +109,7 @@ foreach ($m in $MAPS) {
 Write-Host "`n[5/6] Datenaufbereitung" -ForegroundColor Cyan
 & "$PSScriptRoot\baits.ps1"      -Work $Work -Game $Game
 & "$PSScriptRoot\bitecurves.ps1" -Work $Work
+& "$PSScriptRoot\hooks.ps1"      -Work $Work -Game $Game | Out-Null
 & "$PSScriptRoot\build.ps1"  -Work $Work -Proj $Proj
 & "$PSScriptRoot\build2.ps1" -Work $Work -Proj $Proj
 

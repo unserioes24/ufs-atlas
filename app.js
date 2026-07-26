@@ -122,6 +122,43 @@ const BAIT_KIND = {
     natural: 'Naturköder', boilie: 'Boilie', fly: 'Fliege', lure: 'Kunstköder'
 };
 function baitName(b, lang) { return (lang === 'en' ? b.en : b.de) || b.en || b.key; }
+
+/* ----------------------------------------------------------- Größenstufen */
+
+/* Das Spiel führt 18 Größenstufen. Zu jeder steht, welches Fischgewicht sie
+   fängt – getrennt für Haken, Kunstköder und Fliege – und welche Fischlänge
+   die zugehörige Ködergröße abdeckt. Die Spaltbreite des Hakens steht in
+   Metern daneben. */
+const HOOKS = G.hooks || null;
+
+/** Stufen, deren Spanne sich mit [lo, hi] überschneidet. Leere Stufen zählen nicht. */
+function fitSteps(table, lo, hi) {
+    const out = [];
+    if (!table) return out;
+    for (let i = 0; i < table.length; i++) {
+        const a = table[i][0], b = table[i][1];
+        if (b <= 0) continue;
+        if (a <= hi && b >= lo) out.push(i);
+    }
+    return out;
+}
+/* Die Beschriftung (#12 … #12/0) baut das Spiel in UtilitiesUnits.GetHookSizeString
+   aus dem Index zusammen; hooks.ps1 legt sie deshalb als Liste mit ab. */
+function stepLabel(i) {
+    if (HOOKS && HOOKS.label && HOOKS.label[i]) return HOOKS.label[i];
+    return 'Stufe ' + (i + 1);
+}
+function stepRange(idx) {
+    if (!idx.length) return null;
+    const a = stepLabel(idx[0]), b = stepLabel(idx[idx.length - 1]);
+    return a === b ? a : a + ' – ' + b;
+}
+function gapRange(idx) {
+    if (!idx.length || !HOOKS || !HOOKS.gap) return null;
+    const a = Math.round(HOOKS.gap[idx[0]] * 1000);
+    const b = Math.round(HOOKS.gap[idx[idx.length - 1]] * 1000);
+    return a === b ? a + ' mm' : a + '–' + b + ' mm';
+}
 function fishImage(key) { return 'fish/' + String(key).toLowerCase() + '.jpg'; }
 
 /* ------------------------------------------------------- Köder-Übersetzung */
@@ -404,6 +441,79 @@ function BaitTop(props) {
             : null);
 }
 
+/* Führung beim Spinnfischen. Die Reihenfolge folgt dem Enum SpinningMethod,
+   ohne dessen ersten Eintrag NONE. */
+const SPIN_NAMES = ['Straight langsam', 'Straight', 'Straight schnell', 'Lift & Drop', 'Stop & Go', 'Twitching'];
+
+function spinTop(spin) {
+    if (!spin) return null;
+    let best = -1, at = -1;
+    for (let i = 0; i < spin.length; i++) { if (spin[i] > best) { best = spin[i]; at = i; } }
+    if (at < 0 || best <= 0) return null;
+    const names = [];
+    for (let i = 0; i < spin.length; i++) { if (spin[i] === best) names.push(SPIN_NAMES[i]); }
+    return { names: names, value: best };
+}
+
+/** Alle sechs Führungen mit ihrem Faktor, absteigend. */
+function RetrieveList(props) {
+    const spin = props.spin;
+    if (!spin) return null;
+    const rows = spin.map(function (v, i) { return { name: SPIN_NAMES[i], v: v }; })
+        .sort(function (a, b) { return b.v - a.v; });
+    return h('div', { className: 'ufs-baitlist' },
+        rows.map(function (r) {
+            return h('div', { key: r.name, className: 'row' },
+                h('span', { className: cn('nm', r.v === 0 && 'off') }, r.name),
+                h('span', { className: 'kd' }, ''),
+                h('span', { className: 'bar' }, h('span', { style: { width: Math.round(r.v * 100) + '%' } })),
+                h('span', { className: 'vl' }, Math.round(r.v * 100) + ' %'));
+        }));
+}
+
+/** Beste Uhrzeiten aus der Beißzeitkurve, als lesbarer Text. */
+function bestHours(act) {
+    if (!act || act.length < 2) return null;
+    let top = 0;
+    act.forEach(function (p) { if (p[1] > top) top = p[1]; });
+    if (top <= 0) return null;
+    const peaks = act.filter(function (p) { return p[1] >= top - 0.01 && p[0] < 24; })
+        .map(function (p) { return p[0] + ':00'; });
+    if (!peaks.length) return null;
+    // Steht die Kurve überall gleich hoch, gibt es keine bevorzugte Zeit.
+    const low = act.reduce(function (m, p) { return Math.min(m, p[1]); }, 1);
+    if (top - low < 0.05) return 'rund um die Uhr gleich';
+    return peaks.join(', ');
+}
+
+/** Welche Größenstufen zu dieser Art passen – Haken, Kunstköder, Fliege, Köder. */
+function SizeFit(props) {
+    const sp = props.sp;
+    if (!HOOKS || !sp || !sp.wMax) return null;
+    const lo = sp.wMin || 0, hi = sp.wMax;
+    const rows = [];
+
+    [['hook', 'Haken'], ['lure', 'Kunstköder'], ['fly', 'Fliege']].forEach(function (e) {
+        const idx = fitSteps(HOOKS[e[0]], lo, hi);
+        if (!idx.length) return;
+        rows.push({ label: e[1], step: stepRange(idx), extra: e[0] === 'hook' ? gapRange(idx) : null });
+    });
+    if (sp.lMax && HOOKS.baitLength) {
+        // Längen liegen in den Spieldaten in Zentimetern, die Tabelle in Metern.
+        const idx = fitSteps(HOOKS.baitLength, (sp.lMin || 0) / 100, sp.lMax / 100);
+        if (idx.length) rows.push({ label: 'Ködergröße', step: stepRange(idx), extra: null });
+    }
+    if (!rows.length) return null;
+
+    return h('div', { className: 'ufs-sizes' },
+        rows.map(function (r) {
+            return h('div', { key: r.label, className: 'row' },
+                h('span', { className: 'nm' }, r.label),
+                h('span', { className: 'st' }, r.step),
+                h('span', { className: 'ex' }, r.extra || ''));
+        }));
+}
+
 /** Wetterregler: die drei Kurven, die das Spiel je Art tatsächlich füllt. */
 const BITE_LABEL = { wind: 'Wind', cloudiness: 'Bewölkung', rain: 'Regen' };
 const BITE_HINT = {
@@ -637,6 +747,12 @@ function FishCard(props) {
 
     const spots = gm && gm.spots && gm.spots.length ? gm.spots : null;
 
+    // Werte aus den Spieldateien, die die Angaben des Guides ersetzen.
+    const hookIdx = sp && sp.wMax ? fitSteps(HOOKS && HOOKS.hook, sp.wMin || 0, sp.wMax) : [];
+    const hookText = hookIdx.length ? stepRange(hookIdx) + '  ' + gapRange(hookIdx) : null;
+    const hours = sp && sp.act ? bestHours(sp.act) : null;
+    const top = sp && sp.spin ? spinTop(sp.spin) : null;
+
     return h('article', { id: f.id, className: 'print-card group overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/[.055] to-white/[.022] shadow-xl transition hover:border-cyan-300/25' },
         h('div', { className: 'flex flex-wrap items-start gap-4 border-b border-white/10 p-5 lg:p-6' },
             h('div', { className: 'grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-cyan-300/15 bg-cyan-400/[.07] text-xl text-cyan-200' }, '◈'),
@@ -678,15 +794,32 @@ function FishCard(props) {
                     }))
                     : f.spots
             }),
-            h(Fact, { icon: 'hook', label: 'Haken', value: f.hook }),
-            h(Fact, { icon: 'depth', label: 'Ködertiefe', value: f.depth }),
-            h(Fact, { icon: 'method', label: 'Methode', value: lang === 'de' ? toGerman(f.method) : f.method })),
+            h(Fact, { icon: 'hook', label: 'Haken', value: hookText || f.hook }),
+            h(Fact, { icon: 'star', label: 'Beste Zeit', value: hours || f.time }),
+            h(Fact, {
+                icon: 'method', label: 'Beste Führung',
+                value: top
+                    ? h('span', null, top.names.join(' / '),
+                        h('span', { className: 'ufs-muted', style: { fontWeight: 400 } },
+                            '  ' + Math.round(top.value * 100) + ' %'))
+                    : (lang === 'de' ? toGerman(f.method) : f.method)
+            })),
 
         h('div', { className: cn('grid gap-4 p-5 lg:p-6', props.compact ? '' : 'lg:grid-cols-2') },
-            h(Detail, { title: 'Köder', value: lang === 'de' ? toGerman(f.bait) : f.bait }),
+            // Köder als Marken: die stärksten laut Prefab, nicht die Guide-Aufzählung.
+            key && (BAITS_FOR[key] || []).length
+                ? h('div', { className: 'rounded-2xl border border-white/10 bg-black/15 p-4' },
+                    h('div', { className: 'text-[10px] font-bold uppercase tracking-[.15em] text-slate-600' }, 'Köder'),
+                    h('div', { className: 'ufs-row', style: { marginTop: '.5rem' } },
+                        (BAITS_FOR[key] || []).slice(0, 8).map(function (e) {
+                            return h('span', {
+                                key: e.bait.key,
+                                className: cn('ufs-chip ufs-baitchip', e.bait.kind),
+                                title: BAIT_KIND[e.bait.kind]
+                            }, baitName(e.bait, lang), h('b', null, Math.round(e.v * 100) + ' %'));
+                        })))
+                : h(Detail, { title: 'Köder', value: lang === 'de' ? toGerman(f.bait) : f.bait }),
             h(Detail, { title: 'Grundfutter / Anfütterung', value: lang === 'de' ? toGerman(f.groundbait) : f.groundbait }),
-            h(Detail, { title: 'Führung', value: lang === 'de' ? toGerman(f.retrieve) : f.retrieve }),
-            h(Detail, { title: 'Zeit / Sicht', value: f.time }),
 
             sp ? h('div', { className: cn('ufs-gamebox', props.compact ? '' : 'lg:col-span-2') },
                 h('div', { className: 'hd' }, 'Aus den Spieldateien'),
@@ -713,10 +846,20 @@ function FishCard(props) {
                     gm && gm.fish ? h('span', null, 'Fische hier: ', h('b', null, gm.fish)) : null,
                     gm && gm.dlc ? h('span', null, h('b', null, 'DLC-Art'), ' – ohne feste Spawnpunkte in der Szene') : null),
                 sp.act ? h('div', { style: { marginTop: '.6rem' } }, h(Activity, { act: sp.act })) : null,
+                HOOKS && sp.wMax
+                    ? h('div', { style: { marginTop: '.7rem' } },
+                        h('div', { className: 'hd' }, 'Passende Größenstufen'),
+                        h(SizeFit, { sp: sp }))
+                    : null,
                 key && (BAITS_FOR[key] || []).length
                     ? h('div', { style: { marginTop: '.7rem' } },
                         h('div', { className: 'hd' }, 'Köder, Interesse laut Prefab'),
                         h(BaitTop, { speciesKey: key, lang: lang }))
+                    : null,
+                sp.spin
+                    ? h('div', { style: { marginTop: '.7rem' } },
+                        h('div', { className: 'hd' }, 'Führung beim Spinnfischen'),
+                        h(RetrieveList, { spin: sp.spin }))
                     : null,
                 sp.bite
                     ? h('div', { style: { marginTop: '.7rem' } },
@@ -1121,6 +1264,34 @@ function BaitPage(props) {
                 h('p', { className: 'ufs-muted', style: { fontSize: '11.5px', margin: '0 0 .7rem', lineHeight: 1.55 } }, g.note),
                 h('div', { className: 'ufs-baitgrid' }, items.map(card)));
         }),
+
+        HOOKS ? h('section', { className: 'ufs-spotcard', style: { marginBottom: '1rem' } },
+            h('h3', null, 'Hakengrößen · ' + HOOKS.steps),
+            h('p', { className: 'ufs-muted', style: { fontSize: '11.5px', margin: '0 0 .7rem', lineHeight: 1.55 } },
+                'Zu jeder Größe steht, welches Fischgewicht sie fängt; die Spanne wandert mit der Größe nach oben. ',
+                'Ein zu großer Haken lässt kleine Fische aus – daher die Meldung im Spiel, es mit einem kleineren ',
+                'zu versuchen. Kunstköder greifen erst ab #8, Fliegen ab #4.'),
+            h('div', { style: { overflowX: 'auto' } },
+                h('table', { className: 'ufs-rec' },
+                    h('thead', null, h('tr', null,
+                        h('th', null, 'Größe'), h('th', null, 'Spalt'),
+                        h('th', null, 'Haken · Fischgewicht'), h('th', null, 'Kunstköder'),
+                        h('th', null, 'Fliege'), h('th', null, 'Ködergröße · Fischlänge'))),
+                    h('tbody', null, HOOKS.hook.map(function (row, i) {
+                        function rng(t, unit, scale) {
+                            if (!t || !t[i] || t[i][1] <= 0) return '–';
+                            const a = t[i][0] * (scale || 1), b = t[i][1] * (scale || 1);
+                            return Math.round(a) + '–' + Math.round(b) + ' ' + unit;
+                        }
+                        return h('tr', { key: i },
+                            h('td', { className: 'n' }, stepLabel(i)),
+                            h('td', { className: 'num' }, Math.round(HOOKS.gap[i] * 1000) + ' mm'),
+                            h('td', { className: 'num' }, rng(HOOKS.hook, 'kg')),
+                            h('td', { className: 'num' }, rng(HOOKS.lure, 'kg')),
+                            h('td', { className: 'num' }, rng(HOOKS.fly, 'kg')),
+                            h('td', { className: 'num' }, rng(HOOKS.baitLength, 'cm', 100)));
+                    })))))
+            : null,
 
         h('section', { className: 'ufs-spotcard' },
             h('h3', null, 'Was der Biss sonst noch braucht'),
@@ -1586,6 +1757,16 @@ function SpeciesPage(props) {
                             props.bests[r.key].weight.toFixed(2) + ' kg' +
                             (props.bests[r.key].length ? ' · ' + Math.round(props.bests[r.key].length * 100) + ' cm' : ''))) : null,
                     s.act ? h('div', { style: { display: 'block', marginTop: '.4rem' } }, h(Activity, { act: s.act })) : null,
+                    HOOKS && s.wMax
+                        ? h('div', { style: { display: 'block', marginTop: '.5rem' } },
+                            h('span', { style: { color: '#64748b' } }, 'Größen'),
+                            h(SizeFit, { sp: s }))
+                        : null,
+                    s.spin
+                        ? h('div', { style: { display: 'block', marginTop: '.5rem' } },
+                            h('span', { style: { color: '#64748b' } }, 'Führung'),
+                            h(RetrieveList, { spin: s.spin }))
+                        : null,
                     (BAITS_FOR[r.key] || []).length
                         ? h('div', { style: { display: 'block', marginTop: '.5rem' } },
                             h('span', { style: { color: '#64748b' } }, 'Köder'),

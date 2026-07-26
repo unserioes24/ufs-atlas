@@ -77,7 +77,32 @@ foreach ($ob in $fp.objects) {
     }
     if ($curves.Count -lt 9) { $skipped++; continue }
 
-    $out[$key] = [ordered]@{ weights = $weights; curves = $curves }
+    # Direkt hinter den Kurven: List<float> spinningMethodFactor mit einem Wert
+    # je Eintrag des Enums SpinningMethod (NONE, STRAIGHT_SLOW, STRAIGHT,
+    # STRAIGHT_FAST, LIFT_DROP, STOP_GO, TWITCHING), danach floatMethodFactor.
+    $spin = $null; $floatFactor = $null
+    if ($curves.Count -eq 10 -and $p + 4 -le $b.Length) {
+        $cnt = [BitConverter]::ToInt32($b, $p)
+        if ($cnt -eq 7 -and $p + 4 + $cnt * 4 + 4 -le $b.Length) {
+            $vals = @()
+            $ok = $true
+            for ($i = 0; $i -lt $cnt; $i++) {
+                $v = [BitConverter]::ToSingle($b, $p + 4 + $i * 4)
+                if ([double]::IsNaN($v) -or $v -lt 0 -or $v -gt 1) { $ok = $false; break }
+                $vals += [Math]::Round($v, 3)
+            }
+            $f = [BitConverter]::ToSingle($b, $p + 4 + $cnt * 4)
+            if ($ok -and -not [double]::IsNaN($f) -and $f -ge 0 -and $f -le 1) {
+                $spin = $vals
+                $floatFactor = [Math]::Round($f, 3)
+            }
+        }
+    }
+
+    $out[$key] = [ordered]@{
+        weights = $weights; curves = $curves
+        spin = $spin; floatFactor = $floatFactor
+    }
 }
 
 ($out | ConvertTo-Json -Depth 8) | Set-Content -Encoding utf8 (Join-Path $Work 'bitecurves.json')
@@ -96,3 +121,6 @@ foreach ($nm in $NAMES) {
     }
     "  {0,-12} {1,3} von {2} Arten" -f $nm, $n, $out.Count
 }
+$mitSpin = 0
+foreach ($k in $out.Keys) { if ($out[$k].spin) { $mitSpin++ } }
+"`nFührungsfaktoren gelesen: $mitSpin von $($out.Count) Arten"

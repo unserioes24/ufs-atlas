@@ -356,9 +356,11 @@ function BaitNorm($s) {
     return ($x -replace 's$', '')
 }
 # Schreibweisen, die zwischen Prefab und Lokalisierung auseinanderlaufen
+# Schlüssel greifen sowohl auf den rohen Grundnamen als auch auf die normierte
+# Form. Young_Fish_S braucht die rohe Form, weil BaitNorm das End-s entfernt.
 $BAIT_ALIAS = @{
     'gingerbreadherbal' = 'gingerherbal'
-    'youngfishl' = 'youngfishlarge'; 'youngfishm' = 'youngfishmedium'; 'youngfishs' = 'youngfishsmall'
+    'Young_Fish_L' = 'youngfishlarge'; 'Young_Fish_M' = 'youngfishmedium'; 'Young_Fish_S' = 'youngfishsmall'
 }
 # Fliegentypen tragen keinen Ausrüstungsnamen, nur den Typ
 $FLY_NAMES = @{
@@ -414,7 +416,8 @@ if (Test-Path $baitFile) {
         if ($baits.Contains($base)) { continue }
 
         $n = BaitNorm $base
-        if ($BAIT_ALIAS.ContainsKey($n)) { $n = $BAIT_ALIAS[$n] }
+        if ($BAIT_ALIAS.ContainsKey($base)) { $n = $BAIT_ALIAS[$base] }
+        elseif ($BAIT_ALIAS.ContainsKey($n)) { $n = $BAIT_ALIAS[$n] }
         $t = $baitTerm[$n]
         if ($t) { $en = $t.en; $de = $t.de; $kind = $t.kind }
         elseif ($FLY_NAMES.ContainsKey($base)) { $en = $FLY_NAMES[$base][0]; $de = $FLY_NAMES[$base][1]; $kind = 'fly' }
@@ -467,7 +470,22 @@ if (Test-Path $curveFile) {
             $bite[$cn] = @($cv | ForEach-Object { , @([Math]::Round($_[0], 2), [Math]::Round($_[1], 2)) })
         }
         if ($bite.Count) { $species[$p.Name].bite = $bite }
+
+        # Führung beim Spinnfischen: ein Faktor je Eintrag des Enums
+        # SpinningMethod. Der erste Wert (NONE) bleibt weg, er beschreibt
+        # "keine Führung" und steht bei allen Arten auf 0.
+        if ($p.Value.spin -and $p.Value.spin.Count -eq 7) {
+            $species[$p.Name].spin = @($p.Value.spin[1..6])
+        }
     }
+}
+
+# Größentabellen: Haken- und Ködergröße gegen Fischgewicht bzw. -länge.
+$hooks = $null
+$hookFile = Join-Path $sp 'hooks.json'
+if (Test-Path $hookFile) {
+    $hooks = Get-Content $hookFile -Raw | ConvertFrom-Json
+    Write-Host "Größentabellen: $($hooks.steps) Stufen"
 }
 
 $data = [ordered]@{
@@ -478,6 +496,7 @@ $data = [ordered]@{
     glossary    = $gl
     baitSpecies = $baitSpecies
     baits       = $baits
+    hooks       = $hooks
 }
 $json = $data | ConvertTo-Json -Depth 12 -Compress
 [IO.File]::WriteAllText("$proj\gamedata.json", $json)

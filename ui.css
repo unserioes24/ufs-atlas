@@ -311,6 +311,26 @@
 
 .ufs-baitlist > .ufs-chip-btn { align-self: flex-start; }
 
+/* Größenstufen: Bezeichnung, Stufenbereich, Zusatz (Spaltbreite). */
+.ufs-sizes { display: flex; flex-direction: column; gap: .18rem; margin-top: .35rem; }
+.ufs-sizes .row {
+  display: grid; grid-template-columns: 96px auto 1fr; gap: .5rem;
+  align-items: baseline; font-size: 12px; padding: .1rem 0;
+}
+.ufs-sizes .nm { color: #64748b; }
+.ufs-sizes .st { color: #e2e8f0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ufs-sizes .ex { color: #7dd3fc; font-size: 11px; font-variant-numeric: tabular-nums; }
+
+/* Köder als Marken auf der Fischkarte, eingefärbt nach Köderart. */
+.ufs-baitchip b { font-weight: 800; font-variant-numeric: tabular-nums; opacity: .75; }
+.ufs-baitchip.natural { border-color: rgba(110, 231, 183, .3); color: #d1fae5; background: rgba(52, 211, 153, .1); }
+.ufs-baitchip.boilie  { border-color: rgba(252, 211, 77, .3);  color: #fde68a; background: rgba(252, 211, 77, .1); }
+.ufs-baitchip.fly     { border-color: rgba(196, 181, 253, .3); color: #ede9fe; background: rgba(196, 181, 253, .1); }
+.ufs-baitchip.lure    { border-color: rgba(125, 211, 252, .3); color: #e0f2fe; background: rgba(125, 211, 252, .1); }
+
+/* Führung ohne Wirkung wird gedämpft dargestellt. */
+.ufs-baitlist .nm.off { color: #64748b; font-weight: 500; }
+
 /* Auf schmalen Anzeigen fallen Zusatzspalte und Erläuterung weg. */
 @media (max-width: 640px) {
   .ufs-baitlist .row { grid-template-columns: minmax(0, 1fr) 60px 40px; }
