@@ -14,11 +14,13 @@ RUN composer install --no-dev --no-scripts --prefer-dist --no-interaction
 # ── Laufzeit ─────────────────────────────────────────────────────────
 FROM php:8.5-apache
 
+# OPcache ist in den PHP-8.5-Images fest eingebaut; docker-php-ext-install
+# würde daran scheitern, eingestellt wird sie trotzdem über conf.d.
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends curl; \
     rm -rf /var/lib/apt/lists/*; \
-    docker-php-ext-install pdo_mysql opcache; \
+    docker-php-ext-install pdo_mysql; \
     a2enmod rewrite headers; \
     printf 'opcache.enable=1\nopcache.validate_timestamps=0\nopcache.max_accelerated_files=20000\n' \
         > /usr/local/etc/php/conf.d/opcache.ini; \
