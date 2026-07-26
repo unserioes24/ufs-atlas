@@ -4,7 +4,7 @@
     "type": "project",
     "license": "proprietary",
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.3",
         "ext-ctype": "*",
         "ext-iconv": "*",
         "ext-json": "*",
@@ -12,18 +12,35 @@
         "doctrine/dbal": "^3.8",
         "doctrine/doctrine-bundle": "^2.12",
         "doctrine/orm": "^3.2",
-        "symfony/console": "^7.1",
-        "symfony/dotenv": "^7.1",
-        "symfony/framework-bundle": "^7.1",
-        "symfony/mailer": "^7.1",
-        "symfony/runtime": "^7.1",
-        "symfony/yaml": "^7.1"
+        "symfony/cache": "7.4.*",
+        "symfony/config": "7.4.*",
+        "symfony/console": "7.4.*",
+        "symfony/dependency-injection": "7.4.*",
+        "symfony/dotenv": "7.4.*",
+        "symfony/error-handler": "7.4.*",
+        "symfony/event-dispatcher": "7.4.*",
+        "symfony/filesystem": "7.4.*",
+        "symfony/finder": "7.4.*",
+        "symfony/framework-bundle": "7.4.*",
+        "symfony/http-foundation": "7.4.*",
+        "symfony/http-kernel": "7.4.*",
+        "symfony/mailer": "7.4.*",
+        "symfony/mime": "7.4.*",
+        "symfony/routing": "7.4.*",
+        "symfony/runtime": "7.4.*",
+        "symfony/string": "7.4.*",
+        "symfony/var-dumper": "7.4.*",
+        "symfony/var-exporter": "7.4.*",
+        "symfony/yaml": "7.4.*"
     },
     "config": {
         "allow-plugins": {
             "symfony/runtime": true
         },
-        "sort-packages": true
+        "sort-packages": true,
+        "platform": {
+            "php": "8.5.99"
+        }
     },
     "autoload": {
         "psr-4": {

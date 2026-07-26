@@ -11,9 +11,9 @@ Header `X-Robots-Tag` setzen alle drei `noindex`.
 
 ```
 fish.tobee94.de
-  └─ web   php:8.3-apache
+  └─ web   php:8.5-apache
        /                statische Dateien aus server/public (Guide)
-       /api/…           Symfony 7 (Sitzungs-Login, Profile, Gruppen)
+       /api/…           Symfony 7.4 (Sitzungs-Login, Profile, Gruppen)
   └─ db    mariadb:11.4  internes Netz, benanntes Volume
 ```
 
@@ -29,7 +29,8 @@ Der Guide selbst hat keinen Build-Schritt: `index.html`, `app.js`, `gamedata.js`
 2. **deploy** *(manuell)* — `DOCKER_HOST=ssh://root@web.fuewa.systems`,
    `docker compose -f deploy/docker-compose.yml pull && up -d --wait`.
 
-Beim Start gleicht der Container das Datenbankschema aus den Entities ab
+Beim Start macht der Container doppelte Benutzernamen eindeutig
+(`app:names:fix`) und gleicht danach das Datenbankschema aus den Entities ab
 (`doctrine:schema:update --force`, bewusst ohne `--complete`).
 
 ## Einmalige Einrichtung
@@ -57,6 +58,11 @@ gesetzt haben.
 - Anmeldung per E-Mail-Code, sechsstellig, 15 Minuten gültig, fünf Versuche.
   Die Sitzung liegt in einer PHP-Session (Cookie, 30 Tage), kein Token im Browser.
 - Je Konto genau ein Profil. Jeder Spielstand-Upload ersetzt es vollständig.
+- Der Benutzername ist eindeutig (3–32 Zeichen) und lässt sich unter
+  *Gruppen → Konto* ändern. Beim ersten Spielstand wird der Anglername
+  übernommen, sofern noch kein eigener Name gewählt wurde.
+- Ohne Konto liegt genau ein Stand im Browser; er lässt sich unter
+  *Gruppen → Konto* mit einem Klick ins Konto übernehmen.
 - Gruppen: anlegen, per Code beitreten, Ranglisten für schwersten und längsten
   Fisch, Gesamtmasse, größte Masse einer Art, Artenzahl, komplette Reviere,
   Fänge und Angelzeit.

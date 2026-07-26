@@ -16,6 +16,10 @@ if [ -n "$DATABASE_URL" ]; then
         sleep 2
     done
 
+    # Muss vor dem Schemaabgleich laufen: der eindeutige Index auf den
+    # Benutzernamen entsteht erst, wenn keine Dubletten mehr existieren.
+    php bin/console app:names:fix --no-interaction || true
+
     # Kein Migrationsverlauf nötig: das Schema wird aus den Entities abgeleitet.
     # Bewusst ohne --complete, damit nichts unbeabsichtigt entfernt wird.
     echo "Schema abgleichen ..."

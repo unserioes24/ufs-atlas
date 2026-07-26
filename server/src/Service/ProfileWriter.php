@@ -10,8 +10,10 @@ use Doctrine\ORM\EntityManagerInterface;
 /** Schreibt das Ergebnis eines Spielstand-Imports in das Profil eines Kontos. */
 final class ProfileWriter
 {
-    public function __construct(private readonly EntityManagerInterface $em)
-    {
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly Names $names,
+    ) {
     }
 
     public function flush(): void
@@ -39,8 +41,9 @@ final class ProfileWriter
         $name = trim((string) ($agg['player']['name'] ?? ''));
         if ($name !== '') {
             $profile->setAnglerName($name);
-            if ($user->getName() === '' || str_starts_with($user->getName(), 'Angler')) {
-                $user->setName($name);
+            // Nur einen noch nie gewählten Namen überschreiben; er muss eindeutig bleiben.
+            if ($user->getName() === '' || preg_match('/^Angler(-\d+|-[0-9a-f]{8})?$/', $user->getName())) {
+                $user->setName($this->names->unique($name, $user));
             }
         }
         $profile->setPlayerLevel((int) ($agg['player']['level'] ?? 0));

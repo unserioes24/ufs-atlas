@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\LoginCode;
 use App\Entity\User;
 use App\Service\Auth;
+use App\Service\Names;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,6 +20,7 @@ class AuthController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly Auth $auth,
+        private readonly Names $names,
     ) {
     }
 
@@ -95,7 +97,7 @@ class AuthController extends AbstractController
         $entry->markUsed();
         $user = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
         if ($user === null) {
-            $user = new User($email, 'Angler');
+            $user = new User($email, $this->names->unique('Angler'));
             $this->em->persist($user);
             $this->em->flush();
         }

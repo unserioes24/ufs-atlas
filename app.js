@@ -1123,21 +1123,32 @@ function StatsPage(props) {
     const TABS = { fische: 'arten', arten: 'arten', sets: 'sets', vergleich: 'vergleich', reviere: 'reviere' };
     const [tab, setTab] = useState(TABS[props.tab] || 'reviere');
 
+    // Spielstand und Konto sitzen hier, nicht mehr im Kopf.
+    const bar = h('div', { className: 'ufs-row', style: { marginBottom: '1rem' } },
+        h('button', { className: 'ufs-btn primary', onClick: props.onImport },
+            h(Icon, { name: 'import' }), 'Spielstand laden'),
+        stats && stats.player
+            ? h('button', { className: 'ufs-btn danger', onClick: function () {
+                if (confirm('Lokalen Stand samt Haken zurücksetzen?')) props.onReset();
+            } }, 'Zurücksetzen')
+            : null,
+        API_AVAILABLE
+            ? (props.me
+                ? h('span', { className: 'ufs-chip' }, '◔ angemeldet als ' + props.me.name)
+                : h('button', { className: 'ufs-btn', onClick: props.onOpenCommunity }, h(Icon, { name: 'star' }), 'Anmelden'))
+            : null);
+
     if (!stats || !stats.player) {
-        return h('div', { className: 'ufs-spotcard' },
+        return h('div', null, bar, h('div', { className: 'ufs-spotcard' },
             h('h3', null, 'Noch kein Spielstand geladen'),
             h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', lineHeight: 1.6, margin: '.3rem 0 .9rem' } },
                 'Diese Seite wird vollständig aus deinem Spielstand gefüllt: Fänge je Revier, Bisse, ' +
                 'Angelzeit, Punkte und dein größter Fisch je Art. Es wird nichts hochgeladen, die Datei ' +
                 'wird nur im Browser gelesen.'),
-            h('div', { className: 'ufs-row' },
-                h('button', { className: 'ufs-btn primary', onClick: props.onImport },
-                    h(Icon, { name: 'import' }), 'Spielstand laden')),
-            (props.profiles || []).length > 1
-                ? h('div', { style: { marginTop: '1rem' } },
-                    h('h3', null, 'Vergleich'),
-                    h(ComparePage, { profiles: props.profiles, activeId: props.activeId, lang: props.lang }))
-                : null);
+            API_AVAILABLE && !props.me
+                ? h('p', { className: 'ufs-muted', style: { fontSize: '12px', marginTop: '.9rem' } },
+                    'Mit einem Konto liegt der Stand zusätzlich auf dem Server – dann kannst du dich in Gruppen vergleichen.')
+                : null));
     }
 
     const p = stats.player;
@@ -1159,6 +1170,7 @@ function StatsPage(props) {
     }).sort(function (a, b) { return (b.b.weight || 0) - (a.b.weight || 0); });
 
     return h('div', null,
+        bar,
         h('div', { className: 'ufs-statgrid' },
             h(Stat, { label: 'Angler', value: p.name || '–', sub: 'Level ' + p.level }),
             h(Stat, { label: 'Punkte', value: fmtNum(p.score), sub: fmtNum(p.exp) + ' EP' }),
@@ -1170,9 +1182,7 @@ function StatsPage(props) {
         h('div', { className: 'ufs-row', style: { margin: '1rem 0 .8rem' } },
             h(Toggle, { active: tab === 'reviere', onClick: function () { setTab('reviere'); } }, 'Reviere'),
             h(Toggle, { active: tab === 'arten', onClick: function () { setTab('arten'); } }, 'Größte Fische'),
-            h(Toggle, { active: tab === 'sets', onClick: function () { setTab('sets'); } }, 'Rutensets'),
-            h(Toggle, { active: tab === 'vergleich', onClick: function () { setTab('vergleich'); } }, 'Vergleich'),
-            h('button', { className: 'ufs-btn', onClick: props.onImport }, h(Icon, { name: 'import' }), 'Spielstand neu laden')),
+            h(Toggle, { active: tab === 'sets', onClick: function () { setTab('sets'); } }, 'Rutensets')),
 
         tab === 'sets'
             ? h('div', null,
@@ -1192,8 +1202,6 @@ function StatsPage(props) {
                                 })))
                     : null)
             : null,
-
-        tab === 'vergleich' ? h(ComparePage, { profiles: props.profiles, activeId: props.activeId, lang: props.lang }) : null,
 
         tab === 'reviere'
             ? h('div', { className: 'ufs-spotcard', key: 'rev' },
@@ -1253,82 +1261,57 @@ function StatsPage(props) {
             : null);
 }
 
-/* --------------------------------------------------------- Profilvergleich */
-
-/** Kennzahlen eines Profils für die Rangliste. */
-function profileMetrics(p) {
-    const st = p.stats;
-    const m = {
-        name: p.name, id: p.id, species: 0, fish: 0, weight: 0, time: 0,
-        bigW: 0, bigWkey: null, bigL: 0, bigLkey: null, score: 0
-    };
-    m.species = Object.keys(p.caught || {}).length;
-    Object.keys(p.bests || {}).forEach(function (k) {
-        const b = p.bests[k];
-        if (b.weight && b.weight > m.bigW) { m.bigW = b.weight; m.bigWkey = k; }
-        if (b.length && b.length > m.bigL) { m.bigL = b.length; m.bigLkey = k; }
-    });
-    if (st) {
-        m.score = (st.player && st.player.score) || 0;
-        Object.keys(st.fisheries || {}).forEach(function (id) {
-            m.fish += st.fisheries[id].fish;
-            m.weight += st.fisheries[id].weight;
-            m.time += st.fisheries[id].time;
-        });
-    }
-    return m;
-}
-
-function ComparePage(props) {
-    const rows = (props.profiles || []).map(profileMetrics);
-    if (rows.length < 2) {
-        return h('div', { className: 'ufs-note' },
-            'Für einen Vergleich braucht es mindestens zwei Profile. Lege oben rechts ein weiteres Profil an ' +
-            'und lade dort den Spielstand des anderen Anglers – oder importiere eine Profildatei, die dir jemand geschickt hat.');
-    }
-    const best = {
-        fish: Math.max.apply(null, rows.map(function (r) { return r.fish; })),
-        species: Math.max.apply(null, rows.map(function (r) { return r.species; })),
-        weight: Math.max.apply(null, rows.map(function (r) { return r.weight; })),
-        bigW: Math.max.apply(null, rows.map(function (r) { return r.bigW; })),
-        bigL: Math.max.apply(null, rows.map(function (r) { return r.bigL; })),
-        score: Math.max.apply(null, rows.map(function (r) { return r.score; }))
-    };
-    function cell(v, isBest, text) {
-        return h('td', { className: cn('num', isBest && 'win') }, (isBest ? '★ ' : '') + text);
-    }
-    const sorted = rows.slice().sort(function (a, b) { return b.fish - a.fish; });
-
-    return h('div', { className: 'ufs-spotcard' },
-        h('table', { className: 'ufs-rec' },
-            h('thead', null, h('tr', null,
-                h('th', null, 'Profil'), h('th', null, 'Arten'), h('th', null, 'Fische'),
-                h('th', null, 'Gewicht'), h('th', null, 'Schwerster'), h('th', null, 'Längster'),
-                h('th', null, 'Punkte'), h('th', null, 'Zeit'))),
-            h('tbody', null, sorted.map(function (r) {
-                return h('tr', { key: r.id },
-                    h('td', { className: cn('n', r.id === props.activeId && 'done') },
-                        (r.id === props.activeId ? '▸ ' : '') + r.name),
-                    cell(r.species, r.species === best.species && r.species > 0, fmtNum(r.species)),
-                    cell(r.fish, r.fish === best.fish && r.fish > 0, fmtNum(r.fish)),
-                    cell(r.weight, r.weight === best.weight && r.weight > 0, fmtNum(r.weight, 1) + ' kg'),
-                    cell(r.bigW, r.bigW === best.bigW && r.bigW > 0,
-                        r.bigW ? r.bigW.toFixed(2) + ' kg' + (r.bigWkey ? ' (' + speciesName(r.bigWkey, props.lang) + ')' : '') : '–'),
-                    cell(r.bigL, r.bigL === best.bigL && r.bigL > 0,
-                        r.bigL ? Math.round(r.bigL * 100) + ' cm' + (r.bigLkey ? ' (' + speciesName(r.bigLkey, props.lang) + ')' : '') : '–'),
-                    cell(r.score, r.score === best.score && r.score > 0, fmtNum(r.score)),
-                    h('td', { className: 'num' }, fmtTime(r.time)));
-            }))),
-        h('div', { className: 'ufs-muted', style: { fontSize: '11.5px', marginTop: '.7rem', lineHeight: 1.55 } },
-            '★ markiert den jeweiligen Spitzenreiter. Die Profile liegen nur in diesem Browser. ' +
-            'Über „Profil teilen" bekommst du eine Datei, die jemand anders bei sich einlesen kann.'));
-}
-
 function Stat(props) {
     return h('div', { className: 'ufs-stat' },
         h('div', { className: 'lb' }, props.label),
         h('div', { className: 'vl' }, props.value),
         props.sub ? h('div', { className: 'sb' }, props.sub) : null);
+}
+
+/* ---------------------------------------------------- Gesamtübersicht */
+
+/** Fortschritt über alle Reviere: Arten insgesamt und je Revier. */
+function GlobalOverview(props) {
+    const caught = props.caught;
+    const all = props.allKeys;
+    const done = all.filter(function (k) { return caught[k]; }).length;
+
+    const rows = Object.keys(FISHERIES).map(function (id) {
+        const m = D.maps.filter(function (x) { return x.id === id; })[0];
+        const keys = FISHERIES[id].species.map(function (g) { return g.s; });
+        const dn = keys.filter(function (k) { return caught[k]; }).length;
+        return { id: id, name: m ? m.name : id, total: keys.length, done: dn };
+    }).sort(function (a, b) { return (b.done / (b.total || 1)) - (a.done / (a.total || 1)); });
+
+    const complete = rows.filter(function (r) { return r.total && r.done === r.total; }).length;
+
+    return h('div', null,
+        h('div', { className: 'ufs-statgrid', style: { marginBottom: '1rem' } },
+            h(Stat, { label: 'Arten gefangen', value: done + ' / ' + all.length, sub: Math.round(done / (all.length || 1) * 100) + ' % der Artenliste' }),
+            h(Stat, { label: 'Reviere komplett', value: complete + ' / ' + rows.length, sub: 'alle Arten des Reviers gefangen' }),
+            h(Stat, { label: 'Noch offen', value: (all.length - done), sub: 'Arten ohne Haken' })),
+        h('div', { style: { marginBottom: '1.2rem' } }, h(Bar, { value: done, total: all.length })),
+        h('div', { className: 'ufs-spotcard' },
+            h('h3', null, 'Fortschritt je Revier'),
+            h('table', { className: 'ufs-rec' },
+                h('thead', null, h('tr', null,
+                    h('th', null, 'Revier'), h('th', null, 'Gefangen'), h('th', null, 'Fortschritt'), h('th', null, 'Offen'))),
+                h('tbody', null, rows.map(function (r) {
+                    const open = FISHERIES[r.id].species
+                        .filter(function (g) { return !caught[g.s]; })
+                        .map(function (g) { return speciesName(g.s, props.lang); });
+                    return h('tr', {
+                        key: r.id, style: { cursor: 'pointer' },
+                        onClick: function () { props.onOpenMap(r.id); }
+                    },
+                        h('td', { className: cn('n', r.total && r.done === r.total && 'done') },
+                            (r.total && r.done === r.total ? '✓ ' : '') + r.name),
+                        h('td', { className: 'num' }, r.done + ' / ' + r.total),
+                        h('td', null, h('div', { className: 'ufs-recbar' },
+                            h('span', { style: { width: (r.total ? r.done / r.total * 100 : 0) + '%' } }))),
+                        h('td', { className: 'sub' },
+                            open.length ? open.slice(0, 4).join(', ') + (open.length > 4 ? ' +' + (open.length - 4) : '') : '–'));
+                })))));
 }
 
 /* ------------------------------------------------------------- Artenseite */
@@ -1470,90 +1453,24 @@ function api(path, opts) {
 
 /* --------------------------------------------------------- Profilspeicher */
 
-function newId() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
-
-/** Profile laden; ältere Einzelschlüssel werden einmalig übernommen. */
-function loadProfiles() {
+/**
+ * Es gibt genau einen lokalen Stand. Ältere Fassungen speicherten mehrere
+ * Profile – davon wird einmalig das zuletzt aktive übernommen.
+ */
+function loadLocal() {
     try {
         const p = JSON.parse(localStorage.getItem('ufs-profiles') || 'null');
-        if (p && p.list && p.list.length) return p;
-    } catch (e) { /* fällt auf die Migration zurück */ }
+        if (p && p.list && p.list.length) {
+            const act = p.list.filter(function (x) { return x.id === p.active; })[0] || p.list[0];
+            localStorage.removeItem('ufs-profiles');
+            return { caught: act.caught || {}, bests: act.bests || {}, stats: act.stats || null };
+        }
+    } catch (e) { /* auf die Einzelschlüssel zurückfallen */ }
     let caught = {}, bests = {}, stats = null;
     try { caught = JSON.parse(localStorage.getItem('ufs-caught') || '{}'); } catch (e) { }
     try { bests = JSON.parse(localStorage.getItem('ufs-bests') || '{}'); } catch (e) { }
     try { stats = JSON.parse(localStorage.getItem('ufs-stats') || 'null'); } catch (e) { }
-    const id = newId();
-    const name = (stats && stats.player && stats.player.name) || 'Mein Profil';
-    return { active: id, list: [{ id: id, name: name, caught: caught, bests: bests, stats: stats }] };
-}
-
-function ProfileBar(props) {
-    const [open, setOpen] = useState(false);
-    const fileRef = useRef(null);
-    const p = props.profiles, act = props.active;
-
-    function share() {
-        const blob = new Blob([JSON.stringify({ ufsProfile: 1, profile: act })], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'ufs-profil-' + act.name.replace(/[^\w-]+/g, '_') + '.json';
-        a.click();
-        setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
-    }
-    function readFile(e) {
-        const f = e.target.files && e.target.files[0];
-        if (!f) return;
-        const rd = new FileReader();
-        rd.onload = function () {
-            try {
-                const j = JSON.parse(rd.result);
-                if (!j || !j.profile) throw new Error('kein Profil');
-                props.onAdd(Object.assign({}, j.profile, { id: newId() }));
-                setOpen(false);
-            } catch (err) { alert('Datei konnte nicht gelesen werden: ' + err.message); }
-        };
-        rd.readAsText(f);
-    }
-
-    return h('div', { className: 'ufs-profile' },
-        h('button', {
-            className: cn('ufs-btn', open && 'primary'),
-            onClick: function () { setOpen(!open); },
-            title: 'Profil wechseln'
-        }, '◔ ', act ? act.name : 'Profil', p.list.length > 1 ? ' (' + p.list.length + ')' : ''),
-        open ? h('div', { className: 'ufs-profilemenu' },
-            p.list.map(function (x) {
-                return h('button', {
-                    key: x.id,
-                    className: cn('row', x.id === p.active && 'on'),
-                    onClick: function () { props.onSwitch(x.id); setOpen(false); }
-                },
-                    h('span', null, (x.id === p.active ? '▸ ' : '') + x.name),
-                    h('em', null, Object.keys(x.caught || {}).length + ' Arten'));
-            }),
-            h('div', { className: 'sep' }),
-            h('button', {
-                className: 'row', onClick: function () {
-                    const n = prompt('Name des neuen Profils?');
-                    if (n) { props.onAdd({ id: newId(), name: n, caught: {}, bests: {}, stats: null }); setOpen(false); }
-                }
-            }, h('span', null, '+ Neues Profil')),
-            h('button', {
-                className: 'row', onClick: function () {
-                    const n = prompt('Profil umbenennen:', act.name);
-                    if (n) props.onRename(n);
-                }
-            }, h('span', null, 'Umbenennen')),
-            h('button', { className: 'row', onClick: share }, h('span', null, 'Profil teilen (Datei)')),
-            h('button', { className: 'row', onClick: function () { fileRef.current.click(); } },
-                h('span', null, 'Profil einlesen')),
-            p.list.length > 1 ? h('button', {
-                className: 'row danger', onClick: function () {
-                    if (confirm('Profil „' + act.name + '" löschen?')) { props.onDelete(); setOpen(false); }
-                }
-            }, h('span', null, 'Profil löschen')) : null,
-            h('input', { ref: fileRef, type: 'file', accept: '.json', className: 'ufs-file', onChange: readFile })
-        ) : null);
+    return { caught: caught, bests: bests, stats: stats };
 }
 
 /* ------------------------------------------------------------ Anmeldung */
@@ -1853,7 +1770,10 @@ function CommunityPage(props) {
             h(FollowCompare, { entries: follows, lang: props.lang, onOpenUser: props.onOpenUser, onUnfollow: function (id) { api('/follow/' + id, { method: 'DELETE' }).then(loadFollowing); } }))
             : null,
 
-        tab === 'konto' ? h(AccountPanel, { me: me, onLogout: props.onLogout }) : null);
+        tab === 'konto' ? h(AccountPanel, {
+            me: me, local: props.local,
+            onMe: props.onMe, onLogout: props.onLogout
+        }) : null);
 }
 
 /** Vergleich mit den Profilen, denen man folgt. */
@@ -1909,7 +1829,42 @@ function FollowCompare(props) {
 
 function AccountPanel(props) {
     const me = props.me;
+    const local = props.local || { caught: {}, bests: {}, stats: null };
     const [token, setToken] = useState(me.apiToken);
+    const [name, setName] = useState(me.name);
+    const [msg, setMsg] = useState(null);
+    const [err, setErr] = useState(null);
+    const [busy, setBusy] = useState(false);
+    const localCount = Object.keys(local.caught || {}).length;
+
+    function say(text) { setErr(null); setMsg(text); }
+    function fail(e) { setMsg(null); setErr(e.message); }
+
+    function saveName() {
+        const wish = name.trim();
+        if (!wish || wish === me.name) return;
+        setBusy(true);
+        api('/profile/name', { method: 'POST', json: { name: wish } })
+            .then(function (d) { props.onMe(d.user); setName(d.user.name); say('Name gespeichert.'); })
+            .catch(fail)
+            .then(function () { setBusy(false); });
+    }
+    function importLocal() {
+        if (!localCount) return;
+        if (!confirm('Der lokale Stand ersetzt dein Profil im Konto vollständig. Fortfahren?')) return;
+        setBusy(true);
+        api('/profile/import', {
+            method: 'POST',
+            json: { caught: local.caught || {}, bests: local.bests || {}, stats: local.stats || null }
+        })
+            .then(function (d) {
+                props.onMe(d.user);
+                say('Übernommen: ' + (d.profile ? d.profile.speciesCount : 0) + ' Arten im Konto.');
+            })
+            .catch(fail)
+            .then(function () { setBusy(false); });
+    }
+
     const cmd = 'curl -H "X-Api-Token: ' + token + '" --data-binary "@%UserProfile%\\AppData\\LocalLow\\PlayWay\\UltimateFishing\\PROFILE_0" ' +
         location.origin + '/api/profile/upload';
     return h('div', { className: 'ufs-spotcard' },
@@ -1917,6 +1872,39 @@ function AccountPanel(props) {
         h('div', { className: 'ufs-stats', style: { marginBottom: '.9rem' } },
             h('span', null, 'Angemeldet als ', h('b', null, me.name)),
             me.email ? h('span', null, me.email) : null),
+
+        err ? h('div', { className: 'ufs-note', style: { marginBottom: '.8rem' } }, err) : null,
+        msg ? h('div', { className: 'ufs-note ok', style: { marginBottom: '.8rem' } }, msg) : null,
+
+        h('h3', null, 'Benutzername'),
+        h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', lineHeight: 1.6, margin: '.2rem 0 .6rem' } },
+            'Unter diesem Namen finden dich andere in der Suche und in Gruppen. Er ist einmalig – ' +
+            'wenn ihn schon jemand hat, musst du dir einen anderen aussuchen.'),
+        h('div', { className: 'ufs-row', style: { marginBottom: '1.1rem' } },
+            h('input', {
+                value: name, maxLength: 32, placeholder: 'dein Name',
+                onChange: function (e) { setName(e.target.value); },
+                onKeyDown: function (e) { if (e.key === 'Enter') saveName(); },
+                className: 'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50',
+                style: { minWidth: '220px' }
+            }),
+            h('button', {
+                className: 'ufs-btn primary', disabled: busy || !name.trim() || name.trim() === me.name,
+                onClick: saveName
+            }, 'Namen speichern')),
+
+        h('h3', null, 'Lokalen Stand übernehmen'),
+        h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', lineHeight: 1.6, margin: '.2rem 0 .6rem' } },
+            localCount
+                ? 'In diesem Browser sind ' + localCount + ' Arten abgehakt' +
+                  (local.stats && local.stats.player ? ' – dazu die Werte des zuletzt geladenen Spielstands' : '') +
+                  '. Damit lässt sich das Profil im Konto füllen, ohne die PROFILE-Datei erneut zu laden.'
+                : 'In diesem Browser ist nichts gespeichert. Hake unter „Reviere“ Arten ab oder lade unter „Statistik“ einen Spielstand.'),
+        h('div', { className: 'ufs-row', style: { marginBottom: '1.1rem' } },
+            h('button', {
+                className: 'ufs-btn', disabled: busy || !localCount, onClick: importLocal
+            }, h(Icon, { name: 'import' }), 'Lokalen Stand ins Konto übernehmen')),
+
         h('h3', null, 'Spielstand automatisch hochladen'),
         h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', lineHeight: 1.6, margin: '.2rem 0 .6rem' } },
             'Mit diesem Befehl lädst du deinen Spielstand ohne Anmeldung hoch – etwa aus der ' +
@@ -1969,25 +1957,21 @@ function App() {
     const [favorites, setFavorites] = useState(function () {
         try { return JSON.parse(localStorage.getItem('ufs-favs') || '[]'); } catch (e) { return []; }
     });
-    const [profiles, setProfiles] = useState(loadProfiles);
-    const activeProfile = profiles.list.filter(function (x) { return x.id === profiles.active; })[0] || profiles.list[0];
-    const caught = activeProfile.caught || {};
-    const bests = activeProfile.bests || {};
-    const saveStats = activeProfile.stats || null;
-
-    /** Ändert nur das aktive Profil. */
-    function patchActive(patch) {
-        setProfiles(function (p) {
-            return {
-                active: p.active,
-                list: p.list.map(function (x) { return x.id === p.active ? Object.assign({}, x, patch) : x; })
-            };
-        });
+    const [local, setLocal] = useState(loadLocal);
+    const caught = local.caught || {};
+    const bests = local.bests || {};
+    const saveStats = local.stats || null;
+    function patchLocal(patch) {
+        setLocal(function (l) { return Object.assign({}, l, patch); });
     }
     const searchRef = useRef(null);
 
     useEffect(function () { localStorage.setItem('ufs-favs', JSON.stringify(favorites)); }, [favorites]);
-    useEffect(function () { localStorage.setItem('ufs-profiles', JSON.stringify(profiles)); }, [profiles]);
+    useEffect(function () {
+        localStorage.setItem('ufs-caught', JSON.stringify(local.caught || {}));
+        localStorage.setItem('ufs-bests', JSON.stringify(local.bests || {}));
+        localStorage.setItem('ufs-stats', JSON.stringify(local.stats || null));
+    }, [local]);
     useEffect(function () { localStorage.setItem('ufs-lang', lang); }, [lang]);
     useEffect(function () {
         function fn(e) {
@@ -2011,6 +1995,7 @@ function App() {
             if (head === 'gruppen' || head === 'community') { setView('community'); return; }
             if (head === 'statistik') { setView('stats'); setStatsTab(parts[1] || 'reviere'); return; }
             if (head === 'arten') { setView('arten'); setOpenSpecies(parts[1] ? parts[1].toUpperCase() : null); return; }
+            if (head === 'gesamt') { setView('map'); setSelectedMap('__all__'); return; }
             if (head === 'revier' && parts[1]) {
                 const m = D.maps.filter(function (x) { return x.id === parts[1]; })[0];
                 if (m) {
@@ -2030,7 +2015,9 @@ function App() {
     }, []);
     useEffect(function () {
         if (!routeReady.current) return;
-        let hash = '#revier/' + selectedMap + (selectedSpot ? '/spot' + selectedSpot : '');
+        let hash = selectedMap === '__all__'
+            ? '#gesamt'
+            : '#revier/' + selectedMap + (selectedSpot ? '/spot' + selectedSpot : '');
         if (view === 'bait') hash = '#koeder';
         else if (view === 'community') hash = '#gruppen';
         else if (view === 'stats') hash = '#statistik';
@@ -2038,8 +2025,9 @@ function App() {
         if (location.hash !== hash) history.replaceState(null, '', hash);
     }, [view, selectedMap, selectedSpot, openSpecies]);
 
+    const isGlobal = selectedMap === '__all__';
     const map = D.maps.filter(function (m) { return m.id === selectedMap; })[0] || playable[0];
-    const fishery = FISHERIES[map.id] || null;
+    const fishery = isGlobal ? null : (FISHERIES[map.id] || null);
 
     /* Guide-Einträge dieser Karte plus Arten, die nur in den Spieldateien stehen. */
     const rows = useMemo(function () {
@@ -2127,15 +2115,14 @@ function App() {
         const n = {};
         Object.keys(caught).forEach(function (k) { n[k] = caught[k]; });
         if (n[key]) delete n[key]; else n[key] = true;
-        patchActive({ caught: n });
+        patchLocal({ caught: n });
     }
-    /** Ein Import ersetzt den Stand des aktiven Profils vollständig. */
+    /** Ein Import ersetzt den lokalen Stand vollständig. */
     function applyImport(res) {
-        patchActive({
+        setLocal({
             caught: res.caught,
             bests: res.bests,
-            stats: { player: res.player, fisheries: res.fisheries, bests: res.bests, total: res.total },
-            name: (res.player && res.player.name) || activeProfile.name
+            stats: { player: res.player, fisheries: res.fisheries, bests: res.bests, total: res.total }
         });
     }
 
@@ -2200,21 +2187,8 @@ function App() {
                     API_AVAILABLE ? h('button', {
                         className: cn('ufs-btn', view === 'community' && 'primary'),
                         onClick: function () { setView('community'); }
-                    }, h(Icon, { name: 'star' }), me ? 'Gruppen' : 'Anmelden') : null,
-                    h(ProfileBar, {
-                        profiles: profiles, active: activeProfile,
-                        onSwitch: function (id) { setProfiles(function (p) { return { active: id, list: p.list }; }); },
-                        onAdd: function (prof) { setProfiles(function (p) { return { active: prof.id, list: p.list.concat([prof]) }; }); },
-                        onRename: function (n) { patchActive({ name: n }); },
-                        onDelete: function () {
-                            setProfiles(function (p) {
-                                const rest = p.list.filter(function (x) { return x.id !== p.active; });
-                                return { active: rest[0].id, list: rest };
-                            });
-                        }
-                    }),
+                    }, h(Icon, { name: 'star' }), 'Gruppen') : null,
                     h('span', { className: 'ufs-chip ufs-mono', title: 'Gefangene Arten insgesamt' }, '✓ ' + allDone + ' / ' + allKeys.length),
-                    h('button', { className: 'ufs-btn', onClick: function () { setImportOpen(true); } }, h(Icon, { name: 'import' }), 'Spielstand'),
                     h('button', { className: 'ufs-btn', onClick: function () { setSourceOpen(true); } }, h(Icon, { name: 'source' }), 'Quellen')))),
 
         h('div', {
@@ -2225,6 +2199,17 @@ function App() {
             view !== 'map' ? null : h('aside', { className: 'no-print hidden self-start lg:sticky lg:top-24 lg:block' },
                 h('div', { className: 'glass scrollbar max-h-[calc(100vh-7rem)] overflow-y-auto rounded-3xl border border-white/10 p-3 shadow-2xl' },
                     h('div', { className: 'px-3 pb-2 pt-2 text-xs font-bold uppercase tracking-[.18em] text-slate-500' }, 'Karten'),
+                    h('button', {
+                        onClick: function () { setSelectedMap('__all__'); },
+                        className: cn('group mb-3 flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition',
+                            selectedMap === '__all__' ? 'border border-cyan-300/20 bg-cyan-400/10' : 'border border-transparent hover:bg-white/[.045]')
+                    },
+                        h('span', { className: 'h-2.5 w-2.5 rounded-full bg-cyan-300/70' }),
+                        h('span', { className: 'min-w-0 flex-1' },
+                            h('span', { className: 'block truncate text-sm font-semibold text-slate-200' }, 'Gesamtübersicht'),
+                            h('span', { style: { display: 'block', marginTop: '3px' } },
+                                h(Bar, { value: allDone, total: allKeys.length, thin: true }))),
+                        h('span', { className: 'text-[10px] tabular-nums text-slate-600' }, allDone + '/' + allKeys.length)),
                     Object.keys(grouped).map(function (group) {
                         return h('div', { key: group, className: 'mb-4' },
                             h('div', { className: 'px-3 py-2 text-[10px] font-bold uppercase tracking-[.18em] text-slate-600' }, group),
@@ -2256,21 +2241,25 @@ function App() {
                     }))),
 
             h('main', { className: 'min-w-0' },
-                view === 'map' ? null : h('h1', { className: 'mb-4 text-2xl font-black tracking-tight text-white' },
+                view === 'map' && !isGlobal ? null : h('h1', { className: 'mb-4 text-2xl font-black tracking-tight text-white' },
                     view === 'bait' ? 'Köder & Methoden'
                         : view === 'arten' ? 'Fischarten'
                         : view === 'community' ? 'Gruppen & Vergleich'
-                        : 'Statistik'),
+                        : view === 'stats' ? 'Statistik'
+                        : 'Gesamtübersicht'),
                 view === 'bait' ? h(BaitPage, { lang: lang })
                 : view === 'community' ? h(CommunityPage, {
-                    me: me, lang: lang,
+                    me: me, lang: lang, local: local,
+                    onMe: function (u) { setMe(u); },
                     onLogin: function (u) { setMe(u); },
                     onLogout: function () { api('/auth/logout', { method: 'POST' }).then(function () { setMe(null); }); },
                     onOpenUser: setOpenUser
                 })
                 : view === 'stats' ? h(StatsPage, {
                     stats: saveStats, lang: lang, tab: statsTab,
-                    profiles: profiles.list, activeId: profiles.active,
+                    me: me,
+                    onOpenCommunity: function () { setView('community'); },
+                    onReset: function () { setLocal({ caught: {}, bests: {}, stats: null }); },
                     onImport: function () { setImportOpen(true); },
                     onOpenMap: function (id) { setSelectedMap(id); setView('map'); },
                     onOpenSpecies: function (k) { setOpenSpecies(k); setView('arten'); }
@@ -2278,6 +2267,10 @@ function App() {
                 : view === 'arten' ? h(SpeciesPage, {
                     lang: lang, caught: caught, bests: bests,
                     initialOpen: openSpecies, onOpen: setOpenSpecies
+                })
+                : isGlobal ? h(GlobalOverview, {
+                    caught: caught, allKeys: allKeys, lang: lang,
+                    onOpenMap: function (id) { setSelectedMap(id); }
                 })
                 : h(React.Fragment, null,
                 h('div', { className: 'no-print scrollbar mb-4 flex gap-2 overflow-x-auto pb-2 lg:hidden' },
@@ -2419,7 +2412,7 @@ function App() {
             me: me,
             onClose: function () { setImportOpen(false); },
             onImport: applyImport,
-            onReset: function () { setCaught({}); setBests({}); setSaveStats(null); }
+            onReset: function () { setLocal({ caught: {}, bests: {}, stats: null }); }
         }) : null);
 }
 

@@ -4,8 +4,11 @@ namespace App\Controller;
 
 use App\Service\Auth;
 use App\Service\GameData;
+use App\Service\LocalImport;
+use App\Service\Names;
 use App\Service\ProfileWriter;
 use App\Service\SaveParser;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,6 +22,8 @@ class ProfileController extends AbstractController
         private readonly SaveParser $parser,
         private readonly ProfileWriter $writer,
         private readonly GameData $game,
+        private readonly LocalImport $local,
+        private readonly Names $names,
     ) {
     }
 
@@ -83,6 +88,39 @@ class ProfileController extends AbstractController
         ]);
     }
 
+    /**
+     * Den Stand aus dem Browser übernehmen: abgehakte Arten plus die Werte des
+     * zuletzt lokal geladenen Spielstands. Ersetzt das Profil genauso
+     * vollständig wie ein Upload.
+     */
+    #[Route('/import', methods: ['POST'])]
+    public function import(Request $request): JsonResponse
+    {
+        $user = $this->auth->user();
+        if ($user === null) {
+            return $this->json(['error' => 'Nicht angemeldet.'], 401);
+        }
+        $data = json_decode($request->getContent() ?: '{}', true);
+        if (!\is_array($data)) {
+            return $this->json(['error' => 'Konnte die lokalen Daten nicht lesen.'], 400);
+        }
+        $caught = \is_array($data['caught'] ?? null) ? $data['caught'] : [];
+        $bests = \is_array($data['bests'] ?? null) ? $data['bests'] : [];
+        if (!$caught && !$bests) {
+            return $this->json(['error' => 'Lokal ist nichts gespeichert, das sich übernehmen ließe.'], 400);
+        }
+
+        $agg = $this->local->toAggregate($data, $this->game->species(), $this->game->fisherySpecies());
+        $profile = $this->writer->store($user, $agg);
+
+        return $this->json([
+            'ok' => true,
+            'user' => UserController::userPayload($user, true),
+            'profile' => UserController::profilePayload($profile),
+        ]);
+    }
+
+    /** Der Benutzername ist eindeutig – er ist die Adresse des Profils. */
     #[Route('/name', methods: ['POST'])]
     public function rename(Request $request): JsonResponse
     {
@@ -91,12 +129,26 @@ class ProfileController extends AbstractController
             return $this->json(['error' => 'Nicht angemeldet.'], 401);
         }
         $data = json_decode($request->getContent() ?: '{}', true) ?: [];
-        $name = trim((string) ($data['name'] ?? ''));
-        if ($name === '' || mb_strlen($name) > 60) {
-            return $this->json(['error' => 'Name muss zwischen 1 und 60 Zeichen lang sein.'], 400);
+        $name = $this->names->normalize((string) ($data['name'] ?? ''));
+        if (!$this->names->isValid($name)) {
+            return $this->json([
+                'error' => sprintf(
+                    'Der Name braucht %d bis %d Zeichen (Buchstaben, Ziffern, Leerzeichen, . _ -).',
+                    Names::MIN,
+                    Names::MAX,
+                ),
+            ], 400);
         }
+        if (!$this->names->isFree($name, $user)) {
+            return $this->json(['error' => 'Diesen Namen hat schon jemand.'], 409);
+        }
+
         $user->setName($name);
-        $this->writer->flush();
+        try {
+            $this->writer->flush();
+        } catch (UniqueConstraintViolationException) {
+            return $this->json(['error' => 'Diesen Namen hat schon jemand.'], 409);
+        }
 
         return $this->json(['ok' => true, 'user' => UserController::userPayload($user, true)]);
     }

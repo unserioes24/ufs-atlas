@@ -7,10 +7,12 @@
 FROM composer:2 AS vendor
 WORKDIR /app
 COPY server/composer.json ./
-RUN composer install --no-dev --no-scripts --prefer-dist --no-interaction --ignore-platform-reqs
+# Ohne --ignore-platform-reqs: composer.json pinnt die Plattform auf PHP 8.5
+# und jedes Symfony-Paket auf 7.4 – sonst mischt Composer 7.4 und 8.x.
+RUN composer install --no-dev --no-scripts --prefer-dist --no-interaction
 
 # ── Laufzeit ─────────────────────────────────────────────────────────
-FROM php:8.3-apache
+FROM php:8.5-apache
 
 RUN set -eux; \
     apt-get update; \

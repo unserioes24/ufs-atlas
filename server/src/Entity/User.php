@@ -9,6 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity]
 #[ORM\Table(name: 'app_user')]
 #[ORM\UniqueConstraint(name: 'uniq_email', columns: ['email'])]
+#[ORM\UniqueConstraint(name: 'uniq_name', columns: ['name'])]
 class User
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
@@ -17,7 +18,7 @@ class User
     #[ORM\Column(length: 180)]
     private string $email;
 
-    /** Anzeigename in Gruppen; wird beim Spielstand-Import vorbelegt. */
+    /** Eindeutiger Anzeigename; wird beim Spielstand-Import vorbelegt. */
     #[ORM\Column(length: 60)]
     private string $name;
 
