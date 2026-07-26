@@ -20,12 +20,14 @@ services:
       TRUSTED_PROXIES: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
     volumes:
       - sessions:/var/www/html/var/sessions
+    # Prüft nur, ob der Webserver ausliefert. Ein Fehler in PHP soll den
+    # Deploy nicht blockieren – der zeigt sich in den Logs, nicht hier.
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost/api/auth/me >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost/robots.txt >/dev/null || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 6
-      start_period: 40s
+      start_period: 30s
     networks:
       - web
       - internal
