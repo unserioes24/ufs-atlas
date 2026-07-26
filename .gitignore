@@ -1,0 +1,9 @@
+# Zwischenstände der Extraktion (werden von tools/extract.ps1 neu erzeugt)
+tools/_work/
+tools/_*.json
+
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

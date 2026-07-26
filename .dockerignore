@@ -1,0 +1,7 @@
+.git
+.gitlab-ci.yml
+tools
+deploy
+README.md
+.vscode
+*.log

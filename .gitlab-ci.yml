@@ -1,0 +1,68 @@
+# CI/CD für fish.tobee94.de
+#
+#   build_web   arm64-Runner → Website-Image bauen und pushen (Caddy + statische Dateien)
+#   deploy      (manuell) docker compose über SSH → web.fuewa.systems (gemeinsamer Host)
+#
+# Es gibt keinen Build-Schritt für die Seite selbst: der Guide ist fertiges
+# HTML/JS/CSS. Die Daten unter maps/, fish/, models/ und gamedata.js werden
+# lokal mit tools/extract.ps1 aus der Spielinstallation erzeugt und eingecheckt.
+#
+# Benötigte CI/CD-Variable:
+#   SSH_PRIVATE_KEY   Schlüssel für root@web.fuewa.systems (nur Deploy)
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+stages:
+  - build_image
+  - deploy
+
+# ── 1) Website-Image (Caddy mit den statischen Dateien) ──────────────
+build_web:
+  stage: build_image
+  tags:
+    - arm
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
+    - docker build --provenance=false --sbom=false -f Dockerfile.web
+      -t "$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA"
+      -t "$CI_REGISTRY_IMAGE/web:latest" .
+    - docker push "$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE/web:latest"
+  rules:
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+# ── 2) Deploy (manuell): docker compose gegen den entfernten Daemon ──
+deploy:
+  stage: deploy
+  needs:
+    - build_web
+  variables:
+    DOCKER_HOST: "ssh://root@web.fuewa.systems"
+    WEB_IMAGE: "$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA"
+  before_script:
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+    # ControlMaster bündelt alle docker-over-SSH-Aufrufe auf EINE Verbindung.
+    - printf 'Host web.fuewa.systems\n  User root\n  IdentityFile ~/.ssh/id_deploy\n  StrictHostKeyChecking accept-new\n  ControlMaster auto\n  ControlPath ~/.ssh/cm-%%r@%%h:%%p\n  ControlPersist 120s\n  ConnectTimeout 30\n  ConnectionAttempts 3\n  ServerAliveInterval 15\n' > ~/.ssh/config
+    - for i in 1 2 3 4 5 6; do ssh -o BatchMode=yes web.fuewa.systems true && break || (echo "ssh retry $i"; sleep 10); done
+  script:
+    # Auf dem ENTFERNTEN Daemon anmelden, damit er das private Image ziehen kann
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker compose -f deploy/docker-compose.yml pull
+    - docker compose -f deploy/docker-compose.yml up -d --remove-orphans --wait --wait-timeout 180
+  environment:
+    name: production
+    url: https://fish.tobee94.de
+  rules:
+    - if: '$CI_COMMIT_TAG'
+      when: manual
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual

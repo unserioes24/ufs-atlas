@@ -1,0 +1,55 @@
+# Extraktion aus den Spieldateien
+
+Diese Skripte erzeugen `gamedata.js`, `maps/*.jpg` und `fish/*.jpg` direkt aus einer
+lokalen Installation von *Ultimate Fishing Simulator* (Unity 2017.4.29f1). Sie lesen
+ausschließlich und verändern nichts am Spiel.
+
+```powershell
+# Windows PowerShell 5.1, im Projektordner:
+.\tools\extract.ps1
+.\tools\extract.ps1 -Game "D:\Steam\steamapps\common\Ultimate Fishing\UltimateFishing_Data"
+.\tools\extract.ps1 -SkipImages          # ohne Fischtexturen (spart ~3 Minuten)
+```
+
+Zwischenergebnisse landen in `tools/_work/` und können gelöscht werden.
+
+## Woher welche Angabe stammt
+
+| Angabe | Quelle im Spiel |
+| --- | --- |
+| Spotnummern und ihre Position auf der Karte | `MapButton`-Objekte im UI der jeweiligen Szene, Position relativ zu `MapImage` |
+| Sommer- und Eis-Spots getrennt | jede Szene hat zwei Kartentafeln, `MapParentNormal` und `MapParentIce`, mit eigenen Buttons |
+| Zusatzarten des New-Fish-Species-DLC | Prefab-Verweise im `GameController` der Szene; diese Arten haben keine eigenen Spawner |
+| Weltkoordinaten eines Spots | Reiseziel (`QuickJump…`), auf das der Kartenbutton verweist |
+| Arten je Revier, Schwarmpunkte, Fischzahl | `FishSpawner_*`-Objekte samt Verweis auf das Fisch-Prefab |
+| Gewicht, Länge, Beißzeitkurve | Fisch-Prefab in `sharedassets2.assets` (Feldversatz 592 ff., AnimationCurve über 0–24 h) |
+| Deutsche Namen, Beschreibungen, Ködernamen | I2-Localization-Tabelle in `resources.assets` (12 Sprachen) |
+| Kartenbilder | `Map*`-Texturen in den `sharedassets*.resS` (RGB24 bzw. DXT1) |
+| Fischbilder | Albedo-/Diffuse-Texturen der Fischmodelle, automatisch auf den sichtbaren Bereich zugeschnitten |
+| 3D-Modelle | Mesh (Klasse 43) des SkinnedMeshRenderers im Fisch-Prefab, Textur über die Material-Eigenschaft `_MainTex` |
+
+## Dateien
+
+- `UfsAssets.cs` – Parser für Unity-`SerializedFile` (Header, Typen, Objekttabelle, externe Referenzen).
+  Die Builds enthalten keine Type-Trees, deshalb werden nur Klassen mit bekanntem Layout gelesen:
+  GameObject (1), Transform (4), RectTransform (224), Texture2D (28) sowie MonoBehaviour-Rohdaten (114).
+- `UfsFishery.cs` – zieht pro Szene Spots, Reiseziele und Spawner heraus.
+- `UfsTex.cs` – Texturdecoder (RGB24, RGBA32, ARGB32, BC1/DXT1, BC3/DXT5) und JPEG-Export.
+- `terms.ps1` – liest die I2-Termtabelle aus einem Speicherauszug von `resources.assets`.
+- `build.ps1` – rechnet Spots auf Kartenkoordinaten um, schätzt die Welt→Karte-Abbildung und
+  ordnet jeden Schwarm dem nächstgelegenen Spot zu.
+- `build2.ps1` – führt alles zu `gamedata.json` zusammen, inklusive Namensauflösung auf
+  Lokalisierungsschlüssel (dieselben Schlüssel nutzt auch der Spielstand).
+- `fishimg.ps1` – ordnet Fischtexturen den Arten zu und schneidet sie zu.
+
+## Grenzen
+
+- Die Welt→Karte-Abbildung wird aus den Spotpaaren geschätzt. Liegen die Spots fast auf einer
+  Linie oder ist das Kartenbild nicht maßstabsgetreu, wird sie verworfen (`fitOk: false`) und
+  es werden nur die Spots gezeichnet, keine Schwarmpunkte. Betroffen sind Baikal, Grönland,
+  Japan, Kariba, Taupo und Florida.
+- Hakengrößen stehen nicht als eigenes Feld in den Spieldaten; das Spiel leitet sie aus der
+  Fischgröße ab. Die Hakenangaben im Guide bleiben deshalb Community-Werte.
+- Die Byte-Offsets der Kartentexturen in `extract.ps1` gelten für den Spielstand vom Juli 2026.
+  Nach einem Spiel-Update müssen sie neu ermittelt werden (Texturnamen beginnen mit `Map`
+  bzw. heißen `map_03`, `map_japan_01`, `florida_map_01`).

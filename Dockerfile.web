@@ -1,0 +1,15 @@
+# Statisches Website-Image: der Guide, ausgeliefert von Caddy.
+#
+# Es gibt keinen Build-Schritt – die Seite besteht aus fertigem HTML/JS/CSS
+# plus den aus dem Spiel extrahierten Medien. Architekturunabhängig, das
+# arm64-Caddy-Basisimage wird nur neu verpackt.
+FROM caddy:2-alpine
+
+COPY web/Caddyfile /etc/caddy/Caddyfile
+
+COPY index.html app.js gamedata.js styles.css ui.css data.json robots.txt /srv/
+COPY maps /srv/maps
+COPY fish /srv/fish
+COPY models /srv/models
+
+EXPOSE 80

@@ -1,0 +1,30 @@
+# Anwendungsstack für fish.tobee94.de.
+# Wird von der CI (Job `deploy`) auf das gemeinsame `web`-Netz gelegt.
+# TLS und Host-Routing macht Traefik auf demselben Host wie fuewa.systems.
+# Eigener Projektname, damit dieser Stack nicht mit den anderen kollidiert
+# (alle compose-Dateien liegen in einem "deploy"-Verzeichnis).
+name: fish
+services:
+  web:
+    image: ${WEB_IMAGE}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      - "traefik.http.routers.fish-web.rule=Host(`fish.tobee94.de`)"
+      - "traefik.http.routers.fish-web.entrypoints=websecure"
+      - "traefik.http.routers.fish-web.tls.certresolver=le"
+      - "traefik.http.services.fish-web.loadbalancer.server.port=80"
+
+networks:
+  web:
+    external: true
+    name: web

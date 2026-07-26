@@ -1,0 +1,240 @@
+/* UFS Atlas – Bausteine für Spieldaten, Revierkarte und Fangfortschritt.
+   Bewusst eigenständig gehalten, weil styles.css ein fixer Tailwind-Build ist. */
+
+:root {
+  --ufs-line: rgba(255, 255, 255, .10);
+  --ufs-panel: rgba(255, 255, 255, .035);
+  --ufs-panel-2: rgba(0, 0, 0, .22);
+  --ufs-cyan: #67e8f9;
+  --ufs-amber: #fcd34d;
+  --ufs-green: #6ee7b7;
+}
+
+.ufs-row { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.ufs-col { display: flex; flex-direction: column; gap: .5rem; }
+.ufs-muted { color: #64748b; }
+.ufs-dim { color: #94a3b8; }
+.ufs-mono { font-variant-numeric: tabular-nums; }
+.ufs-sep { height: 1px; background: var(--ufs-line); margin: .9rem 0; }
+
+/* ---------------------------------------------------------------- Chips */
+.ufs-chip {
+  display: inline-flex; align-items: center; gap: .35rem;
+  border: 1px solid var(--ufs-line); background: var(--ufs-panel);
+  color: #cbd5e1; border-radius: 999px; padding: .22rem .6rem;
+  font-size: 11px; font-weight: 600; line-height: 1.5;
+}
+.ufs-chip-btn { cursor: pointer; transition: all .15s ease; }
+.ufs-chip-btn:hover { border-color: rgba(103, 232, 249, .45); color: #cffafe; background: rgba(34, 211, 238, .10); }
+.ufs-chip-on { border-color: rgba(103, 232, 249, .5); background: rgba(34, 211, 238, .14); color: #cffafe; }
+.ufs-chip-spot { font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------- Fanghaken */
+.ufs-catch {
+  display: inline-flex; align-items: center; gap: .5rem; cursor: pointer;
+  border: 1px solid var(--ufs-line); background: var(--ufs-panel);
+  border-radius: 14px; padding: .45rem .7rem; transition: all .15s ease;
+  font-size: 12px; font-weight: 700; color: #94a3b8; user-select: none;
+}
+.ufs-catch:hover { border-color: rgba(110, 231, 183, .4); color: #d1fae5; }
+.ufs-catch.on { border-color: rgba(52, 211, 153, .5); background: rgba(16, 185, 129, .14); color: #a7f3d0; }
+.ufs-catch .box {
+  width: 17px; height: 17px; border-radius: 5px; border: 2px solid currentColor;
+  display: grid; place-items: center; font-size: 11px; line-height: 1; flex: none;
+}
+.ufs-catch.on .box { background: rgba(52, 211, 153, .3); }
+
+/* ------------------------------------------------------------ Fortschritt */
+.ufs-bar { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.ufs-bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #22d3ee, #34d399); transition: width .35s ease; }
+.ufs-bar.thin { height: 4px; }
+
+/* ------------------------------------------------------------ Revierkarte */
+.ufs-maplayout { display: grid; gap: 1rem; align-items: start; }
+@media (min-width: 1180px) { .ufs-maplayout { grid-template-columns: minmax(0, 1fr) 340px; } }
+.ufs-map-wrap {
+  position: relative; border-radius: 22px; overflow: hidden;
+  border: 1px solid var(--ufs-line); background: #06111a; line-height: 0;
+}
+.ufs-map-wrap img { width: 100%; height: auto; display: block; }
+.ufs-map-layer { position: absolute; inset: 0; }
+.ufs-spot {
+  position: absolute; transform: translate(-50%, -50%);
+  width: 30px; height: 30px; border-radius: 999px; cursor: pointer;
+  display: grid; place-items: center; font-size: 12px; font-weight: 800;
+  color: #06121a; background: var(--ufs-cyan);
+  border: 2px solid rgba(255, 255, 255, .85);
+  box-shadow: 0 3px 14px rgba(0, 0, 0, .6);
+  transition: transform .13s ease, background .13s ease;
+  font-variant-numeric: tabular-nums;
+}
+.ufs-spot:hover { transform: translate(-50%, -50%) scale(1.22); background: #fff; z-index: 5; }
+.ufs-spot.sel { background: var(--ufs-amber); transform: translate(-50%, -50%) scale(1.22); z-index: 4; }
+.ufs-spot.dim { opacity: .35; }
+.ufs-spot.hit { background: #34d399; }
+.ufs-dot {
+  position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px;
+  border-radius: 999px; background: rgba(56, 189, 248, .75);
+  box-shadow: 0 0 5px rgba(56, 189, 248, .8);
+  cursor: help; transition: transform .1s ease, background .1s ease;
+}
+.ufs-dot:hover { background: #fff; transform: scale(1.7); z-index: 6; }
+.ufs-dot.hl { background: #fbbf24; box-shadow: 0 0 7px rgba(251, 191, 36, .95); width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; }
+
+.ufs-tip {
+  position: absolute; z-index: 20; transform: translate(-50%, -110%);
+  min-width: 190px; max-width: 290px; pointer-events: none;
+  background: rgba(6, 17, 26, .97); border: 1px solid rgba(103, 232, 249, .3);
+  border-radius: 14px; padding: .6rem .7rem; line-height: 1.45;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .6);
+}
+.ufs-tip h4 { margin: 0 0 .35rem; font-size: 12px; font-weight: 800; color: #cffafe; letter-spacing: .04em; }
+.ufs-tip .r { display: flex; justify-content: space-between; gap: .8rem; font-size: 11.5px; color: #cbd5e1; }
+.ufs-tip .r span:last-child { color: #7dd3fc; font-variant-numeric: tabular-nums; }
+.ufs-tip .more { margin-top: .35rem; font-size: 10.5px; color: #64748b; }
+.ufs-tip.small { min-width: 0; padding: .35rem .6rem; transform: translate(-50%, -135%); }
+.ufs-tip.small h4 { margin: 0; font-size: 11.5px; white-space: nowrap; }
+.ufs-tip.small .sub { font-size: 10px; color: #7dd3fc; white-space: nowrap; }
+
+.ufs-map-legend {
+  display: flex; flex-wrap: wrap; gap: .75rem; align-items: center;
+  font-size: 11px; color: #94a3b8; margin-top: .6rem;
+}
+.ufs-map-legend b { color: #cbd5e1; font-weight: 700; }
+
+/* ------------------------------------------------------------ Spot-Panel */
+.ufs-spotcard {
+  border: 1px solid var(--ufs-line); background: var(--ufs-panel-2);
+  border-radius: 18px; padding: .85rem 1rem;
+}
+.ufs-spotcard h3 { margin: 0 0 .5rem; font-size: 13px; font-weight: 800; color: #e2e8f0; }
+.ufs-splist { display: flex; flex-direction: column; gap: .3rem; }
+.ufs-spline {
+  display: grid; grid-template-columns: 1fr auto auto; gap: .6rem; align-items: center;
+  font-size: 12.5px; color: #cbd5e1; padding: .28rem .1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, .05);
+}
+.ufs-spline:last-child { border-bottom: 0; }
+.ufs-spline:hover { background: rgba(255, 255, 255, .04); }
+.ufs-spline.pin {
+  background: rgba(34, 211, 238, .12); border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(103, 232, 249, .3);
+}
+.ufs-spline .n { color: #e2e8f0; font-weight: 600; }
+.ufs-spline .n.done { color: #6ee7b7; }
+.ufs-spline .q { color: #7dd3fc; font-variant-numeric: tabular-nums; font-size: 11px; }
+.ufs-spline .d { color: #64748b; font-variant-numeric: tabular-nums; font-size: 11px; }
+
+/* ---------------------------------------------------------- Spieldatenbox */
+.ufs-gamebox {
+  border: 1px solid rgba(103, 232, 249, .18); background: rgba(34, 211, 238, .05);
+  border-radius: 18px; padding: .85rem 1rem;
+}
+.ufs-gamebox .hd {
+  font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+  color: #67e8f9; margin-bottom: .55rem;
+}
+.ufs-stats { display: flex; flex-wrap: wrap; gap: .5rem .9rem; font-size: 12px; color: #cbd5e1; }
+.ufs-stats b { color: #f1f5f9; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.ufs-fishimg {
+  width: 100%; max-height: 170px; object-fit: contain; object-position: center;
+  border-radius: 14px; border: 1px solid var(--ufs-line); background: #060f16; display: block;
+}
+.ufs-thumb {
+  width: 84px; height: 46px; object-fit: cover; border-radius: 10px;
+  border: 1px solid var(--ufs-line); background: #060f16; flex: none;
+}
+
+/* --------------------------------------------------------- Aktivitätskurve */
+.ufs-act { width: 100%; height: 46px; display: block; }
+.ufs-act .grid { stroke: rgba(255, 255, 255, .09); stroke-width: 1; }
+.ufs-act .area { fill: rgba(34, 211, 238, .18); }
+.ufs-act .line { fill: none; stroke: #22d3ee; stroke-width: 1.8; }
+.ufs-actlabels { display: flex; justify-content: space-between; font-size: 9.5px; color: #64748b; margin-top: 1px; }
+
+/* -------------------------------------------------------------- 3D-Modell */
+.ufs-model {
+  position: relative; width: 100%; height: 265px; border-radius: 14px;
+  overflow: hidden; border: 1px solid var(--ufs-line); background: #060f16;
+}
+.ufs-canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+.ufs-canvas:active { cursor: grabbing; }
+.ufs-model-msg {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 12px; color: #64748b; pointer-events: none; text-align: center; padding: 1rem;
+}
+.ufs-model-hint {
+  position: absolute; right: .55rem; bottom: .45rem; font-size: 10px;
+  color: #64748b; pointer-events: none; letter-spacing: .04em;
+}
+
+/* --------------------------------------------------------------- Rekorde */
+.ufs-rec { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.ufs-rec th {
+  text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .14em;
+  color: #64748b; font-weight: 800; padding: .45rem .5rem; border-bottom: 1px solid var(--ufs-line);
+}
+.ufs-rec td { padding: .4rem .5rem; border-bottom: 1px solid rgba(255,255,255,.05); color: #cbd5e1; }
+.ufs-rec td.n { color: #e2e8f0; font-weight: 600; }
+.ufs-rec td.n.done { color: #6ee7b7; }
+.ufs-rec td.num { text-align: right; font-variant-numeric: tabular-nums; color: #7dd3fc; white-space: nowrap; }
+.ufs-rec td.sub { color: #64748b; font-size: 11px; }
+.ufs-rec tr:hover td { background: rgba(255,255,255,.03); }
+.ufs-recbar { position: relative; height: 5px; border-radius: 999px; background: rgba(255,255,255,.08); min-width: 90px; }
+.ufs-recbar > span { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg,#22d3ee,#34d399); }
+
+/* --------------------------------------------------------------- Köderseite */
+.ufs-baitgrid { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.ufs-baitcard {
+  border: 1px solid var(--ufs-line); background: var(--ufs-panel);
+  border-radius: 14px; padding: .6rem .75rem; cursor: pointer; transition: all .15s ease;
+}
+.ufs-baitcard.has:hover { border-color: rgba(103, 232, 249, .45); background: rgba(34, 211, 238, .08); }
+.ufs-baitcard.open { border-color: rgba(103, 232, 249, .5); background: rgba(34, 211, 238, .10); grid-column: 1 / -1; }
+.ufs-baitcard .de { font-size: 13.5px; font-weight: 700; color: #e2e8f0; }
+.ufs-baitcard .en { font-size: 11px; color: #64748b; margin-top: .1rem; }
+.ufs-baitcard .cnt { font-size: 10.5px; color: #7dd3fc; margin-top: .35rem; font-variant-numeric: tabular-nums; }
+.ufs-baitcard .cnt.none { color: #475569; }
+.ufs-baitcard .list {
+  margin-top: .6rem; padding-top: .5rem; border-top: 1px solid var(--ufs-line);
+  display: grid; gap: .15rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.ufs-baitcard .list > div { display: flex; justify-content: space-between; gap: .7rem; font-size: 11.5px; color: #cbd5e1; }
+.ufs-baitcard .list em { font-style: normal; color: #64748b; }
+
+/* ------------------------------------------------------------------ Modal */
+.ufs-modal-bg {
+  position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, .72);
+  backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 1.2rem;
+}
+.ufs-modal {
+  width: 100%; max-width: 560px; background: #08141c; border: 1px solid var(--ufs-line);
+  border-radius: 22px; padding: 1.4rem; box-shadow: 0 30px 90px rgba(0, 0, 0, .7);
+  max-height: 86vh; overflow-y: auto;
+}
+.ufs-modal h2 { margin: 0 0 .4rem; font-size: 20px; font-weight: 900; color: #fff; }
+.ufs-modal p { margin: .4rem 0; font-size: 13px; line-height: 1.65; color: #94a3b8; }
+.ufs-modal code {
+  background: rgba(255, 255, 255, .07); border-radius: 6px; padding: .1rem .35rem;
+  font-size: 11.5px; color: #a5f3fc; word-break: break-all;
+}
+.ufs-btn {
+  display: inline-flex; align-items: center; gap: .4rem; cursor: pointer;
+  border: 1px solid var(--ufs-line); background: var(--ufs-panel); color: #cbd5e1;
+  border-radius: 13px; padding: .5rem .85rem; font-size: 12.5px; font-weight: 700;
+  transition: all .15s ease;
+}
+.ufs-btn:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+.ufs-btn.primary { border-color: rgba(103, 232, 249, .45); background: rgba(34, 211, 238, .14); color: #cffafe; }
+.ufs-btn.danger:hover { border-color: rgba(244, 63, 94, .5); color: #fecdd3; }
+.ufs-file { display: none; }
+
+.ufs-note {
+  border: 1px solid rgba(252, 211, 77, .25); background: rgba(252, 211, 77, .07);
+  border-radius: 14px; padding: .65rem .8rem; font-size: 12px; line-height: 1.6; color: #fde68a;
+}
+
+@media print {
+  .ufs-map-wrap, .ufs-modal-bg, .ufs-catch { display: none !important; }
+}
