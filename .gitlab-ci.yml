@@ -47,13 +47,10 @@ deploy:
   variables:
     DOCKER_HOST: "ssh://root@web.fuewa.systems"
     WEB_IMAGE: "$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA"
-    # Aus geschützten CI/CD-Variablen; siehe DEPLOY.md
-    APP_SECRET: "$APP_SECRET"
-    DB_PASSWORD: "$DB_PASSWORD"
-    DB_ROOT_PASSWORD: "$DB_ROOT_PASSWORD"
-    MAILER_DSN: "$MAILER_DSN"
-    MAILER_FROM: "$MAILER_FROM"
-    MAILER_FROM_HEADER: "$MAILER_FROM_HEADER"
+    # APP_SECRET, DB_PASSWORD, DB_ROOT_PASSWORD, MAILER_DSN, MAILER_FROM und
+    # MAILER_FROM_HEADER kommen aus den CI/CD-Variablen und stehen im Job
+    # ohnehin in der Umgebung – sie hier nochmals aufzuführen würde bei einer
+    # fehlenden Variablen den Literaltext "$NAME" in den Container schreiben.
   before_script:
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
@@ -61,6 +58,19 @@ deploy:
     - printf 'Host web.fuewa.systems\n  User root\n  IdentityFile ~/.ssh/id_deploy\n  StrictHostKeyChecking accept-new\n  ControlMaster auto\n  ControlPath ~/.ssh/cm-%%r@%%h:%%p\n  ControlPersist 120s\n  ConnectTimeout 30\n  ConnectionAttempts 3\n  ServerAliveInterval 15\n' > ~/.ssh/config
     - for i in 1 2 3 4 5 6; do ssh -o BatchMode=yes web.fuewa.systems true && break || (echo "ssh retry $i"; sleep 10); done
   script:
+    # Lieber hier abbrechen als mit leeren Geheimnissen ausrollen
+    - |
+      missing=
+      for v in APP_SECRET DB_PASSWORD DB_ROOT_PASSWORD MAILER_DSN; do
+        eval "value=\$$v"
+        case "$value" in
+          "" | '$'*) missing="$missing $v" ;;
+        esac
+      done
+      if [ -n "$missing" ]; then
+        echo "Diese CI/CD-Variablen fehlen:$missing – siehe DEPLOY.md." >&2
+        exit 1
+      fi
     # Auf dem ENTFERNTEN Daemon anmelden, damit er das private Image ziehen kann
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - docker compose -f deploy/docker-compose.yml pull

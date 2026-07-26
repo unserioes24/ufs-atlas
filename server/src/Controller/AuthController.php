@@ -7,9 +7,11 @@ use App\Entity\User;
 use App\Service\Auth;
 use App\Service\Names;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Mailer\Exception\ExceptionInterface as MailerException;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Attribute\Route;
@@ -26,7 +28,7 @@ class AuthController extends AbstractController
 
     /** Schickt einen Einmalcode. Antwortet immer gleich, damit sich keine Konten abfragen lassen. */
     #[Route('/request', methods: ['POST'])]
-    public function request(Request $request, MailerInterface $mailer): JsonResponse
+    public function request(Request $request, MailerInterface $mailer, LoggerInterface $logger): JsonResponse
     {
         $data = json_decode($request->getContent() ?: '{}', true) ?: [];
         $email = strtolower(trim((string) ($data['email'] ?? '')));
@@ -60,7 +62,18 @@ class AuthController extends AbstractController
             ->text("Dein Anmeldecode lautet: {$code}\n\n"
                 . "Er ist 15 Minuten gültig.\n"
                 . "Wenn du dich nicht anmelden wolltest, ignoriere diese Nachricht einfach.\n");
-        $mailer->send($mail);
+
+        // Ein fehlender oder falscher MAILER_DSN ist ein Betriebsfehler, kein
+        // Programmfehler: verständlich antworten statt eine 500-Seite zeigen.
+        try {
+            $mailer->send($mail);
+        } catch (MailerException $e) {
+            $logger->error('Anmeldecode konnte nicht versandt werden: ' . $e->getMessage());
+            $this->em->remove($entry);
+            $this->em->flush();
+
+            return $this->json(['error' => 'Der Mailversand ist gerade nicht möglich. Bitte später erneut versuchen.'], 503);
+        }
 
         return $this->json(['ok' => true]);
     }

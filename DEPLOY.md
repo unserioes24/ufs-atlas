@@ -47,6 +47,16 @@ Beim Start macht der Container doppelte Benutzernamen eindeutig
 | `MAILER_FROM` | Absenderadresse, z. B. `fish@unserioes24.de` |
 | `MAILER_FROM_HEADER` | Anzeigename, z. B. `UFS Atlas <fish@unserioes24.de>` |
 
+Sonderzeichen im `MAILER_DSN` müssen prozentkodiert sein – ein `@` im
+Benutzernamen also als `%40`:
+`smtp://fish%40unserioes24.de:TOKEN@smtp.protonmail.ch:587`.
+
+Der `deploy`-Job bricht ab, wenn `APP_SECRET`, `DB_PASSWORD`,
+`DB_ROOT_PASSWORD` oder `MAILER_DSN` fehlen. Ändert sich `DB_PASSWORD`
+nachträglich, zieht MariaDB das **nicht** nach – es gilt nur beim ersten
+Start eines leeren Volumes. Dann entweder das Passwort in der Datenbank
+setzen oder das Volume `fish_dbdata` verwerfen (löscht alle Konten).
+
 **DNS**: `fish.tobee94.de` → IP des Servers (A/AAAA). Traefik holt das
 Zertifikat beim ersten Aufruf.
 
