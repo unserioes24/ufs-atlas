@@ -148,27 +148,69 @@ function parseProfile(buffer) {
     return out;
 }
 
-/** Wandelt rohe Profilwerte in Fangstatus und Rekorde je Art um. */
+/**
+ * Manche Arten werden je Modellvariante getrennt gezählt (BROWN_TROUT und
+ * BROWN_TROUT_B). Auf den Basisschlüssel zusammenführen, sofern es ihn gibt –
+ * Arten wie TIGER_SHARK_D heißen aber wirklich so und bleiben unangetastet.
+ */
+function normSpeciesKey(k) {
+    if (SPECIES[k]) return k;
+    const m = /^(.*)_[A-Z]{1,2}$/.exec(k);
+    if (m && SPECIES[m[1]]) return m[1];
+    return k;
+}
+
+/** Wandelt rohe Profilwerte in Fangstatus, Rekorde und Statistik um. */
 function profileToCatches(raw) {
     const caught = {}, bests = {};
-    let total = 0;
     Object.keys(raw).forEach(function (k) {
         const m = /^([A-Z0-9_]+)_caughtCount$/.exec(k);
         if (!m) return;
-        const key = m[1];
-        const n = raw[k] | 0;
+        const n = raw[m[1] + '_caughtCount'] | 0;
         if (n <= 0) return;
+        const key = normSpeciesKey(m[1]);
+        const w = raw[m[1] + '_weight'], l = raw[m[1] + '_length'], f = raw[m[1] + '_fishery'];
+        const sum = raw[m[1] + '_caughtWeightSum'];
         caught[key] = true;
-        total++;
-        const w = raw[key + '_weight'], l = raw[key + '_length'], f = raw[key + '_fishery'];
-        bests[key] = {
-            count: n,
-            weight: typeof w === 'number' ? w : null,
-            length: typeof l === 'number' ? l : null,
-            fishery: typeof f === 'string' && f ? f : null
-        };
+        const b = bests[key] || (bests[key] = { count: 0, weight: null, length: null, fishery: null, sum: 0 });
+        b.count += n;
+        if (typeof sum === 'number') b.sum += sum;
+        if (typeof w === 'number' && (b.weight === null || w > b.weight)) {
+            b.weight = w;
+            b.length = typeof l === 'number' ? l : b.length;
+            b.fishery = typeof f === 'string' && f ? f : b.fishery;
+        }
     });
-    return { caught: caught, bests: bests, total: total, player: raw.playerName || null };
+
+    // Revierstatistik: LEVELS/<X>_NAME[_WINTER]_Stats_*
+    const fisheries = {};
+    Object.keys(FISHERIES).forEach(function (id) {
+        const pre = FISHERIES[id].save;
+        if (!pre) return;
+        const g = function (n) { const v = raw[pre + '_Stats_' + n]; return typeof v === 'number' ? v : 0; };
+        const st = {
+            fish: g('fishCaught'), bites: g('bitesAmount'), score: g('score'),
+            time: g('timeSpent'), weight: g('weightSum'),
+            bigW: g('biggestWeight'), bigL: g('biggestLength'),
+            entries: typeof raw[pre + '_availableEntries'] === 'number' ? raw[pre + '_availableEntries'] : null
+        };
+        if (st.fish || st.bites || st.time || st.weight) fisheries[id] = st;
+    });
+
+    const player = {
+        name: raw.playerName || null,
+        level: raw.playersLevel || 0,
+        score: raw.playersScore || 0,
+        money: raw.playersMoney || 0,
+        exp: raw.playersExperience || 0,
+        luck: raw.playersLuck || 0,
+        strength: raw.playersStrength || 0,
+        version: raw.gameVersion || null
+    };
+    return {
+        caught: caught, bests: bests, fisheries: fisheries, player: player,
+        total: Object.keys(caught).length
+    };
 }
 
 function fisheryLabel(loc) {
@@ -423,8 +465,12 @@ function FishCard(props) {
             h('div', { className: 'grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-cyan-300/15 bg-cyan-400/[.07] text-xl text-cyan-200' }, '◈'),
             h('div', { className: 'min-w-0 flex-1' },
                 h('div', { className: 'flex flex-wrap items-center gap-2' },
-                    h('h2', { className: 'text-xl font-black text-white' }, lang === 'en' ? f.name : (f.de || f.name)),
-                    h('span', { className: 'text-sm text-slate-500' }, '· ' + (lang === 'en' ? (f.de || f.name) : f.name)),
+                    // Namen aus den Spieldateien haben Vorrang: im Guide fehlt bei
+                    // einigen Arten die deutsche Bezeichnung.
+                    h('h2', { className: 'text-xl font-black text-white' },
+                        lang === 'en' ? ((sp && sp.en) || f.name) : ((sp && sp.de) || f.de || f.name)),
+                    h('span', { className: 'text-sm text-slate-500' },
+                        '· ' + (lang === 'en' ? ((sp && sp.de) || f.de || f.name) : ((sp && sp.en) || f.name))),
                     f.dlc ? h(Badge, { tone: 'violet' }, f.dlc) : null,
                     props.gameOnly ? h(Badge, { tone: 'cyan' }, 'nur Spieldaten') : null),
                 h('div', { className: 'mt-2 flex flex-wrap gap-2' },
@@ -949,6 +995,129 @@ function RecordsPage(props) {
                 })))));
 }
 
+/* ---------------------------------------------------------- Statistikseite */
+
+function fmtTime(sec) {
+    if (!sec) return '–';
+    const h2 = Math.floor(sec / 3600), m = Math.round(sec % 3600 / 60);
+    return h2 ? h2 + ' h ' + m + ' min' : m + ' min';
+}
+function fmtNum(n, d) {
+    if (n === null || n === undefined) return '–';
+    return n.toLocaleString('de-DE', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });
+}
+
+function StatsPage(props) {
+    const stats = props.stats;
+    const [tab, setTab] = useState(props.tab === 'fische' ? 'arten' : 'reviere');
+
+    if (!stats || !stats.player) {
+        return h('div', { className: 'ufs-spotcard' },
+            h('h3', null, 'Noch kein Spielstand geladen'),
+            h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', lineHeight: 1.6, margin: '.3rem 0 .9rem' } },
+                'Diese Seite wird vollständig aus deinem Spielstand gefüllt: Fänge je Revier, Bisse, ' +
+                'Angelzeit, Punkte und dein größter Fisch je Art. Es wird nichts hochgeladen, die Datei ' +
+                'wird nur im Browser gelesen.'),
+            h('button', { className: 'ufs-btn primary', onClick: props.onImport },
+                h(Icon, { name: 'import' }), 'Spielstand laden'));
+    }
+
+    const p = stats.player;
+    const fRows = Object.keys(stats.fisheries).map(function (id) {
+        const m = D.maps.filter(function (x) { return x.id === id; })[0];
+        return { id: id, name: m ? m.name : id, st: stats.fisheries[id] };
+    }).sort(function (a, b) { return b.st.fish - a.st.fish; });
+
+    const totals = fRows.reduce(function (a, r) {
+        a.fish += r.st.fish; a.bites += r.st.bites; a.time += r.st.time;
+        a.weight += r.st.weight; a.score += r.st.score;
+        return a;
+    }, { fish: 0, bites: 0, time: 0, weight: 0, score: 0 });
+
+    const sRows = Object.keys(stats.bests).map(function (k) {
+        const sp = SPECIES[k] || {};
+        const b = stats.bests[k];
+        return { key: k, sp: sp, b: b, pct: (b.weight && sp.wMax) ? Math.min(1, b.weight / sp.wMax) : 0 };
+    }).sort(function (a, b) { return (b.b.weight || 0) - (a.b.weight || 0); });
+
+    return h('div', null,
+        h('div', { className: 'ufs-statgrid' },
+            h(Stat, { label: 'Angler', value: p.name || '–', sub: 'Level ' + p.level }),
+            h(Stat, { label: 'Punkte', value: fmtNum(p.score), sub: fmtNum(p.exp) + ' EP' }),
+            h(Stat, { label: 'Geld', value: fmtNum(p.money), sub: 'Glück ' + Math.round(p.luck * 100) + ' % · Kraft ' + Math.round(p.strength * 100) + ' %' }),
+            h(Stat, { label: 'Fänge gesamt', value: fmtNum(totals.fish), sub: fmtNum(totals.bites) + ' Bisse' }),
+            h(Stat, { label: 'Gefangenes Gewicht', value: fmtNum(totals.weight, 1) + ' kg', sub: totals.bites ? Math.round(totals.fish / totals.bites * 100) + ' % Trefferquote' : '–' }),
+            h(Stat, { label: 'Angelzeit', value: fmtTime(totals.time), sub: stats.total + ' Arten gefangen' })),
+
+        h('div', { className: 'ufs-row', style: { margin: '1rem 0 .8rem' } },
+            h(Toggle, { active: tab === 'reviere', onClick: function () { setTab('reviere'); } }, 'Reviere'),
+            h(Toggle, { active: tab === 'arten', onClick: function () { setTab('arten'); } }, 'Größte Fische'),
+            h('button', { className: 'ufs-btn', onClick: props.onImport }, h(Icon, { name: 'import' }), 'Spielstand neu laden')),
+
+        tab === 'reviere'
+            ? h('div', { className: 'ufs-spotcard' },
+                h('table', { className: 'ufs-rec' },
+                    h('thead', null, h('tr', null,
+                        h('th', null, 'Revier'), h('th', null, 'Fische'), h('th', null, 'Bisse'),
+                        h('th', null, 'Quote'), h('th', null, 'Zeit'), h('th', null, 'Gewicht'),
+                        h('th', null, 'Größter Fang'), h('th', null, 'Punkte'))),
+                    h('tbody', null, fRows.map(function (r) {
+                        const s = r.st;
+                        return h('tr', {
+                            key: r.id, style: { cursor: 'pointer' },
+                            onClick: function () { props.onOpenMap(r.id); }
+                        },
+                            h('td', { className: 'n' }, r.name),
+                            h('td', { className: 'num' }, fmtNum(s.fish)),
+                            h('td', { className: 'num' }, fmtNum(s.bites)),
+                            h('td', { className: 'num' }, s.bites ? Math.round(s.fish / s.bites * 100) + ' %' : '–'),
+                            h('td', { className: 'num' }, fmtTime(s.time)),
+                            h('td', { className: 'num' }, fmtNum(s.weight, 1) + ' kg'),
+                            h('td', { className: 'num' }, s.bigW ? s.bigW.toFixed(2) + ' kg · ' + Math.round(s.bigL * 100) + ' cm' : '–'),
+                            h('td', { className: 'num' }, fmtNum(s.score)));
+                    }),
+                        h('tr', null,
+                            h('td', { className: 'n' }, 'Summe'),
+                            h('td', { className: 'num' }, fmtNum(totals.fish)),
+                            h('td', { className: 'num' }, fmtNum(totals.bites)),
+                            h('td', { className: 'num' }, totals.bites ? Math.round(totals.fish / totals.bites * 100) + ' %' : '–'),
+                            h('td', { className: 'num' }, fmtTime(totals.time)),
+                            h('td', { className: 'num' }, fmtNum(totals.weight, 1) + ' kg'),
+                            h('td', { className: 'num' }, ''),
+                            h('td', { className: 'num' }, fmtNum(totals.score))))))
+            : h('div', { className: 'ufs-spotcard' },
+                h('table', { className: 'ufs-rec' },
+                    h('thead', null, h('tr', null,
+                        h('th', null, 'Art'), h('th', null, 'Dein Rekord'), h('th', null, 'Möglich'),
+                        h('th', null, 'Ausschöpfung'), h('th', null, 'Fänge'), h('th', null, 'Gesamt'),
+                        h('th', null, 'Rekordrevier'))),
+                    h('tbody', null, sRows.map(function (r) {
+                        return h('tr', {
+                            key: r.key, style: { cursor: 'pointer' },
+                            onClick: function () { props.onOpenSpecies(r.key); }
+                        },
+                            h('td', { className: 'n done' }, speciesName(r.key, props.lang)),
+                            h('td', { className: 'num' },
+                                (r.b.weight ? r.b.weight.toFixed(2) + ' kg' : '–') +
+                                (r.b.length ? ' · ' + Math.round(r.b.length * 100) + ' cm' : '')),
+                            h('td', { className: 'num' }, r.sp.wMax ? r.sp.wMax + ' kg' : '–'),
+                            h('td', null, r.pct
+                                ? h('div', { className: 'ufs-recbar', title: Math.round(r.pct * 100) + ' %' },
+                                    h('span', { style: { width: (r.pct * 100) + '%' } }))
+                                : h('span', { className: 'sub' }, '–')),
+                            h('td', { className: 'num' }, fmtNum(r.b.count)),
+                            h('td', { className: 'num' }, r.b.sum ? fmtNum(r.b.sum, 1) + ' kg' : '–'),
+                            h('td', { className: 'sub' }, fisheryLabel(r.b.fishery) || '–'));
+                    })))));
+}
+
+function Stat(props) {
+    return h('div', { className: 'ufs-stat' },
+        h('div', { className: 'lb' }, props.label),
+        h('div', { className: 'vl' }, props.value),
+        props.sub ? h('div', { className: 'sb' }, props.sub) : null);
+}
+
 /* ------------------------------------------------------------- Artenseite */
 
 /** Sammelt je Art die Guide-Angaben über alle Reviere hinweg. */
@@ -1076,6 +1245,7 @@ function App() {
     const [pinned, setPinned] = useState(null);
     const [view, setView] = useState('map');
     const [openSpecies, setOpenSpecies] = useState(null);
+    const [statsTab, setStatsTab] = useState('reviere');
     const [selectedSpot, setSelectedSpot] = useState(null);
     const [highlight, setHighlight] = useState(null);
     const [lang, setLang] = useState(function () { return localStorage.getItem('ufs-lang') || 'de'; });
@@ -1088,11 +1258,15 @@ function App() {
     const [bests, setBests] = useState(function () {
         try { return JSON.parse(localStorage.getItem('ufs-bests') || '{}'); } catch (e) { return {}; }
     });
+    const [saveStats, setSaveStats] = useState(function () {
+        try { return JSON.parse(localStorage.getItem('ufs-stats') || 'null'); } catch (e) { return null; }
+    });
     const searchRef = useRef(null);
 
     useEffect(function () { localStorage.setItem('ufs-favs', JSON.stringify(favorites)); }, [favorites]);
     useEffect(function () { localStorage.setItem('ufs-caught', JSON.stringify(caught)); }, [caught]);
     useEffect(function () { localStorage.setItem('ufs-bests', JSON.stringify(bests)); }, [bests]);
+    useEffect(function () { localStorage.setItem('ufs-stats', JSON.stringify(saveStats)); }, [saveStats]);
     useEffect(function () { localStorage.setItem('ufs-lang', lang); }, [lang]);
     useEffect(function () {
         function fn(e) {
@@ -1113,6 +1287,7 @@ function App() {
             const parts = decodeURIComponent((location.hash || '').replace(/^#/, '')).split('/');
             const head = (parts[0] || '').toLowerCase();
             if (head === 'koeder') { setView('bait'); return; }
+            if (head === 'statistik') { setView('stats'); setStatsTab(parts[1] || 'reviere'); return; }
             if (head === 'arten') { setView('arten'); setOpenSpecies(parts[1] ? parts[1].toUpperCase() : null); return; }
             if (head === 'revier' && parts[1]) {
                 const m = D.maps.filter(function (x) { return x.id === parts[1]; })[0];
@@ -1135,6 +1310,7 @@ function App() {
         if (!routeReady.current) return;
         let hash = '#revier/' + selectedMap + (selectedSpot ? '/spot' + selectedSpot : '');
         if (view === 'bait') hash = '#koeder';
+        else if (view === 'stats') hash = '#statistik';
         else if (view === 'arten') hash = '#arten' + (openSpecies ? '/' + openSpecies : '');
         if (location.hash !== hash) history.replaceState(null, '', hash);
     }, [view, selectedMap, selectedSpot, openSpecies]);
@@ -1240,6 +1416,7 @@ function App() {
             return n;
         });
         setBests(res.bests);
+        setSaveStats({ player: res.player, fisheries: res.fisheries, bests: res.bests, total: res.total });
     }
 
     const grouped = D.maps.reduce(function (a, m) { (a[m.group] = a[m.group] || []).push(m); return a; }, {});
@@ -1296,6 +1473,10 @@ function App() {
                         className: cn('ufs-btn', view === 'bait' && 'primary'),
                         onClick: function () { setView('bait'); }
                     }, h(Icon, { name: 'bait' }), 'Köder'),
+                    h('button', {
+                        className: cn('ufs-btn', view === 'stats' && 'primary'),
+                        onClick: function () { setView('stats'); }
+                    }, h(Icon, { name: 'scale' }), 'Statistik'),
                     h('span', { className: 'ufs-chip ufs-mono', title: 'Gefangene Arten insgesamt' }, '✓ ' + allDone + ' / ' + allKeys.length),
                     h('button', { className: 'ufs-btn', onClick: function () { setImportOpen(true); } }, h(Icon, { name: 'import' }), 'Spielstand'),
                     h('button', { className: 'ufs-btn', onClick: function () { setSourceOpen(true); } }, h(Icon, { name: 'source' }), 'Quellen')))),
@@ -1336,6 +1517,12 @@ function App() {
 
             h('main', { className: 'min-w-0' },
                 view === 'bait' ? h(BaitPage, { lang: lang })
+                : view === 'stats' ? h(StatsPage, {
+                    stats: saveStats, lang: lang, tab: statsTab,
+                    onImport: function () { setImportOpen(true); },
+                    onOpenMap: function (id) { setSelectedMap(id); setView('map'); },
+                    onOpenSpecies: function (k) { setOpenSpecies(k); setView('arten'); }
+                })
                 : view === 'arten' ? h(SpeciesPage, {
                     lang: lang, caught: caught, bests: bests,
                     initialOpen: openSpecies, onOpen: setOpenSpecies
@@ -1478,7 +1665,7 @@ function App() {
         importOpen ? h(ImportDialog, {
             onClose: function () { setImportOpen(false); },
             onImport: applyImport,
-            onReset: function () { setCaught({}); setBests({}); }
+            onReset: function () { setCaught({}); setBests({}); setSaveStats(null); }
         }) : null);
 }
 

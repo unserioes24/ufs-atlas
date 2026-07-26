@@ -199,6 +199,42 @@ namespace Ufs
             return "treffer=" + hits.Count + "\n" + string.Join("\n", hits.ToArray());
         }
 
+        /// Listet MonoBehaviours mit eigenem Namen (ScriptableObjects, also
+        /// Datenobjekte ohne GameObject) – dort liegen in Unity üblicherweise
+        /// Ausrüstungs- und Item-Definitionen.
+        public static string ListScriptables(string file, string nameRegex)
+        {
+            SerializedFile sf = new SerializedFile(file);
+            Regex rx = new Regex(nameRegex, RegexOptions.IgnoreCase);
+            StringBuilder j = new StringBuilder();
+            j.Append('[');
+            bool first = true;
+            foreach (ObjInfo o in sf.Objects)
+            {
+                if (o.ClassId != 114) continue;
+                try
+                {
+                    byte[] d = sf.Read(o);
+                    Reader r = new Reader(d);
+                    long go = 0;
+                    r.I32(); go = r.I64();           // m_GameObject
+                    if (go != 0) continue;           // an ein GameObject gehängt -> kein Datenobjekt
+                    r.I32();                         // m_Enabled + align
+                    r.I32(); r.I64();                // m_Script
+                    string nm = r.Str();
+                    if (nm.Length == 0 || !rx.IsMatch(nm)) continue;
+                    if (!first) j.Append(',');
+                    first = false;
+                    j.Append("{\"id\":").Append(o.PathId).Append(",\"name\":\"").Append(Esc(nm))
+                     .Append("\",\"size\":").Append(o.ByteSize).Append('}');
+                }
+                catch { }
+            }
+            j.Append(']');
+            sf.Close();
+            return j.ToString();
+        }
+
         public static long[] IdsOfClass(string file, int cls, int max)
         {
             SerializedFile sf = new SerializedFile(file);

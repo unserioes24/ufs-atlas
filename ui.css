@@ -169,6 +169,21 @@
   color: #64748b; pointer-events: none; letter-spacing: .04em;
 }
 
+/* -------------------------------------------------------------- Statistik */
+.ufs-statgrid { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.ufs-stat {
+  border: 1px solid var(--ufs-line); background: var(--ufs-panel-2);
+  border-radius: 18px; padding: .8rem 1rem;
+}
+.ufs-stat .lb {
+  font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #64748b;
+}
+.ufs-stat .vl {
+  font-size: 22px; font-weight: 900; color: #f1f5f9; margin-top: .25rem;
+  font-variant-numeric: tabular-nums; line-height: 1.15;
+}
+.ufs-stat .sb { font-size: 11px; color: #7dd3fc; margin-top: .2rem; }
+
 /* --------------------------------------------------------------- Rekorde */
 .ufs-rec { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .ufs-rec th {

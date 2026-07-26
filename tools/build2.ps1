@@ -201,6 +201,20 @@ foreach ($lk in $locKeys.Keys) {
 # ---------------------------------------------------------------- 2) Reviere
 $ORDER = @('betty','betty-winter','powell','zeno','baikal','baikal-winter','atchafalaya','moraine','moraine-winter',
            'uvac','pinas','pinas-ocean','greenland','greenland-sea','kariba','amazon','japan','thailand','taupo','florida')
+
+# Präfix, unter dem der Spielstand die Revierstatistik ablegt
+$SAVEKEY = @{
+    'betty' = 'LEVELS/BETTY_NAME'; 'betty-winter' = 'LEVELS/BETTY_NAME_WINTER'
+    'powell' = 'LEVELS/ARIZONA_NAME'; 'zeno' = 'LEVELS/BLUEBELL_NAME'
+    'baikal' = 'LEVELS/BAIKAL_NAME'; 'baikal-winter' = 'LEVELS/BAIKAL_NAME_WINTER'
+    'atchafalaya' = 'LEVELS/LOUISIANA_NAME'; 'moraine' = 'LEVELS/MORAINE_NAME'
+    'moraine-winter' = 'LEVELS/MORAINE_NAME_WINTER'; 'uvac' = 'LEVELS/UVAC_RIVER_NAME'
+    'pinas' = 'LEVELS/PINAS_BAY_NAME'; 'pinas-ocean' = 'LEVELS/PINAS_BAY_OCEAN_NAME'
+    'greenland' = 'LEVELS/GREENLAND_NAME'; 'greenland-sea' = 'LEVELS/GREENLAND_SEA_NAME'
+    'kariba' = 'LEVELS/KARIBA_DAM_NAME'; 'amazon' = 'LEVELS/AMAZON_RIVER_NAME'
+    'japan' = 'LEVELS/JAPAN_NAME'; 'thailand' = 'LEVELS/THAILAND_NAME'
+    'taupo' = 'LEVELS/TAUPO_LAKE_NAME'; 'florida' = 'LEVELS/FLORIDA_NAME'
+}
 $fisheries = [ordered]@{}
 foreach ($k in $ORDER) {
     $path = "$sp\out\$k.json"
@@ -290,6 +304,7 @@ foreach ($k in $ORDER) {
 
     $fisheries[$k] = [ordered]@{
         level = $f.level; map = $f.map; mapW = $f.mapW; mapH = $f.mapH
+        save = $SAVEKEY[$k]
         fitOk = $f.fitOk; spots = $spots; species = $sl; dots = $dots
     }
     Write-Host ("{0,-16} spots={1,-3} arten={2,-3} dots={3}" -f $k, $spots.Count, $sl.Count, $dots.Count)

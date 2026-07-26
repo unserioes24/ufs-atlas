@@ -31,6 +31,9 @@ Dann `http://localhost:8080` öffnen.
   Anzahl der Schwarmpunkte im Revier, deutsche Enzyklopädie-Beschreibung, Modelltextur.
 - **Artenseite** (`#arten`) – alle 136 Arten mit Größenspanne, Revieren, Ködern, Methode,
   Haken, Führung, Beißzeitkurve und **drehbarem 3D-Modell aus dem Spiel** (132 Arten).
+- **Statistik** (`#statistik`) – komplett aus dem geladenen Spielstand: Angler, Punkte,
+  Geld, Angelzeit, je Revier Fänge, Bisse, Trefferquote, Gewicht und größter Fang,
+  dazu je Art dein Rekord im Verhältnis zum möglichen Maximum.
 - **Köderseite** (`#koeder`) – alle Naturköder, Boilies, Kunstköderarten, Methoden und
   Montageteile mit den Originalbezeichnungen des Spiels, jeweils mit den Arten, für die
   der Guide sie empfiehlt.
