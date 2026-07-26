@@ -1,15 +1,52 @@
-# Statisches Website-Image: der Guide, ausgeliefert von Caddy.
+# Ein Container: Apache mit PHP liefert sowohl den Guide als auch die API aus.
 #
-# Es gibt keinen Build-Schritt – die Seite besteht aus fertigem HTML/JS/CSS
-# plus den aus dem Spiel extrahierten Medien. Architekturunabhängig, das
-# arm64-Caddy-Basisimage wird nur neu verpackt.
-FROM caddy:2-alpine
+# Der Guide besteht aus fertigem HTML/JS/CSS und wird nach server/public
+# kopiert; Symfony übernimmt nur Anfragen, die dort keine Datei treffen.
 
-COPY web/Caddyfile /etc/caddy/Caddyfile
+# ── Abhängigkeiten ───────────────────────────────────────────────────
+FROM composer:2 AS vendor
+WORKDIR /app
+COPY server/composer.json ./
+RUN composer install --no-dev --no-scripts --prefer-dist --no-interaction --ignore-platform-reqs
 
-COPY index.html app.js gamedata.js styles.css ui.css data.json robots.txt /srv/
-COPY maps /srv/maps
-COPY fish /srv/fish
-COPY models /srv/models
+# ── Laufzeit ─────────────────────────────────────────────────────────
+FROM php:8.3-apache
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends curl; \
+    rm -rf /var/lib/apt/lists/*; \
+    docker-php-ext-install pdo_mysql opcache; \
+    a2enmod rewrite headers; \
+    printf 'opcache.enable=1\nopcache.validate_timestamps=0\nopcache.max_accelerated_files=20000\n' \
+        > /usr/local/etc/php/conf.d/opcache.ini; \
+    printf 'memory_limit=256M\nupload_max_filesize=16M\npost_max_size=16M\nexpose_php=Off\n' \
+        > /usr/local/etc/php/conf.d/app.ini
+
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
+RUN sed -ri 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
+        /etc/apache2/sites-available/*.conf /etc/apache2/apache2.conf
+
+WORKDIR /var/www/html
+
+# Symfony-Anwendung
+COPY server/ ./
+COPY --from=vendor /app/vendor ./vendor
+
+# Der Guide selbst
+COPY index.html app.js gamedata.js styles.css ui.css data.json robots.txt ./public/
+COPY maps   ./public/maps
+COPY fish   ./public/fish
+COPY models ./public/models
+
+COPY deploy/apache-app.conf /etc/apache2/conf-available/app.conf
+COPY deploy/entrypoint.sh /usr/local/bin/entrypoint
+RUN set -eux; \
+    a2enconf app; \
+    chmod +x /usr/local/bin/entrypoint; \
+    mkdir -p var/cache var/log var/sessions; \
+    chown -R www-data:www-data var
 
 EXPOSE 80
+ENTRYPOINT ["/usr/local/bin/entrypoint"]
+CMD ["apache2-foreground"]

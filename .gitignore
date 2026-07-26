@@ -2,6 +2,11 @@
 tools/_work/
 tools/_*.json
 
+# Symfony
+server/vendor/
+server/var/
+server/.env.local
+
 # Editor / OS
 .vscode/
 .idea/

@@ -447,13 +447,22 @@ function ImportDialog(props) {
                 const res = profileToCatches(parseProfile(rd.result));
                 if (!res.total) {
                     setMsg({ bad: true, text: 'Keine Fangzähler gefunden. Bitte PROFILE_0 oder PROFILE_1 wählen (Dateien ohne Endung).' });
-                } else {
-                    props.onImport(res);
-                    setMsg({
-                        bad: false,
-                        text: (res.player ? res.player + ': ' : '') + res.total + ' gefangene Arten übernommen, inklusive persönlicher Rekorde.'
-                    });
+                    setBusy(false);
+                    return;
                 }
+                props.onImport(res);
+                const who = (res.player && res.player.name) ? res.player.name + ': ' : '';
+                const local = who + res.total + ' gefangene Arten übernommen, inklusive persönlicher Rekorde.';
+
+                // Angemeldet? Dann dieselbe Datei zusätzlich ans Konto schicken.
+                if (props.me && API_AVAILABLE) {
+                    api('/profile/upload', { method: 'POST', body: rd.result })
+                        .then(function () { setMsg({ bad: false, text: local + ' Auch im Konto gespeichert.' }); })
+                        .catch(function (e) { setMsg({ bad: false, text: local + ' (Serverupload fehlgeschlagen: ' + e.message + ')' }); })
+                        .then(function () { setBusy(false); });
+                    return;
+                }
+                setMsg({ bad: false, text: local });
             } catch (err) {
                 setMsg({ bad: true, text: 'Datei konnte nicht gelesen werden: ' + err.message });
             }
@@ -1432,6 +1441,33 @@ function SpeciesPage(props) {
         })));
 }
 
+/* ------------------------------------------------------------- API-Zugriff */
+
+// Ohne Server (Datei direkt im Browser geöffnet) läuft alles rein lokal weiter.
+const API_AVAILABLE = location.protocol === 'http:' || location.protocol === 'https:';
+
+/** Kleiner Wrapper um fetch; wirft bei Fehlern mit der Serverfehlermeldung. */
+function api(path, opts) {
+    opts = opts || {};
+    const init = {
+        method: opts.method || 'GET',
+        credentials: 'same-origin',
+        headers: {}
+    };
+    if (opts.json !== undefined) {
+        init.headers['Content-Type'] = 'application/json';
+        init.body = JSON.stringify(opts.json);
+    } else if (opts.body !== undefined) {
+        init.body = opts.body;
+    }
+    return fetch('/api' + path, init).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (data) {
+            if (!r.ok) throw new Error(data.error || ('Serverfehler ' + r.status));
+            return data;
+        });
+    });
+}
+
 /* --------------------------------------------------------- Profilspeicher */
 
 function newId() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -1520,6 +1556,387 @@ function ProfileBar(props) {
         ) : null);
 }
 
+/* ------------------------------------------------------------ Anmeldung */
+
+function LoginPanel(props) {
+    const [step, setStep] = useState('email');
+    const [email, setEmail] = useState('');
+    const [code, setCode] = useState('');
+    const [busy, setBusy] = useState(false);
+    const [msg, setMsg] = useState(null);
+
+    function send() {
+        setBusy(true); setMsg(null);
+        api('/auth/request', { method: 'POST', json: { email: email } })
+            .then(function () { setStep('code'); setMsg({ ok: true, t: 'Code ist unterwegs. Er gilt 15 Minuten.' }); })
+            .catch(function (e) { setMsg({ ok: false, t: e.message }); })
+            .then(function () { setBusy(false); });
+    }
+    function verify() {
+        setBusy(true); setMsg(null);
+        api('/auth/verify', { method: 'POST', json: { email: email, code: code } })
+            .then(function (d) { props.onLogin(d.user); })
+            .catch(function (e) { setMsg({ ok: false, t: e.message }); })
+            .then(function () { setBusy(false); });
+    }
+
+    return h('div', { className: 'ufs-spotcard', style: { maxWidth: '460px' } },
+        h('h3', null, 'Anmelden'),
+        h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', lineHeight: 1.6, margin: '0 0 .8rem' } },
+            'Kein Passwort: Du bekommst einen sechsstelligen Code per E-Mail. ' +
+            'Mit dem Konto liegt dein Profil auf dem Server, du kannst Gruppen beitreten und dich vergleichen.'),
+        step === 'email'
+            ? h('div', { className: 'ufs-row' },
+                h('input', {
+                    type: 'email', value: email, placeholder: 'deine@mail.de',
+                    onChange: function (e) { setEmail(e.target.value); },
+                    onKeyDown: function (e) { if (e.key === 'Enter' && email) send(); },
+                    className: 'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50',
+                    style: { minWidth: '220px' }
+                }),
+                h('button', { className: 'ufs-btn primary', disabled: busy || !email, onClick: send },
+                    busy ? 'Sende …' : 'Code anfordern'))
+            : h('div', { className: 'ufs-row' },
+                h('input', {
+                    inputMode: 'numeric', value: code, placeholder: '123456', maxLength: 6,
+                    onChange: function (e) { setCode(e.target.value.replace(/\D/g, '')); },
+                    onKeyDown: function (e) { if (e.key === 'Enter' && code.length === 6) verify(); },
+                    className: 'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50',
+                    style: { width: '140px', letterSpacing: '.3em', fontVariantNumeric: 'tabular-nums' }
+                }),
+                h('button', { className: 'ufs-btn primary', disabled: busy || code.length !== 6, onClick: verify },
+                    busy ? 'Prüfe …' : 'Anmelden'),
+                h('button', { className: 'ufs-btn', onClick: function () { setStep('email'); setCode(''); } }, 'Zurück')),
+        msg ? h('div', {
+            className: 'ufs-note',
+            style: msg.ok ? { borderColor: 'rgba(52,211,153,.3)', background: 'rgba(16,185,129,.08)', color: '#a7f3d0', marginTop: '.8rem' } : { marginTop: '.8rem' }
+        }, msg.t) : null);
+}
+
+/* ---------------------------------------------------------- Gruppenansicht */
+
+const BOARDS = [
+    ['biggestFish', 'Schwerster Fisch', 'kg'],
+    ['longestFish', 'Längster Fisch', 'cm'],
+    ['totalWeight', 'Meiste Masse gesamt', 'kg'],
+    ['topSpeciesWeight', 'Meiste Masse einer Art', 'kg'],
+    ['species', 'Meiste Arten', ''],
+    ['fisheriesComplete', 'Komplette Reviere', ''],
+    ['fish', 'Meiste Fänge', ''],
+    ['time', 'Meiste Angelzeit', 'h']
+];
+
+function boardValue(key, v) {
+    if (key === 'longestFish') return Math.round(v * 100) + ' cm';
+    if (key === 'time') return fmtTime(v);
+    if (key === 'biggestFish' || key === 'totalWeight' || key === 'topSpeciesWeight') return fmtNum(v, 2) + ' kg';
+    return fmtNum(v);
+}
+
+function GroupView(props) {
+    const g = props.data;
+    const names = (g.meta && g.meta.speciesNames) || {};
+    return h('div', null,
+        h('div', { className: 'ufs-row', style: { marginBottom: '.8rem' } },
+            h('h3', { style: { margin: 0, fontSize: '15px', fontWeight: 800, color: '#e2e8f0' } }, g.group.name),
+            h('span', { className: 'ufs-chip ufs-mono', title: 'Beitrittscode' }, 'Code ' + g.group.code),
+            h('span', { className: 'ufs-muted', style: { fontSize: '11.5px' } }, g.members.length + ' Mitglieder'),
+            h('button', { className: 'ufs-btn', onClick: props.onLeave }, 'Verlassen')),
+        h('div', { className: 'ufs-boardgrid' }, BOARDS.map(function (b) {
+            const rows = (g.boards[b[0]] || []).slice(0, 5);
+            return h('div', { key: b[0], className: 'ufs-spotcard' },
+                h('h3', null, b[1]),
+                rows.length
+                    ? h('div', { className: 'ufs-splist' }, rows.map(function (r, i) {
+                        return h('div', { key: r.id, className: cn('ufs-spline', r.self && 'pin') },
+                            h('span', { className: 'n' }, (i + 1) + '. ' + r.name),
+                            h('span', { className: 'q' }, boardValue(b[0], r.value)),
+                            h('span', { className: 'd' }, r.label ? (names[r.label] || r.label) : ''));
+                    }))
+                    : h('div', { className: 'ufs-muted', style: { fontSize: '12px' } }, 'Noch keine Daten'));
+        })),
+        h('div', { className: 'ufs-spotcard', style: { marginTop: '.9rem' } },
+            h('h3', null, 'Mitglieder'),
+            h('table', { className: 'ufs-rec' },
+                h('thead', null, h('tr', null,
+                    h('th', null, 'Angler'), h('th', null, 'Arten'), h('th', null, 'Reviere komplett'),
+                    h('th', null, 'Fänge'), h('th', null, 'Masse'), h('th', null, 'Schwerster'), h('th', null, 'Stand'))),
+                h('tbody', null, g.members.map(function (m) {
+                    return h('tr', {
+                        key: m.id, style: { cursor: 'pointer' },
+                        onClick: function () { props.onOpenUser(m.id); }
+                    },
+                        h('td', { className: cn('n', m.self && 'done') }, (m.self ? '▸ ' : '') + m.name),
+                        h('td', { className: 'num' }, fmtNum(m.species)),
+                        h('td', { className: 'num' }, fmtNum(m.fisheriesComplete)),
+                        h('td', { className: 'num' }, fmtNum(m.fish)),
+                        h('td', { className: 'num' }, fmtNum(m.weight, 1) + ' kg'),
+                        h('td', { className: 'num' }, m.bigW ? m.bigW.toFixed(2) + ' kg' : '–'),
+                        h('td', { className: 'sub' }, m.updatedAt ? m.updatedAt.slice(0, 10) : 'kein Profil'));
+                })))));
+}
+
+/** Fremdes Profil ansehen. */
+function UserModal(props) {
+    const [data, setData] = useState(null);
+    const [err, setErr] = useState(null);
+    useEffect(function () {
+        api('/users/' + props.id).then(setData).catch(function (e) { setErr(e.message); });
+    }, [props.id]);
+
+    const p = data && data.profile;
+    return h('div', {
+        className: 'ufs-modal-bg',
+        onMouseDown: function (e) { if (e.target === e.currentTarget) props.onClose(); }
+    }, h('div', { className: 'ufs-modal', style: { maxWidth: '720px' } },
+        h('div', { className: 'ufs-row', style: { justifyContent: 'space-between' } },
+            h('h2', { style: { margin: 0 } }, data ? data.user.name : 'Profil'),
+            h('button', { className: 'ufs-btn', onClick: props.onClose }, 'Schließen')),
+        err ? h('div', { className: 'ufs-note', style: { marginTop: '.8rem' } }, err) : null,
+        !data ? h('p', null, 'Wird geladen …') : null,
+        data && !p ? h('p', null, 'Dieser Angler hat noch keinen Spielstand hochgeladen.') : null,
+        p ? h('div', null,
+            h('div', { className: 'ufs-statgrid', style: { marginTop: '.9rem' } },
+                h(Stat, { label: 'Angler', value: p.anglerName || data.user.name, sub: 'Level ' + p.level }),
+                h(Stat, { label: 'Arten', value: fmtNum(p.speciesCount), sub: 'von ' + data.meta.totalSpecies }),
+                h(Stat, { label: 'Reviere komplett', value: fmtNum(p.fisheriesComplete), sub: 'von ' + data.meta.totalFisheries }),
+                h(Stat, { label: 'Fänge', value: fmtNum(p.totals.fish), sub: fmtNum(p.totals.weight, 1) + ' kg' }),
+                h(Stat, {
+                    label: 'Schwerster', value: p.biggest.weight ? p.biggest.weight.toFixed(2) + ' kg' : '–',
+                    sub: p.biggest.weightSpecies ? speciesName(p.biggest.weightSpecies, props.lang) : ''
+                }),
+                h(Stat, {
+                    label: 'Längster', value: p.biggest.length ? Math.round(p.biggest.length * 100) + ' cm' : '–',
+                    sub: p.biggest.lengthSpecies ? speciesName(p.biggest.lengthSpecies, props.lang) : ''
+                })),
+            h('div', { className: 'ufs-row', style: { marginTop: '.9rem' } },
+                h('button', {
+                    className: cn('ufs-btn', data.following && 'primary'),
+                    onClick: function () {
+                        const m = data.following ? 'DELETE' : 'POST';
+                        api('/follow/' + props.id, { method: m })
+                            .then(function () { setData(Object.assign({}, data, { following: !data.following })); });
+                    }
+                }, data.following ? '✓ Du folgst' : 'Folgen')),
+            h('p', { className: 'ufs-muted', style: { fontSize: '11.5px', marginTop: '.7rem' } },
+                'Stand: ' + (p.updatedAt ? p.updatedAt.slice(0, 10) : 'unbekannt'))) : null));
+}
+
+/* ------------------------------------------------------- Community-Seite */
+
+function CommunityPage(props) {
+    const me = props.me;
+    const [tab, setTab] = useState('gruppen');
+    const [groups, setGroups] = useState([]);
+    const [openGroup, setOpenGroup] = useState(null);
+    const [groupData, setGroupData] = useState(null);
+    const [follows, setFollows] = useState([]);
+    const [search, setSearch] = useState([]);
+    const [q, setQ] = useState('');
+    const [err, setErr] = useState(null);
+    const [busy, setBusy] = useState(false);
+
+    function loadGroups() {
+        api('/groups').then(function (d) { setGroups(d.groups); }).catch(function (e) { setErr(e.message); });
+    }
+    function loadFollowing() {
+        api('/following').then(function (d) { setFollows(d.entries); }).catch(function (e) { setErr(e.message); });
+    }
+    useEffect(function () {
+        if (!me) return;
+        loadGroups();
+        loadFollowing();
+    }, [me && me.id]);
+    useEffect(function () {
+        if (!openGroup) { setGroupData(null); return; }
+        api('/groups/' + openGroup).then(setGroupData).catch(function (e) { setErr(e.message); });
+    }, [openGroup]);
+
+    if (!API_AVAILABLE) {
+        return h('div', { className: 'ufs-note' },
+            'Konten und Gruppen brauchen den Server. Öffne den Guide dafür über ',
+            h('code', null, 'https://fish.tobee94.de'),
+            ' statt als lokale Datei.');
+    }
+    if (!me) {
+        return h(LoginPanel, { onLogin: props.onLogin });
+    }
+
+    return h('div', null,
+        h('div', { className: 'ufs-row', style: { marginBottom: '.9rem' } },
+            h(Toggle, { active: tab === 'gruppen', onClick: function () { setTab('gruppen'); } }, 'Gruppen'),
+            h(Toggle, { active: tab === 'folgen', onClick: function () { setTab('folgen'); } }, 'Folgen & Vergleich'),
+            h(Toggle, { active: tab === 'konto', onClick: function () { setTab('konto'); } }, 'Konto'),
+            h('span', { className: 'ufs-muted', style: { marginLeft: 'auto', fontSize: '12px' } },
+                'angemeldet als ', h('b', { style: { color: '#cbd5e1' } }, me.name))),
+        err ? h('div', { className: 'ufs-note', style: { marginBottom: '.8rem' } }, err) : null,
+
+        tab === 'gruppen' ? h('div', null,
+            openGroup && groupData
+                ? h('div', null,
+                    h('button', { className: 'ufs-btn', style: { marginBottom: '.8rem' }, onClick: function () { setOpenGroup(null); } }, '← Alle Gruppen'),
+                    h(GroupView, {
+                        data: groupData,
+                        onOpenUser: props.onOpenUser,
+                        onLeave: function () {
+                            api('/groups/' + openGroup + '/leave', { method: 'POST' })
+                                .then(function () { setOpenGroup(null); loadGroups(); });
+                        }
+                    }))
+                : h('div', null,
+                    h('div', { className: 'ufs-spotcard', style: { marginBottom: '.9rem' } },
+                        h('h3', null, 'Deine Gruppen'),
+                        groups.length
+                            ? h('div', { className: 'ufs-splist' }, groups.map(function (g) {
+                                return h('div', {
+                                    key: g.id, className: 'ufs-spline', style: { cursor: 'pointer' },
+                                    onClick: function () { setOpenGroup(g.id); }
+                                },
+                                    h('span', { className: 'n' }, g.name + (g.owner ? ' (deine)' : '')),
+                                    h('span', { className: 'q' }, g.members + ' Mitglieder'),
+                                    h('span', { className: 'd' }, 'Code ' + g.code));
+                            }))
+                            : h('div', { className: 'ufs-muted', style: { fontSize: '12px' } },
+                                'Noch keine Gruppe. Leg eine an oder tritt mit einem Code bei.')),
+                    h('div', { className: 'ufs-row' },
+                        h('button', {
+                            className: 'ufs-btn primary', disabled: busy,
+                            onClick: function () {
+                                const n = prompt('Name der Gruppe?');
+                                if (!n) return;
+                                setBusy(true);
+                                api('/groups', { method: 'POST', json: { name: n } })
+                                    .then(function () { loadGroups(); })
+                                    .catch(function (e) { setErr(e.message); })
+                                    .then(function () { setBusy(false); });
+                            }
+                        }, '+ Gruppe anlegen'),
+                        h('button', {
+                            className: 'ufs-btn',
+                            onClick: function () {
+                                const c = prompt('Beitrittscode?');
+                                if (!c) return;
+                                api('/groups/join', { method: 'POST', json: { code: c } })
+                                    .then(function () { loadGroups(); })
+                                    .catch(function (e) { setErr(e.message); });
+                            }
+                        }, 'Gruppe beitreten'))))
+            : null,
+
+        tab === 'folgen' ? h('div', null,
+            h('div', { className: 'ufs-row', style: { marginBottom: '.8rem' } },
+                h('input', {
+                    value: q, placeholder: 'Angler suchen …',
+                    onChange: function (e) { setQ(e.target.value); },
+                    onKeyDown: function (e) {
+                        if (e.key !== 'Enter') return;
+                        api('/users?q=' + encodeURIComponent(q)).then(function (d) { setSearch(d.users); });
+                    },
+                    className: 'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50',
+                    style: { minWidth: '220px' }
+                }),
+                h('button', {
+                    className: 'ufs-btn',
+                    onClick: function () { api('/users?q=' + encodeURIComponent(q)).then(function (d) { setSearch(d.users); }); }
+                }, 'Suchen')),
+            search.length ? h('div', { className: 'ufs-spotcard', style: { marginBottom: '.9rem' } },
+                h('h3', null, 'Suchergebnis'),
+                h('div', { className: 'ufs-splist' }, search.map(function (u) {
+                    return h('div', { key: u.id, className: 'ufs-spline' },
+                        h('span', { className: 'n', style: { cursor: 'pointer' }, onClick: function () { props.onOpenUser(u.id); } }, u.name),
+                        h('span', { className: 'q' }, u.species + ' Arten · ' + u.fish + ' Fänge'),
+                        h('button', {
+                            className: 'ufs-chip ufs-chip-btn',
+                            onClick: function () { api('/follow/' + u.id, { method: 'POST' }).then(loadFollowing); }
+                        }, 'folgen'));
+                }))) : null,
+            h(FollowCompare, { entries: follows, lang: props.lang, onOpenUser: props.onOpenUser, onUnfollow: function (id) { api('/follow/' + id, { method: 'DELETE' }).then(loadFollowing); } }))
+            : null,
+
+        tab === 'konto' ? h(AccountPanel, { me: me, onLogout: props.onLogout }) : null);
+}
+
+/** Vergleich mit den Profilen, denen man folgt. */
+function FollowCompare(props) {
+    const rows = (props.entries || []).filter(function (e) { return e.profile; }).map(function (e) {
+        const p = e.profile;
+        return {
+            id: e.user.id, name: e.user.name, self: e.self,
+            species: p.speciesCount, complete: p.fisheriesComplete,
+            fish: p.totals.fish, weight: p.totals.weight, time: p.totals.time,
+            bigW: p.biggest.weight, bigWKey: p.biggest.weightSpecies,
+            bigL: p.biggest.length, bigLKey: p.biggest.lengthSpecies,
+            top: p.topSpecies.weight, topKey: p.topSpecies.key
+        };
+    });
+    if (!rows.length) {
+        return h('div', { className: 'ufs-note' },
+            'Du folgst noch niemandem. Suche oben nach einem Angler – danach stehen hier alle Werte nebeneinander.');
+    }
+    const best = {};
+    ['species', 'complete', 'fish', 'weight', 'bigW', 'bigL', 'top'].forEach(function (f) {
+        best[f] = Math.max.apply(null, rows.map(function (r) { return r[f] || 0; }));
+    });
+    function td(r, f, text) {
+        return h('td', { className: cn('num', r[f] > 0 && r[f] === best[f] && 'win') }, (r[f] > 0 && r[f] === best[f] ? '★ ' : '') + text);
+    }
+    return h('div', { className: 'ufs-spotcard' },
+        h('table', { className: 'ufs-rec' },
+            h('thead', null, h('tr', null,
+                h('th', null, 'Angler'), h('th', null, 'Arten'), h('th', null, 'Reviere'),
+                h('th', null, 'Fänge'), h('th', null, 'Masse'), h('th', null, 'Schwerster'),
+                h('th', null, 'Längster'), h('th', null, 'Beste Art'), h('th', null, ''))),
+            h('tbody', null, rows.map(function (r) {
+                return h('tr', { key: r.id },
+                    h('td', {
+                        className: cn('n', r.self && 'done'), style: { cursor: 'pointer' },
+                        onClick: function () { props.onOpenUser(r.id); }
+                    }, (r.self ? '▸ ' : '') + r.name),
+                    td(r, 'species', fmtNum(r.species)),
+                    td(r, 'complete', fmtNum(r.complete)),
+                    td(r, 'fish', fmtNum(r.fish)),
+                    td(r, 'weight', fmtNum(r.weight, 1) + ' kg'),
+                    td(r, 'bigW', r.bigW ? r.bigW.toFixed(2) + ' kg' : '–'),
+                    td(r, 'bigL', r.bigL ? Math.round(r.bigL * 100) + ' cm' : '–'),
+                    td(r, 'top', r.top ? fmtNum(r.top, 1) + ' kg' : '–'),
+                    h('td', { className: 'sub' }, r.self ? '' :
+                        h('button', {
+                            className: 'ufs-chip ufs-chip-btn',
+                            onClick: function () { props.onUnfollow(r.id); }
+                        }, 'entfolgen')));
+            }))));
+}
+
+function AccountPanel(props) {
+    const me = props.me;
+    const [token, setToken] = useState(me.apiToken);
+    const cmd = 'curl -H "X-Api-Token: ' + token + '" --data-binary "@%UserProfile%\\AppData\\LocalLow\\PlayWay\\UltimateFishing\\PROFILE_0" ' +
+        location.origin + '/api/profile/upload';
+    return h('div', { className: 'ufs-spotcard' },
+        h('h3', null, 'Konto'),
+        h('div', { className: 'ufs-stats', style: { marginBottom: '.9rem' } },
+            h('span', null, 'Angemeldet als ', h('b', null, me.name)),
+            me.email ? h('span', null, me.email) : null),
+        h('h3', null, 'Spielstand automatisch hochladen'),
+        h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', lineHeight: 1.6, margin: '.2rem 0 .6rem' } },
+            'Mit diesem Befehl lädst du deinen Spielstand ohne Anmeldung hoch – etwa aus der ' +
+            'Windows-Aufgabenplanung nach jeder Angelsession. Jeder Upload ersetzt dein Profil vollständig.'),
+        h('pre', { className: 'ufs-cmd' }, cmd),
+        h('div', { className: 'ufs-row' },
+            h('button', {
+                className: 'ufs-btn',
+                onClick: function () { navigator.clipboard && navigator.clipboard.writeText(cmd); }
+            }, 'Befehl kopieren'),
+            h('button', {
+                className: 'ufs-btn danger',
+                onClick: function () {
+                    if (!confirm('Neuen Token erzeugen? Der alte funktioniert danach nicht mehr.')) return;
+                    api('/auth/token/new', { method: 'POST' }).then(function (d) { setToken(d.token); });
+                }
+            }, 'Token erneuern'),
+            h('button', { className: 'ufs-btn', onClick: props.onLogout }, 'Abmelden')));
+}
+
 /* ------------------------------------------------------------------- App */
 
 function App() {
@@ -1538,6 +1955,14 @@ function App() {
     const [view, setView] = useState('map');
     const [openSpecies, setOpenSpecies] = useState(null);
     const [statsTab, setStatsTab] = useState('reviere');
+    const [me, setMe] = useState(null);
+    const [openUser, setOpenUser] = useState(null);
+
+    // Anmeldezustand vom Server holen, sofern es einen gibt
+    useEffect(function () {
+        if (!API_AVAILABLE) return;
+        api('/auth/me').then(function (d) { setMe(d.user); }).catch(function () { /* offline weiterarbeiten */ });
+    }, []);
     const [selectedSpot, setSelectedSpot] = useState(null);
     const [highlight, setHighlight] = useState(null);
     const [lang, setLang] = useState(function () { return localStorage.getItem('ufs-lang') || 'de'; });
@@ -1583,6 +2008,7 @@ function App() {
             const parts = decodeURIComponent((location.hash || '').replace(/^#/, '')).split('/');
             const head = (parts[0] || '').toLowerCase();
             if (head === 'koeder') { setView('bait'); return; }
+            if (head === 'gruppen' || head === 'community') { setView('community'); return; }
             if (head === 'statistik') { setView('stats'); setStatsTab(parts[1] || 'reviere'); return; }
             if (head === 'arten') { setView('arten'); setOpenSpecies(parts[1] ? parts[1].toUpperCase() : null); return; }
             if (head === 'revier' && parts[1]) {
@@ -1606,6 +2032,7 @@ function App() {
         if (!routeReady.current) return;
         let hash = '#revier/' + selectedMap + (selectedSpot ? '/spot' + selectedSpot : '');
         if (view === 'bait') hash = '#koeder';
+        else if (view === 'community') hash = '#gruppen';
         else if (view === 'stats') hash = '#statistik';
         else if (view === 'arten') hash = '#arten' + (openSpecies ? '/' + openSpecies : '');
         if (location.hash !== hash) history.replaceState(null, '', hash);
@@ -1770,6 +2197,10 @@ function App() {
                         className: cn('ufs-btn', view === 'stats' && 'primary'),
                         onClick: function () { setView('stats'); }
                     }, h(Icon, { name: 'scale' }), 'Statistik'),
+                    API_AVAILABLE ? h('button', {
+                        className: cn('ufs-btn', view === 'community' && 'primary'),
+                        onClick: function () { setView('community'); }
+                    }, h(Icon, { name: 'star' }), me ? 'Gruppen' : 'Anmelden') : null,
                     h(ProfileBar, {
                         profiles: profiles, active: activeProfile,
                         onSwitch: function (id) { setProfiles(function (p) { return { active: id, list: p.list }; }); },
@@ -1826,8 +2257,17 @@ function App() {
 
             h('main', { className: 'min-w-0' },
                 view === 'map' ? null : h('h1', { className: 'mb-4 text-2xl font-black tracking-tight text-white' },
-                    view === 'bait' ? 'Köder & Methoden' : view === 'arten' ? 'Fischarten' : 'Statistik'),
+                    view === 'bait' ? 'Köder & Methoden'
+                        : view === 'arten' ? 'Fischarten'
+                        : view === 'community' ? 'Gruppen & Vergleich'
+                        : 'Statistik'),
                 view === 'bait' ? h(BaitPage, { lang: lang })
+                : view === 'community' ? h(CommunityPage, {
+                    me: me, lang: lang,
+                    onLogin: function (u) { setMe(u); },
+                    onLogout: function () { api('/auth/logout', { method: 'POST' }).then(function () { setMe(null); }); },
+                    onOpenUser: setOpenUser
+                })
                 : view === 'stats' ? h(StatsPage, {
                     stats: saveStats, lang: lang, tab: statsTab,
                     profiles: profiles.list, activeId: profiles.active,
@@ -1974,7 +2414,9 @@ function App() {
                     ' · Fan-Projekt, nicht offiziell mit den Entwicklern verbunden.')))),
 
         sourceOpen ? h(Sources, { onClose: function () { setSourceOpen(false); } }) : null,
+        openUser ? h(UserModal, { id: openUser, lang: lang, onClose: function () { setOpenUser(null); } }) : null,
         importOpen ? h(ImportDialog, {
+            me: me,
             onClose: function () { setImportOpen(false); },
             onImport: applyImport,
             onReset: function () { setCaught({}); setBests({}); setSaveStats(null); }

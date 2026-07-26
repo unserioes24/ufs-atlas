@@ -343,4 +343,33 @@ $data = [ordered]@{
 }
 $json = $data | ConvertTo-Json -Depth 12 -Compress
 [IO.File]::WriteAllText("$proj\gamedata.json", $json)
+
+# ---------------------------------------------- 4) Stammdaten für den Server
+# Der Symfony-Dienst wertet hochgeladene Spielstände selbst aus und braucht
+# dafür Artenliste, Reviere mit ihren Arten und die Spielstand-Schlüssel.
+$srvSpecies = [ordered]@{}
+foreach ($k in $species.Keys) {
+    $s = $species[$k]
+    $e = [ordered]@{}
+    if ($s.Contains('de')) { $e.de = $s.de }
+    if ($s.Contains('en')) { $e.en = $s.en }
+    if ($s.Contains('wMax')) { $e.wMax = $s.wMax }
+    $srvSpecies[$k] = $e
+}
+$srvFishery = [ordered]@{}
+$srvSave = [ordered]@{}
+foreach ($k in $fisheries.Keys) {
+    $srvFishery[$k] = @($fisheries[$k].species | ForEach-Object { $_.s })
+    if ($SAVEKEY[$k]) { $srvSave[$k] = $SAVEKEY[$k] }
+}
+$srv = [ordered]@{
+    generated       = $data.generated
+    species         = $srvSpecies
+    fisherySpecies  = $srvFishery
+    fisherySaveKeys = $srvSave
+}
+New-Item -ItemType Directory -Force (Join-Path $proj 'server\data') | Out-Null
+[IO.File]::WriteAllText((Join-Path $proj 'server\data\gamedata-server.json'),
+    ($srv | ConvertTo-Json -Depth 8 -Compress))
+Write-Host "-> server/data/gamedata-server.json"
 Write-Host "-> gamedata.json  $([Math]::Round($json.Length/1KB)) KB   Arten gesamt: $($species.Count)"

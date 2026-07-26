@@ -1,7 +1,11 @@
 .git
 .gitlab-ci.yml
 tools
-deploy
 README.md
+DEPLOY.md
 .vscode
 *.log
+
+# werden im Image erzeugt
+server/vendor
+server/var

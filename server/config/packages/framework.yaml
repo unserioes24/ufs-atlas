@@ -1,0 +1,23 @@
+framework:
+    secret: '%env(APP_SECRET)%'
+    http_method_override: false
+    trusted_proxies: '%env(TRUSTED_PROXIES)%'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port']
+
+    # Anmeldung läuft über die PHP-Sitzung, kein Token im Browser.
+    session:
+        handler_id: null
+        cookie_secure: auto
+        cookie_samesite: lax
+        cookie_httponly: true
+        cookie_lifetime: 2592000     # 30 Tage
+        gc_maxlifetime: 2592000
+        save_path: '%kernel.project_dir%/var/sessions'
+
+    php_errors:
+        log: true
+
+when@prod:
+    framework:
+        router:
+            strict_requirements: null

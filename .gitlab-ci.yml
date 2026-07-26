@@ -47,6 +47,13 @@ deploy:
   variables:
     DOCKER_HOST: "ssh://root@web.fuewa.systems"
     WEB_IMAGE: "$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA"
+    # Aus geschützten CI/CD-Variablen; siehe DEPLOY.md
+    APP_SECRET: "$APP_SECRET"
+    DB_PASSWORD: "$DB_PASSWORD"
+    DB_ROOT_PASSWORD: "$DB_ROOT_PASSWORD"
+    MAILER_DSN: "$MAILER_DSN"
+    MAILER_FROM: "$MAILER_FROM"
+    MAILER_FROM_HEADER: "$MAILER_FROM_HEADER"
   before_script:
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy

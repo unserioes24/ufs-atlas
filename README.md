@@ -37,8 +37,12 @@ Dann `http://localhost:8080` öffnen.
 - **Köderseite** (`#koeder`) – alle Naturköder, Boilies, Kunstköderarten, Methoden und
   Montageteile mit den Originalbezeichnungen des Spiels, jeweils mit den Arten, für die
   der Guide sie empfiehlt.
+- **Konto, Gruppen und Vergleich** (`#gruppen`, nur mit Server) – Anmeldung per
+  E-Mail-Code, ein Profil je Konto, Gruppen mit Ranglisten für schwersten und
+  längsten Fisch, Gesamtmasse, größte Masse einer Art, Artenzahl und komplette
+  Reviere. Profilen folgen und sich direkt danebenstellen.
 - **Adressleiste als Zustand** – `#revier/betty`, `#revier/moraine/spot3`, `#arten/PIKE`,
-  `#koeder` sind direkt verlinkbar.
+  `#koeder`, `#statistik`, `#gruppen` sind direkt verlinkbar.
 - 21 Karteneinträge, 205 recherchierte Fisch-/Strategieeinträge, ergänzt um alle Arten,
   die nur in den Spieldateien stehen.
 - Suche, Filter nach Methode, Vertrauensstufe, offen/gefangen und Favoriten, Druckansicht.
@@ -69,6 +73,8 @@ Community-Werte tragen eine Vertrauensstufe.
 - `models/` – 3D-Modelle je Art, jeweils eine Datei mit Mesh und eingebetteter Textur;
   wird erst beim Öffnen einer Art nachgeladen
 - `tools/` – die Extraktions-Pipeline, siehe `tools/README.md`
+- `server/` – Symfony-Backend, liefert im Betrieb auch den Guide aus
+- `deploy/`, `Dockerfile.web`, `DEPLOY.md` – Container und Auslieferung
 
 ## Datenhinweis
 

@@ -169,6 +169,15 @@
   color: #64748b; pointer-events: none; letter-spacing: .04em;
 }
 
+/* ------------------------------------------------------------ Gruppen */
+.ufs-boardgrid { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+.ufs-cmd {
+  margin: 0 0 .8rem; padding: .7rem .8rem; border-radius: 12px;
+  border: 1px solid var(--ufs-line); background: rgba(0, 0, 0, .35);
+  font-size: 11px; line-height: 1.6; color: #a5f3fc;
+  white-space: pre-wrap; word-break: break-all; font-family: ui-monospace, Consolas, monospace;
+}
+
 /* ---------------------------------------------------------------- Profile */
 .ufs-profile { position: relative; }
 .ufs-profilemenu {
