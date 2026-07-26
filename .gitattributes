@@ -1,0 +1,14 @@
+# Alles, was im Linux-Container läuft, braucht LF – sonst scheitert der
+# Interpreter an den CR-Zeichen.
+*.sh            text eol=lf
+*.php           text eol=lf
+*.yaml          text eol=lf
+*.yml           text eol=lf
+*.conf          text eol=lf
+Dockerfile*     text eol=lf
+.env            text eol=lf
+server/bin/*    text eol=lf
+
+# Aus dem Spiel extrahierte Medien nie anfassen
+*.jpg           binary
+*.png           binary
