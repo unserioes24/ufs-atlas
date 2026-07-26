@@ -58,6 +58,25 @@ allein die acht Basisreviere; die DLC-Karten führen keine Zusatzarten.
 `tools/dlcfish.ps1` und `tools/dlccheck.ps1` prüfen beides nach, `tools/guidecheck.ps1`
 vergleicht `data.json` gegen die Spieldateien.
 
+## Köder und Bissmodell
+
+Welcher Fisch auf welchen Köder anspricht, steht doch in den Spieldateien: jedes
+Köder-Prefab in `sharedassets2.assets` trägt ein `FishLikesParams` mit einer Liste
+`fishInterests`, je Eintrag eine Artennummer und ein Interesse zwischen 0 und 1.
+`tools/baits.ps1` liest das aus (161 Köder, `_work/baits.json`). Erkannt wird der
+Block über sein Ende – hinter der Liste steht `paramsParseText`, danach hört der
+Baustein auf; die Artennummern selbst sind stellenweise unsortiert.
+
+Ob ein Fisch beißt, gewichtet `Fish` über neun Regler mit je einer Kurve:
+Uhrzeit, Hunger, Köderhöhe, Temperatur, Wind, Luftdruck, Bewölkung, Regen und
+Ködergeschwindigkeit. `tools/bitecurves.ps1` liest sie (`_work/bitecurves.json`).
+
+Bespielt sind davon nur vier: Uhrzeit, Wind, Bewölkung und Regen. Hunger,
+**Köderhöhe**, Temperatur, Luftdruck und Ködergeschwindigkeit stehen bei allen
+134 Arten auf der Konstanten 1, alle neun Gewichte ebenfalls. Die Ködertiefe
+entscheidet also nicht über die Bissbereitschaft – sie entscheidet nur darüber,
+ob der Köder überhaupt dort ankommt, wo der Schwarm steht.
+
 ## Grenzen
 
 - Die Welt→Karte-Abbildung wird aus den Spotpaaren geschätzt. Liegen die Spots fast auf einer
