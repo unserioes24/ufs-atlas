@@ -43,8 +43,8 @@ Beim Start gleicht der Container das Datenbankschema aus den Entities ab
 | `DB_PASSWORD` | Passwort des MariaDB-Benutzers `fish` |
 | `DB_ROOT_PASSWORD` | MariaDB-Root-Passwort |
 | `MAILER_DSN` | z. B. `smtp://benutzer:passwort@mail.example.org:587` |
-| `MAILER_FROM` | Absenderadresse, z. B. `fish@tobee94.de` |
-| `MAILER_FROM_HEADER` | Anzeigename, z. B. `UFS Atlas <fish@tobee94.de>` |
+| `MAILER_FROM` | Absenderadresse, z. B. `fish@unserioes24.de` |
+| `MAILER_FROM_HEADER` | Anzeigename, z. B. `UFS Atlas <fish@unserioes24.de>` |
 
 **DNS**: `fish.tobee94.de` → IP des Servers (A/AAAA). Traefik holt das
 Zertifikat beim ersten Aufruf.
