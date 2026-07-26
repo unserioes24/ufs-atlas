@@ -1475,19 +1475,105 @@ function loadLocal() {
 
 /* ------------------------------------------------------------ Anmeldung */
 
+/**
+ * Bot-Prüfung nach dem ALTCHA-Verfahren, ohne Dienst von außen: Der Server
+ * nennt SHA-256(salt + zahl), der Browser probiert die Zahlen durch. Für
+ * Menschen ein Wimpernschlag, für Massenversand teuer genug.
+ *
+ * In Blöcken gerechnet, damit die Oberfläche zwischendurch zeichnen kann.
+ */
+function solveAltcha(c, onProgress) {
+    const enc = new TextEncoder();
+    const max = c.maxnumber || 100000;
+    const started = Date.now();
+    const BLOCK = 2000;
+
+    function hex(buf) {
+        const b = new Uint8Array(buf);
+        let s = '';
+        for (let i = 0; i < b.length; i++) s += (b[i] < 16 ? '0' : '') + b[i].toString(16);
+        return s;
+    }
+    function block(from) {
+        const to = Math.min(from + BLOCK - 1, max);
+        const jobs = [];
+        for (let n = from; n <= to; n++) jobs.push(crypto.subtle.digest('SHA-256', enc.encode(c.salt + n)));
+        return Promise.all(jobs).then(function (out) {
+            for (let i = 0; i < out.length; i++) {
+                if (hex(out[i]) === c.challenge) return from + i;
+            }
+            if (to >= max) return null;
+            if (onProgress) onProgress(to / max);
+            return new Promise(function (go) { setTimeout(go, 0); }).then(function () { return block(to + 1); });
+        });
+    }
+    return block(0).then(function (number) {
+        if (number === null) throw new Error('Die Bot-Prüfung ging nicht auf. Bitte die Seite neu laden.');
+        return btoa(JSON.stringify({
+            algorithm: c.algorithm, challenge: c.challenge, number: number,
+            salt: c.salt, signature: c.signature, took: Date.now() - started
+        }));
+    });
+}
+
+/** Holt eine Aufgabe, löst sie und reicht die Lösung nach oben. */
+function AltchaBox(props) {
+    const [state, setState] = useState({ s: 'load', p: 0, err: null });
+
+    useEffect(function () {
+        let alive = true;
+        if (!window.crypto || !crypto.subtle) {
+            setState({ s: 'err', p: 0, err: 'Dieser Browser stellt keine Kryptofunktionen bereit.' });
+            return;
+        }
+        setState({ s: 'load', p: 0, err: null });
+        props.onSolved(null);
+        api('/auth/challenge')
+            .then(function (c) {
+                if (!alive) return null;
+                setState({ s: 'work', p: 0, err: null });
+                return solveAltcha(c, function (p) { if (alive) setState({ s: 'work', p: p, err: null }); });
+            })
+            .then(function (payload) {
+                if (!alive || !payload) return;
+                setState({ s: 'ok', p: 1, err: null });
+                props.onSolved(payload);
+            })
+            .catch(function (e) {
+                if (alive) setState({ s: 'err', p: 0, err: e.message });
+            });
+        return function () { alive = false; };
+    }, [props.round]);
+
+    const text = state.s === 'ok' ? 'Kein Bot – geprüft'
+        : state.s === 'err' ? state.err
+            : state.s === 'work' ? 'Prüfung läuft … ' + Math.round(state.p * 100) + ' %'
+                : 'Prüfung wird vorbereitet …';
+
+    return h('div', { className: cn('ufs-altcha', state.s === 'ok' && 'ok', state.s === 'err' && 'bad') },
+        h('span', { className: 'mark', 'aria-hidden': true },
+            state.s === 'ok' ? '✓' : state.s === 'err' ? '!' : '◔'),
+        h('span', { className: 'txt' }, text),
+        h('span', { className: 'by' }, 'ALTCHA · eigener Server'));
+}
+
 function LoginPanel(props) {
     const [step, setStep] = useState('email');
     const [email, setEmail] = useState('');
     const [code, setCode] = useState('');
     const [busy, setBusy] = useState(false);
     const [msg, setMsg] = useState(null);
+    const [altcha, setAltcha] = useState(null);
+    const [round, setRound] = useState(0);
 
     function send() {
+        if (!altcha) return;
         setBusy(true); setMsg(null);
-        api('/auth/request', { method: 'POST', json: { email: email } })
+        api('/auth/request', { method: 'POST', json: { email: email, altcha: altcha } })
             .then(function () { setStep('code'); setMsg({ ok: true, t: 'Code ist unterwegs. Er gilt 15 Minuten.' }); })
             .catch(function (e) { setMsg({ ok: false, t: e.message }); })
-            .then(function () { setBusy(false); });
+            // Jede Aufgabe zählt nur einmal – für den nächsten Versuch eine neue holen
+            .then(function () { setBusy(false); setRound(function (r) { return r + 1; }); });
     }
     function verify() {
         setBusy(true); setMsg(null);
@@ -1503,16 +1589,18 @@ function LoginPanel(props) {
             'Kein Passwort: Du bekommst einen sechsstelligen Code per E-Mail. ' +
             'Mit dem Konto liegt dein Profil auf dem Server, du kannst Gruppen beitreten und dich vergleichen.'),
         step === 'email'
-            ? h('div', { className: 'ufs-row' },
-                h('input', {
-                    type: 'email', value: email, placeholder: 'deine@mail.de',
-                    onChange: function (e) { setEmail(e.target.value); },
-                    onKeyDown: function (e) { if (e.key === 'Enter' && email) send(); },
-                    className: 'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50',
-                    style: { minWidth: '220px' }
-                }),
-                h('button', { className: 'ufs-btn primary', disabled: busy || !email, onClick: send },
-                    busy ? 'Sende …' : 'Code anfordern'))
+            ? h('div', null,
+                h(AltchaBox, { round: round, onSolved: setAltcha }),
+                h('div', { className: 'ufs-row', style: { marginTop: '.7rem' } },
+                    h('input', {
+                        type: 'email', value: email, placeholder: 'deine@mail.de',
+                        onChange: function (e) { setEmail(e.target.value); },
+                        onKeyDown: function (e) { if (e.key === 'Enter' && email && altcha) send(); },
+                        className: 'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50',
+                        style: { minWidth: '220px' }
+                    }),
+                    h('button', { className: 'ufs-btn primary', disabled: busy || !email || !altcha, onClick: send },
+                        busy ? 'Sende …' : altcha ? 'Code anfordern' : 'Prüfung läuft …')))
             : h('div', { className: 'ufs-row' },
                 h('input', {
                     inputMode: 'numeric', value: code, placeholder: '123456', maxLength: 6,

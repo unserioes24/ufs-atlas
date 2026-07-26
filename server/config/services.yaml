@@ -16,3 +16,7 @@ services:
     App\Service\GameData:
         arguments:
             $file: '%app.gamedata_file%'
+
+    App\Service\Altcha:
+        arguments:
+            $secret: '%kernel.secret%'

@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\LoginCode;
 use App\Entity\User;
+use App\Service\Altcha;
 use App\Service\Auth;
 use App\Service\Names;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,7 +24,22 @@ class AuthController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly Auth $auth,
         private readonly Names $names,
+        private readonly Altcha $altcha,
     ) {
+    }
+
+    /**
+     * Rechenaufgabe für die Bot-Prüfung. Der Browser löst sie, bevor er einen
+     * Anmeldecode anfordert; die Sitzung merkt sich die zuletzt ausgegebene,
+     * damit dieselbe Lösung nicht mehrfach zählt.
+     */
+    #[Route('/challenge', methods: ['GET'])]
+    public function challenge(Request $request): JsonResponse
+    {
+        $challenge = $this->altcha->challenge();
+        $request->getSession()->set('altcha', $challenge['challenge']);
+
+        return $this->json($challenge);
     }
 
     /** Schickt einen Einmalcode. Antwortet immer gleich, damit sich keine Konten abfragen lassen. */
@@ -35,6 +51,15 @@ class AuthController extends AbstractController
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return $this->json(['error' => 'Bitte eine gültige E-Mail-Adresse angeben.'], 400);
         }
+
+        // Bot-Prüfung vor allem anderen: sie kostet Rechenzeit, das Verschicken
+        // von Post an fremde Adressen soll nicht umsonst zu haben sein.
+        $session = $request->getSession();
+        $problem = $this->altcha->verify((string) ($data['altcha'] ?? ''), $session->get('altcha'));
+        if ($problem !== null) {
+            return $this->json(['error' => $problem], 400);
+        }
+        $session->remove('altcha');
 
         // Abgelaufene Codes derselben Adresse aufräumen und Missbrauch bremsen
         $repo = $this->em->getRepository(LoginCode::class);
