@@ -286,6 +286,17 @@ export const en: Partial<Dict> = {
   'weather.rainHint': 'dry → steady rain',
 
   'method.noChance': 'No chance: {list}.',
+
+  // Species page
+  'species.searchPlaceholder': 'Search species …',
+  'species.onlyMissing': 'only missing',
+  'species.count': '{n} species',
+  'species.noSize': 'no size given',
+  'species.fisheries': 'Fisheries',
+  'species.noSpawns': 'no spawn points',
+  'species.method': 'Method',
+  'species.retrieve': 'Retrieve',
+
   'fish.allDay': 'the same around the clock',
   'fish.hours24': '24 h',
   'fish.showLess': 'fewer',

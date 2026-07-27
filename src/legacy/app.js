@@ -20,6 +20,7 @@ import {
     Activity, BaitTop, BiteFactors, MethodList, RetrieveList, SizeFit,
     bestHours, methodTop, spinTop
 } from '../components/species/facts'
+import SpeciesPage from '../components/species/SpeciesPage'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
@@ -963,142 +964,6 @@ function GlobalOverview(props) {
                         h('td', { className: 'sub' },
                             open.length ? open.slice(0, 4).join(', ') + (open.length > 4 ? ' +' + (open.length - 4) : '') : '–'));
                 })))));
-}
-
-/* ------------------------------------------------------------- Artenseite */
-
-/** Sammelt je Art die Guide-Angaben über alle Reviere hinweg. */
-const SPECIES_GUIDE = (function () {
-    const out = {};
-    D.fish.forEach(function (f) {
-        const k = speciesKey(f.name, f.de, f.mapId);
-        if (!k) return;
-        const e = out[k] = out[k] || { baits: {}, methods: {}, hooks: {}, maps: {}, retrieves: {}, depths: {} };
-        String(f.bait || '').split(/[,;/]| oder /).forEach(function (b) {
-            b = b.trim();
-            if (b && b !== '—') e.baits[b] = (e.baits[b] || 0) + 1;
-        });
-        if (f.method) e.methods[f.method] = (e.methods[f.method] || 0) + 1;
-        if (f.hook) e.hooks[f.hook] = (e.hooks[f.hook] || 0) + 1;
-        if (f.retrieve && f.retrieve !== '—') e.retrieves[f.retrieve] = (e.retrieves[f.retrieve] || 0) + 1;
-        if (f.depth) e.depths[f.depth] = (e.depths[f.depth] || 0) + 1;
-        e.maps[f.mapId] = true;
-    });
-    return out;
-})();
-
-function topKeys(obj, n) {
-    return Object.keys(obj || {}).sort(function (a, b) { return obj[b] - obj[a]; }).slice(0, n || 6);
-}
-
-function SpeciesPage(props) {
-    const t = useI18n().t;
-    // Direktlink auf eine Art: Suche vorbelegen, damit die Karte oben steht.
-    const [q, setQ] = useState(function () {
-        return props.initialOpen && SPECIES[props.initialOpen] ? speciesName(props.initialOpen, props.lang) : '';
-    });
-    const [open, setOpen] = useState(props.initialOpen || null);
-    const [onlyOpenFish, setOnlyOpenFish] = useState(false);
-    const mapName = {};
-    D.maps.forEach(function (m) { mapName[m.id] = m.name; });
-
-    const rows = useMemo(function () {
-        const where = {};
-        Object.keys(FISHERIES).forEach(function (id) {
-            FISHERIES[id].species.forEach(function (g) { (where[g.s] = where[g.s] || []).push(id); });
-        });
-        const list = Object.keys(SPECIES).map(function (k) {
-            return { key: k, sp: SPECIES[k], where: where[k] || [], guide: SPECIES_GUIDE[k] || null };
-        }).filter(function (r) {
-            if (!r.sp.wMax && !r.where.length && !r.guide) return false;
-            if (onlyOpenFish && props.caught[r.key]) return false;
-            if (q) {
-                const hay = (r.key + ' ' + (r.sp.de || '') + ' ' + (r.sp.en || '')).toLowerCase();
-                if (hay.indexOf(q.toLowerCase()) < 0) return false;
-            }
-            return true;
-        });
-        list.sort(function (a, b) { return speciesName(a.key, props.lang).localeCompare(speciesName(b.key, props.lang)); });
-        return list;
-    }, [q, onlyOpenFish, props.caught, props.lang]);
-
-    return h('div', null,
-        h('div', { className: 'ufs-row', style: { marginBottom: '.9rem' } },
-            h('input', {
-                value: q, onChange: function (e) { setQ(e.target.value); },
-                placeholder: 'Art suchen …',
-                className: 'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50',
-                style: { minWidth: '220px' }
-            }),
-            h(Toggle, { active: onlyOpenFish, onClick: function () { setOnlyOpenFish(!onlyOpenFish); } }, 'nur fehlende'),
-            h('span', { className: 'ufs-muted', style: { fontSize: '11.5px' } }, rows.length + ' Arten')),
-
-        h('div', { className: 'ufs-baitgrid' }, rows.map(function (r) {
-            const s = r.sp, g = r.guide;
-            const isOpen = open === r.key;
-            return h('div', {
-                key: r.key,
-                className: cn('ufs-baitcard has', isOpen && 'open'),
-                onClick: function (e) {
-                    if (e.target.tagName === 'CANVAS') return;
-                    const nk = isOpen ? null : r.key;
-                    setOpen(nk);
-                    if (props.onOpen) props.onOpen(nk);
-                }
-            },
-                h('div', { className: 'de' },
-                    (props.caught[r.key] ? '✓ ' : '') + speciesName(r.key, props.lang)),
-                h('div', { className: 'en' }, props.lang === 'en' ? (s.de || '') : (s.en || '')),
-                h('div', { className: 'cnt' },
-                    (s.wMax ? s.wMin + '–' + s.wMax + ' kg' : 'ohne Größenangabe') +
-                    (s.lMax ? ' · ' + s.lMin + '–' + s.lMax + ' cm' : '')),
-                isOpen ? h('div', { className: 'list', style: { gridTemplateColumns: '1fr' } },
-
-                    h('div', null, h('span', null, 'Reviere'), h('em', null,
-                        r.where.length ? r.where.map(function (w) { return mapName[w] || w; }).join(', ') : 'keine Spawnpunkte')),
-                    g && Object.keys(g.baits).length
-                        ? h('div', null, h('span', null, 'Köder'), h('em', null,
-                            topKeys(g.baits, 6).map(function (b) { return props.lang === 'de' ? toGerman(b) : b; }).join(', '))) : null,
-                    g && Object.keys(g.methods).length
-                        ? h('div', null, h('span', null, 'Methode'), h('em', null, topKeys(g.methods, 3).join(' · '))) : null,
-                    g && Object.keys(g.hooks).length
-                        ? h('div', null, h('span', null, 'Haken'), h('em', null, topKeys(g.hooks, 3).join(' · '))) : null,
-                    g && Object.keys(g.retrieves).length
-                        ? h('div', null, h('span', null, 'Führung'), h('em', null,
-                            topKeys(g.retrieves, 2).map(function (b) { return props.lang === 'de' ? toGerman(b) : b; }).join(' · '))) : null,
-                    props.bests[r.key] && props.bests[r.key].weight
-                        ? h('div', null, h('span', null, 'Dein Rekord'), h('em', null,
-                            props.bests[r.key].weight.toFixed(2) + ' kg' +
-                            (props.bests[r.key].length ? ' · ' + Math.round(props.bests[r.key].length * 100) + ' cm' : ''))) : null,
-                    s.act ? h('div', { style: { display: 'block', marginTop: '.4rem' } }, h(Activity, { act: s.act })) : null,
-                    HOOKS && s.wMax
-                        ? h('div', { style: { display: 'block', marginTop: '.5rem' } },
-                            h('span', { style: { color: '#64748b' } }, 'Größen'),
-                            h(SizeFit, { sp: s }))
-                        : null,
-                    s.m
-                        ? h('div', { style: { display: 'block', marginTop: '.5rem' } },
-                            h('span', { style: { color: '#64748b' } }, 'Angelart'),
-                            h(MethodList, { m: s.m }))
-                        : null,
-                    s.spin
-                        ? h('div', { style: { display: 'block', marginTop: '.5rem' } },
-                            h('span', { style: { color: '#64748b' } }, 'Führung'),
-                            h(RetrieveList, { spin: s.spin }))
-                        : null,
-                    (BAITS_FOR[r.key] || []).length
-                        ? h('div', { style: { display: 'block', marginTop: '.5rem' } },
-                            h('span', { style: { color: '#64748b' } }, 'Köder'),
-                            h(BaitTop, { speciesKey: r.key, limit: 6 }))
-                        : null,
-                    s.bite
-                        ? h('div', { style: { display: 'block', marginTop: '.5rem' } },
-                            h('span', { style: { color: '#64748b' } }, 'Wetter'),
-                            h(BiteFactors, { bite: s.bite }))
-                        : null,
-                    s.info ? h('div', { style: { display: 'block', marginTop: '.4rem', color: '#94a3b8', lineHeight: 1.55 } }, s.info) : null
-                ) : null);
-        })));
 }
 
 /* ------------------------------------------------------------- API-Zugriff */
@@ -2518,8 +2383,8 @@ function App() {
                     onOpenSpecies: function (k) { setOpenSpecies(k); setView('arten'); }
                 })
                 : view === 'arten' ? h(SpeciesPage, {
-                    lang: lang, caught: caught, bests: bests,
-                    initialOpen: openSpecies, onOpen: setOpenSpecies
+                    caught: caught, bests: bests,
+                    initialOpen: openSpecies, onOpen: setOpenSpecies, toGerman: toGerman
                 })
                 : isGlobal ? h(GlobalOverview, {
                     caught: caught, allKeys: allKeys, lang: lang,

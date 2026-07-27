@@ -289,6 +289,17 @@ export const de = {
   'weather.rainHint': 'trocken → Dauerregen',
 
   'method.noChance': 'Ohne Aussicht: {list}.',
+
+  // Artenseite
+  'species.searchPlaceholder': 'Art suchen …',
+  'species.onlyMissing': 'nur fehlende',
+  'species.count': '{n} Arten',
+  'species.noSize': 'ohne Größenangabe',
+  'species.fisheries': 'Reviere',
+  'species.noSpawns': 'keine Spawnpunkte',
+  'species.method': 'Methode',
+  'species.retrieve': 'Führung',
+
   'fish.allDay': 'rund um die Uhr gleich',
   'fish.hours24': '24 Uhr',
   'fish.showLess': 'weniger',
