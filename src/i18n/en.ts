@@ -332,6 +332,67 @@ export const en: Partial<Dict> = {
   'skills.step': 'step {level} of {steps}',
   'skills.have': 'unlocked',
   'skills.open': 'open',
+
+  // Legal
+  'legal.privacy': 'Privacy',
+  'legal.imprint': 'Imprint',
+  'legal.github': 'Source on GitHub',
+  'cookie.text':
+    'This site sets two cookies, and only once you sign in: one for the session, one for staying signed in. No analytics, no advertising, no outside services.',
+  'cookie.ok': 'Understood',
+
+  'privacy.title': 'Privacy policy',
+  'privacy.lead':
+    'The guide is a fan project. It gets by on as little data as it can, and what it does store is all written down here.',
+
+  'privacy.responsibleTitle': 'Who is responsible',
+  'privacy.responsibleText':
+    'The operator of this site is responsible for it; the address is in the imprint.',
+
+  'privacy.shortTitle': 'The short version',
+  'privacy.shortText':
+    'Without an account not one of your figures leaves the browser. With an account your e-mail address, your display name and the numbers from the save file you uploaded live on the server. There are no analytics tools, no advertising and no embedded third-party services.',
+
+  'privacy.localTitle': 'What stays in the browser',
+  'privacy.localText':
+    'Ticked species, favourites, the chosen language and the figures of a loaded save file sit in your browser’s local storage. They are not transmitted. Clear the site data and they are gone.',
+  'privacy.localSave':
+    'The game’s PROFILE file is read in the browser. It is only uploaded if you are signed in and start the upload yourself.',
+
+  'privacy.accountTitle': 'Account',
+  'privacy.accountWhat':
+    'An account holds: your e-mail address, a display name, an access token for uploading without signing in, when you last signed in, and – once you push a save file – the figures read from it: catches, records, time fished, progress per fishery, equipment, rod sets and skills.',
+  'privacy.accountWhy':
+    'The basis is performing the service you asked for (Art. 6(1)(b) GDPR). Without an e-mail address there is no way to send a sign-in code.',
+  'privacy.accountKeep':
+    'The data stays until you delete the account. Write to the address below and the account and its profile are removed.',
+
+  'privacy.publicTitle': 'What others can see',
+  'privacy.publicText':
+    'Your profile is reachable at its address once you pass it on: display name, the figures from your save file and your public groups. Your e-mail address is never shown. Inside a group the members see your name and your figures.',
+
+  'privacy.cookiesTitle': 'Cookies',
+  'privacy.cookiesText':
+    'Two of them, both only after signing in: the session cookie (PHPSESSID, 30 days) and ufs_remember for staying signed in (90 days). Both are httpOnly and SameSite=Lax. They are needed for signing in to work at all, so no consent is required. Without an account the site sets no cookie.',
+
+  'privacy.logsTitle': 'Server logs',
+  'privacy.logsText':
+    'The web server logs requests as web servers do: IP address, time, the address requested and the browser string. That serves running the site and fending off abuse (Art. 6(1)(f) GDPR).',
+
+  'privacy.mailTitle': 'E-mail',
+  'privacy.mailText':
+    'Sign-in codes go out through an e-mail provider. Your address and the code are passed to it. Which provider that is stands in the imprint.',
+
+  'privacy.thirdTitle': 'No third-party services',
+  'privacy.thirdText':
+    'No fonts, scripts or images are loaded from anyone else’s server. The bot check on sign-in (ALTCHA) computes in the browser and is verified by this server – no captcha provider involved.',
+
+  'privacy.rightsTitle': 'Your rights',
+  'privacy.rightsText':
+    'You can ask for access, correction, deletion, restriction and portability, and you can object to processing. You are also free to complain to a data protection authority.',
+
+  'privacy.contactTitle': 'Contact',
+  'privacy.contactMissing': 'The contact address is in the imprint.',
   'profile.luck': 'Luck {n}',
   'profile.strength': 'Strength {n}',
   'profile.topSpecies': 'Strongest species',

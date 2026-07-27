@@ -25,6 +25,9 @@ import type { Account } from './components/profile/AccountPanel'
 import LoginPanel from './components/auth/LoginPanel'
 import ImportDialog from './components/save/ImportDialog'
 import SourcesPanel from './components/SourcesPanel'
+import Privacy from './components/legal/Privacy'
+import CookieNote from './components/legal/CookieNote'
+import SiteFooter from './components/legal/SiteFooter'
 
 /** Every species the guide or the game files know, for the counter in the header. */
 const ALL_KEYS: string[] = (() => {
@@ -223,7 +226,9 @@ export default function App() {
               ? t('auth.title')
               : view === 'stats'
                 ? t('stats.title')
-                : t('map.overview')
+                : view === 'privacy'
+                  ? t('privacy.title')
+                  : t('map.overview')
 
   return (
     <div className="min-h-screen water-grid">
@@ -315,6 +320,8 @@ export default function App() {
                 setView('gruppen')
               }}
             />
+          ) : view === 'privacy' ? (
+            <Privacy />
           ) : view === 'bait' ? (
             <BaitPage />
           ) : view === 'gruppen' ? (
@@ -382,6 +389,9 @@ export default function App() {
         </main>
       </div>
 
+
+      <SiteFooter onPrivacy={() => setView('privacy')} />
+      <CookieNote onPrivacy={() => setView('privacy')} />
       {sourceOpen ? <SourcesPanel onClose={() => setSourceOpen(false)} /> : null}
       {importOpen ? (
         <ImportDialog

@@ -24,7 +24,7 @@ const stamp = [guide.generated, game.generated].filter(Boolean).sort().pop()
 
 const slug = (key) => key.toLowerCase().replaceAll('_', '-')
 
-const paths = ['/', '/fisheries', '/species', '/baits']
+const paths = ['/', '/fisheries', '/species', '/baits', '/privacy']
 for (const m of guide.maps) {
   if (m.status === 'playable') paths.push('/fisheries/' + m.id)
 }

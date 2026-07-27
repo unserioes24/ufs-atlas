@@ -10,8 +10,17 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY tsconfig.json vite.config.ts tailwind.config.js postcss.config.js index.html ./
+COPY scripts ./scripts
 COPY src ./src
 COPY public ./public
+# Whoever runs the site fills these in; the pages leave a link out rather than
+# point it at nothing.
+ARG VITE_IMPRINT_URL=""
+ARG VITE_OPERATOR_MAIL=""
+ARG VITE_SITE_URL="https://ufs-atlas.de"
+ENV VITE_IMPRINT_URL=$VITE_IMPRINT_URL \
+    VITE_OPERATOR_MAIL=$VITE_OPERATOR_MAIL \
+    VITE_SITE_URL=$VITE_SITE_URL
 RUN npm run build
 
 # ── PHP dependencies ─────────────────────────────────────────────────

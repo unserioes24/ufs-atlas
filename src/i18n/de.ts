@@ -335,6 +335,67 @@ export const de = {
   'skills.step': 'Stufe {level} von {steps}',
   'skills.have': 'freigeschaltet',
   'skills.open': 'offen',
+
+  // Rechtliches
+  'legal.privacy': 'Datenschutz',
+  'legal.imprint': 'Impressum',
+  'legal.github': 'Quelltext auf GitHub',
+  'cookie.text':
+    'Diese Seite setzt zwei Cookies, und zwar erst wenn du dich anmeldest: eines für die Sitzung, eines für „angemeldet bleiben“. Keine Statistik, keine Werbung, keine fremden Dienste.',
+  'cookie.ok': 'Verstanden',
+
+  'privacy.title': 'Datenschutzerklärung',
+  'privacy.lead':
+    'Der Guide ist ein Fan-Projekt. Er kommt mit so wenig Daten aus wie möglich, und was er speichert, steht hier vollständig.',
+
+  'privacy.responsibleTitle': 'Verantwortlich',
+  'privacy.responsibleText':
+    'Verantwortlich für diese Seite ist der Betreiber, dessen Anschrift im Impressum steht.',
+
+  'privacy.shortTitle': 'Kurz gesagt',
+  'privacy.shortText':
+    'Ohne Konto verlässt kein einziger deiner Werte den Browser. Mit Konto liegen deine E-Mail-Adresse, dein Anzeigename und die Zahlen aus deinem hochgeladenen Spielstand auf dem Server. Es gibt keine Statistik-Werkzeuge, keine Werbung und keine eingebundenen Dienste Dritter.',
+
+  'privacy.localTitle': 'Was im Browser bleibt',
+  'privacy.localText':
+    'Abgehakte Arten, Favoriten, die gewählte Sprache und die Werte eines geladenen Spielstands liegen im lokalen Speicher deines Browsers. Sie werden nicht übertragen. Löschst du die Websitedaten, sind sie weg.',
+  'privacy.localSave':
+    'Die PROFILE-Datei des Spiels wird im Browser gelesen. Hochgeladen wird sie nur, wenn du angemeldet bist und den Upload selbst auslöst.',
+
+  'privacy.accountTitle': 'Konto',
+  'privacy.accountWhat':
+    'Zum Konto gehören: deine E-Mail-Adresse, ein Anzeigename, ein Zugriffstoken für den Upload ohne Anmeldung, der Zeitpunkt der letzten Anmeldung sowie – sobald du einen Spielstand überträgst – die daraus gelesenen Zahlen: Fänge, Rekorde, Angelzeit, Fortschritt je Revier, Ausrüstung, Rutensets und Fähigkeiten.',
+  'privacy.accountWhy':
+    'Grundlage ist die Erfüllung des von dir gewünschten Dienstes (Art. 6 Abs. 1 lit. b DSGVO). Ohne E-Mail-Adresse lässt sich kein Anmeldecode zustellen.',
+  'privacy.accountKeep':
+    'Die Daten bleiben, bis du das Konto löschst. Schreib dafür an die unten genannte Adresse; das Konto samt Profil wird dann entfernt.',
+
+  'privacy.publicTitle': 'Was andere sehen',
+  'privacy.publicText':
+    'Dein Profil ist über seine Adresse erreichbar, sobald du sie weitergibst: Anzeigename, die Zahlen aus deinem Spielstand und deine öffentlichen Gruppen. Deine E-Mail-Adresse ist nie sichtbar. In einer Gruppe sehen die Mitglieder deinen Namen und deine Kennzahlen.',
+
+  'privacy.cookiesTitle': 'Cookies',
+  'privacy.cookiesText':
+    'Zwei Stück, beide erst nach dem Anmelden: das Sitzungs-Cookie (PHPSESSID, 30 Tage) und ufs_remember für „angemeldet bleiben“ (90 Tage). Beide sind httpOnly und SameSite=Lax. Sie sind für die Anmeldung technisch erforderlich; eine Einwilligung braucht es dafür nicht. Ohne Konto setzt die Seite kein Cookie.',
+
+  'privacy.logsTitle': 'Server-Protokolle',
+  'privacy.logsText':
+    'Der Webserver protokolliert wie üblich Zugriffe mit IP-Adresse, Zeitpunkt, aufgerufener Adresse und Browserkennung. Das dient dem Betrieb und der Abwehr von Missbrauch (Art. 6 Abs. 1 lit. f DSGVO).',
+
+  'privacy.mailTitle': 'E-Mail-Versand',
+  'privacy.mailText':
+    'Anmeldecodes verschickt der Server über einen E-Mail-Anbieter. Dabei werden deine E-Mail-Adresse und der Code übertragen. Welcher Anbieter das ist, steht im Impressum.',
+
+  'privacy.thirdTitle': 'Keine Drittdienste',
+  'privacy.thirdText':
+    'Es werden keine Schriften, Skripte oder Bilder von fremden Servern geladen. Die Bot-Prüfung beim Anmelden (ALTCHA) rechnet im Browser und wird vom eigenen Server geprüft – ohne Captcha-Anbieter.',
+
+  'privacy.rightsTitle': 'Deine Rechte',
+  'privacy.rightsText':
+    'Du kannst Auskunft, Berichtigung, Löschung, Einschränkung und Datenübertragbarkeit verlangen und der Verarbeitung widersprechen. Außerdem steht dir eine Beschwerde bei einer Datenschutz-Aufsichtsbehörde offen.',
+
+  'privacy.contactTitle': 'Kontakt',
+  'privacy.contactMissing': 'Die Kontaktadresse steht im Impressum.',
   'profile.luck': 'Glück {n}',
   'profile.strength': 'Stärke {n}',
   'profile.topSpecies': 'Stärkste Art',

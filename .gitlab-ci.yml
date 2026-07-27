@@ -30,7 +30,13 @@ build_web:
   before_script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
   script:
+    # The imprint and the contact address belong to whoever runs the site, so
+    # they come from CI/CD variables rather than from the sources. Unset means
+    # the pages leave those links out.
     - docker build --provenance=false --sbom=false -f Dockerfile.web
+      --build-arg VITE_IMPRINT_URL="$IMPRINT_URL"
+      --build-arg VITE_OPERATOR_MAIL="$OPERATOR_MAIL"
+      --build-arg VITE_SITE_URL="${SITE_URL:-https://ufs-atlas.de}"
       -t "$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA"
       -t "$CI_REGISTRY_IMAGE/web:latest" .
     - docker push "$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA"

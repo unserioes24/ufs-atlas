@@ -8,7 +8,7 @@
  * with a badge.
  */
 import { useMemo, useState } from 'react'
-import { FISHERIES, GAME, GUIDE, SPECIES, speciesKey, speciesName } from '../../data'
+import { FISHERIES, GUIDE, SPECIES, speciesKey, speciesName } from '../../data'
 import { useI18n } from '../../i18n'
 import { DASH, cn } from '../../lib/format'
 import type { BestCatch, FisherySpecies, GuideFish, GuideMap } from '../../types'
@@ -459,10 +459,6 @@ export function FisheryView({
         <h2 className="text-lg font-bold text-white">{t('map.hookAdviceTitle')}</h2>
         <p className="mt-2">{t('map.hookAdvice')}</p>
       </section>
-
-      <footer className="py-10 text-center text-xs text-slate-600">
-        {t('map.footer', { guide: GUIDE.generated, game: GAME.generated || DASH })}
-      </footer>
     </>
   )
 }

@@ -33,6 +33,7 @@ export type View =
   | 'angler'
   | 'gruppen'
   | 'anmelden'
+  | 'privacy'
 
 export interface Route {
   view: View
@@ -67,6 +68,8 @@ const HEADS: Record<string, View> = {
   gruppen: 'gruppen',
   'sign-in': 'anmelden',
   anmelden: 'anmelden',
+  privacy: 'privacy',
+  datenschutz: 'privacy',
 }
 
 /** The tabs of a profile, in the address and in the state. */
@@ -107,6 +110,7 @@ export function parseSegments(parts: string[], apiAvailable: boolean): Route {
   if (view === 'start') return apiAvailable ? { view: 'start' } : { view: 'map' }
   if (view === 'bait') return { view: 'bait' }
   if (view === 'anmelden') return { view: 'anmelden' }
+  if (view === 'privacy') return { view: 'privacy' }
   if (view === 'stats') return { view: 'stats', statsTab: parts[1] || 'reviere' }
 
   if (view === 'angler' && parts[1]) {
@@ -167,6 +171,8 @@ export function routeSegments(r: Route): string[] {
       return ['groups'].concat(r.groupId ? [String(r.groupId)] : [])
     case 'anmelden':
       return ['sign-in']
+    case 'privacy':
+      return ['privacy']
     case 'stats':
       return ['stats']
     case 'arten':
