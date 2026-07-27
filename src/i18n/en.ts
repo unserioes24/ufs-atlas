@@ -31,6 +31,7 @@ export const en: Partial<Dict> = {
   'nav.login': 'Sign in',
   'nav.sources': 'Sources',
   'nav.caughtTotal': 'Species caught in total',
+  'nav.toStart': 'To the start page',
 
   // ----------------------------------------------------------- Fisheries
   'map.overview': 'All fisheries',

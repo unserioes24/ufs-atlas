@@ -41,6 +41,7 @@ import LoginPanel from '../components/auth/LoginPanel'
 import ProfilePage from '../components/profile/ProfilePage'
 import { storedStamp, useLocalState } from '../lib/localState'
 import { buildHash, parseHash } from '../lib/route'
+import Header from '../components/Header'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
@@ -319,58 +320,19 @@ function App() {
             h('div', { className: 'absolute -top-32 left-[15%] h-96 w-96 rounded-full bg-cyan-500/10 blur-3xl animate-floaty' }),
             h('div', { className: 'absolute top-[35%] right-[-8rem] h-[28rem] w-[28rem] rounded-full bg-blue-600/10 blur-3xl' })),
 
-        h('header', { className: 'no-print sticky top-0 z-40 border-b border-white/10 bg-[#061017]/80 backdrop-blur-xl' },
-            h('div', { className: 'ufs-headrow mx-auto max-w-[1700px] px-4 py-3 lg:px-7' },
-                h('button', {
-                    onClick: function () {
-                        if (API_AVAILABLE) { setView('start'); return; }
-                        setView('map'); setSelectedMap(playable[0].id);
-                    },
-                    className: 'flex shrink-0 items-center gap-3 text-left',
-                    style: { cursor: 'pointer' },
-                    title: 'Zur Startseite'
-                },
-                    h('span', { className: 'grid h-10 w-10 place-items-center rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-cyan-400/20 to-blue-500/10 shadow-glow' },
-                        h(Icon, { name: 'fish', className: 'text-cyan-200' })),
-                    h('span', null,
-                        h('span', { className: 'block text-sm font-black tracking-[.22em] text-cyan-200' }, 'UFS ATLAS'),
-                        h('span', { className: 'block text-[10px] text-slate-500' }, 'Ultimate Fishing Simulator 1'))),
-                h('div', { className: 'ufs-search relative ml-auto w-full max-w-xl' },
-                    h(Icon, { name: 'search', className: 'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500' }),
-                    h('input', {
-                        ref: searchRef, value: query, onChange: function (e) { setQuery(e.target.value); },
-                        placeholder: t('app.searchPlaceholder') + '  /',
-                        className: 'w-full rounded-2xl border border-white/10 bg-white/[.045] py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-cyan-400/50 focus:bg-white/[.07]'
-                    })),
-                h('div', { className: 'ufs-headnav' },
-                    h('button', {
-                        className: cn('ufs-btn', view === 'map' && 'primary'),
-                        onClick: function () { setView('map'); }
-                    }, h(Icon, { name: 'map' }), h('span', { className: 'lbl' }, t('nav.fisheries'))),
-                    h('button', {
-                        className: cn('ufs-btn', view === 'arten' && 'primary'),
-                        onClick: function () { setView('arten'); }
-                    }, h(Icon, { name: 'fish' }), h('span', { className: 'lbl' }, t('nav.species'))),
-                    h('button', {
-                        className: cn('ufs-btn', view === 'bait' && 'primary'),
-                        onClick: function () { setView('bait'); }
-                    }, h(Icon, { name: 'bait' }), h('span', { className: 'lbl' }, t('nav.baits'))),
-                    h('button', {
-                        className: cn('ufs-btn', view === 'stats' && 'primary'),
-                        onClick: function () { setView('stats'); }
-                    }, h(Icon, { name: 'scale' }), h('span', { className: 'lbl' }, t('nav.stats'))),
-                    API_AVAILABLE ? h('button', {
-                        className: cn('ufs-btn', (view === 'angler' || view === 'anmelden') && 'primary'),
-                        title: me ? t('map.profileTitle') : t('nav.login'),
-                        onClick: function () {
-                            if (me) { setAngler(me.name); setAnglerTab('uebersicht'); setView('angler'); }
-                            else setView('anmelden');
-                        }
-                    }, h(Icon, { name: 'user' }), h('span', { className: 'lbl' }, me ? t('nav.profile') : t('nav.login'))) : null,
-                    h(LangSwitch, null),
-                    h('span', { className: 'ufs-chip ufs-mono', title: t('nav.caughtTotal') }, '✓ ' + allDone + ' / ' + allKeys.length),
-                    h('button', { className: 'ufs-btn', onClick: function () { setSourceOpen(true); } },
-                        h(Icon, { name: 'source' }), h('span', { className: 'lbl' }, t('nav.sources')))))),
+        h(Header, {
+            view: view, onView: setView, query: query, onQuery: setQuery, searchRef: searchRef,
+            me: me, caught: allDone, total: allKeys.length,
+            onBrand: function () {
+                if (API_AVAILABLE) { setView('start'); return; }
+                setView('map'); setSelectedMap(playable[0].id);
+            },
+            onOpenSelf: function () {
+                if (me) { setAngler(me.name); setAnglerTab('uebersicht'); setView('angler'); }
+                else setView('anmelden');
+            },
+            onSources: function () { setSourceOpen(true); }
+        }),
 
         h('div', {
             className: cn('relative mx-auto grid max-w-[1700px] grid-cols-1 gap-6 px-4 py-6 lg:px-7',

@@ -32,6 +32,7 @@ export const de = {
   'nav.login': 'Anmelden',
   'nav.sources': 'Quellen',
   'nav.caughtTotal': 'Gefangene Arten insgesamt',
+  'nav.toStart': 'Zur Startseite',
 
   // --------------------------------------------------------------- Reviere
   'map.overview': 'Gesamtübersicht',
