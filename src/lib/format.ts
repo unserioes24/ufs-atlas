@@ -1,26 +1,48 @@
-/** Numbers, durations and timestamps, formatted the same way everywhere. */
+/**
+ * Numbers, durations and timestamps.
+ *
+ * No wording lives here: the locale decides how a number is grouped and how
+ * "3 days ago" reads. The active locale is set once by the i18n provider, so
+ * these stay plain functions that can be called from anywhere.
+ */
+
+let locale = 'de-DE'
+
+const LOCALES: Record<string, string> = {
+  de: 'de-DE',
+  en: 'en-GB',
+}
+
+export function setFormatLocale(lang: string): void {
+  locale = LOCALES[lang] ?? lang
+}
+
+/** Placeholder for "no value" — a dash reads the same in every language. */
+export const DASH = '–'
 
 export function fmtNum(n: number | null | undefined, digits = 0): string {
-  if (n === null || n === undefined || Number.isNaN(n)) return '–'
-  return n.toLocaleString('de-DE', {
+  if (n === null || n === undefined || Number.isNaN(n)) return DASH
+  return n.toLocaleString(locale, {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   })
 }
 
-/** Seconds as time spent fishing: "12 h 30 min". */
+/** Seconds as time spent fishing, e.g. "12 h 30 min". */
 export function fmtTime(sec: number | null | undefined): string {
-  if (!sec) return '–'
+  if (!sec) return DASH
   const hours = Math.floor(sec / 3600)
   const min = Math.round((sec % 3600) / 60)
-  return hours ? `${hours} h ${min} min` : `${min} min`
+  const parts: string[] = []
+  if (hours) parts.push(`${fmtNum(hours)} h`)
+  parts.push(`${min} min`)
+  return parts.join(' ')
 }
 
-/** A point in time, short and readable: "27.07.2026, 14:05". */
 export function fmtWhen(iso: string | null | undefined): string {
   const t = Date.parse(iso ?? '')
-  if (Number.isNaN(t)) return 'unbekannt'
-  return new Date(t).toLocaleString('de-DE', {
+  if (Number.isNaN(t)) return DASH
+  return new Date(t).toLocaleString(locale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -29,17 +51,22 @@ export function fmtWhen(iso: string | null | undefined): string {
   })
 }
 
-/** Distance from now in words: "vor 3 Tagen". */
+/**
+ * Distance from now in words. Intl does the wording, so this needs no
+ * translation of its own.
+ */
 export function fmtAgo(iso: string | null | undefined): string {
   const t = Date.parse(iso ?? '')
-  if (Number.isNaN(t)) return 'unbekannt'
-  const s = Math.max(0, (Date.now() - t) / 1000)
-  if (s < 90) return 'gerade eben'
-  if (s < 5400) return `vor ${Math.round(s / 60)} Min.`
-  if (s < 172800) return `vor ${Math.round(s / 3600)} Std.`
-  if (s < 2592000) return `vor ${Math.round(s / 86400)} Tagen`
-  if (s < 31536000) return `vor ${Math.round(s / 2592000)} Monaten`
-  return 'vor über einem Jahr'
+  if (Number.isNaN(t)) return DASH
+  const rel = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+  const sec = Math.round((t - Date.now()) / 1000)
+  const abs = Math.abs(sec)
+  if (abs < 90) return rel.format(Math.round(sec), 'second')
+  if (abs < 5400) return rel.format(Math.round(sec / 60), 'minute')
+  if (abs < 172800) return rel.format(Math.round(sec / 3600), 'hour')
+  if (abs < 2592000) return rel.format(Math.round(sec / 86400), 'day')
+  if (abs < 31536000) return rel.format(Math.round(sec / 2592000), 'month')
+  return rel.format(Math.round(sec / 31536000), 'year')
 }
 
 /** Is a later than b? A missing timestamp counts as ancient. */

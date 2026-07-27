@@ -1,22 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useI18n } from '../../i18n'
 import { api, API_AVAILABLE } from '../../lib/api'
 import { fmtNum } from '../../lib/format'
 import { Card, Note, SideMenu, Toggle, WithSideMenu } from '../ui'
 import type { MenuItem } from '../ui'
+import { Select } from '../primitives'
 import { GroupView } from './GroupView'
 import type { Group, Visibility } from './types'
+import { VISIBILITIES, VIS_HINT, VIS_TITLE } from './visibility'
 
 /**
  * Groups, with the same side menu as the fishery list: your groups on the
  * left, everything about the selected one on the right. Below the list sit
  * the two ways in — the public directory and a join code.
  */
-
-export const VISIBILITY: Record<Visibility, { title: string; hint: string }> = {
-  public: { title: 'Öffentlich', hint: 'steht im Verzeichnis, jeder darf beitreten' },
-  unlisted: { title: 'Nicht gelistet', hint: 'nur über Link oder Code zu finden, Beitritt frei' },
-  private: { title: 'Privat', hint: 'nur Mitglieder sehen sie, Beitritt nur mit Code' },
-}
 
 interface Props {
   me: { id: number; name: string } | null
@@ -28,6 +25,7 @@ interface Props {
 }
 
 export function GroupsPage({ me, openId, onOpen, onOpenUser, onLogin }: Props) {
+  const { t } = useI18n()
   const [groups, setGroups] = useState<Group[] | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
@@ -41,31 +39,29 @@ export function GroupsPage({ me, openId, onOpen, onOpenUser, onLogin }: Props) {
   useEffect(load, [load])
 
   if (!API_AVAILABLE) {
-    return (
-      <Note>
-        Gruppen brauchen den Server. Öffne den Guide über <code>https://ufs-atlas.de</code>.
-      </Note>
-    )
+    return <Note>{t('group.needsServer', { url: 'https://ufs-atlas.de' })}</Note>
   }
   if (!me) {
     return (
       <Note>
-        Gruppen gibt es mit einem Konto.{' '}
+        {t('group.needsAccount')}{' '}
         <button type="button" className="ufs-btn" onClick={onLogin}>
-          Anmelden
+          {t('auth.title')}
         </button>
       </Note>
     )
   }
 
   const items: MenuItem[] = [
-    { key: 'uebersicht', title: 'Deine Gruppen', sub: `${groups?.length ?? 0} Stück` },
+    { key: 'uebersicht', title: t('group.yours'), sub: t('group.count', { n: groups?.length ?? 0 }) },
     ...(groups ?? []).map((g) => ({
       key: String(g.id),
       title: g.name,
-      sub: `${g.members} Mitglieder${g.owner ? ' · du bist Admin' : ''}`,
+      sub:
+        t('group.memberCount', { n: g.members }) +
+        (g.owner ? ` · ${t('group.youAreAdmin')}` : ''),
     })),
-    { key: 'suchen', title: 'Beitreten', sub: 'Verzeichnis oder Code' },
+    { key: 'suchen', title: t('group.join'), sub: t('group.directory') },
   ]
   const active = openId ? String(openId) : 'uebersicht'
 
@@ -73,7 +69,7 @@ export function GroupsPage({ me, openId, onOpen, onOpenUser, onLogin }: Props) {
     <WithSideMenu
       menu={
         <SideMenu
-          heading="Gruppen"
+          heading={t('group.title')}
           items={items}
           active={active}
           onSelect={(key) => onOpen(key === 'uebersicht' || key === 'suchen' ? null : Number(key))}
@@ -107,6 +103,7 @@ function GroupList({
   onOpen: (id: number) => void
   onChanged: () => void
 }) {
+  const { t } = useI18n()
   const [name, setName] = useState('')
   const [vis, setVis] = useState<Visibility>('private')
   const [code, setCode] = useState('')
@@ -138,18 +135,23 @@ function GroupList({
       .finally(() => setBusy(false))
   }
 
+  const visLabels = Object.fromEntries(VISIBILITIES.map((v) => [v, t(VIS_TITLE[v])])) as Record<
+    Visibility,
+    string
+  >
+
   return (
     <div className="space-y-4">
       {err ? <Note>{err}</Note> : null}
 
-      <Card title="Deine Gruppen">
+      <Card title={t('group.yours')}>
         {!groups ? (
           <p className="ufs-muted" style={{ fontSize: '12.5px', margin: 0 }}>
-            Wird geladen …
+            {t('app.loading')}
           </p>
         ) : !groups.length ? (
           <p className="ufs-muted" style={{ fontSize: '12.5px', margin: 0 }}>
-            Du bist noch in keiner Gruppe. Leg eine an oder tritt einer öffentlichen bei.
+            {t('group.noneYet')}
           </p>
         ) : (
           <div className="ufs-splist">
@@ -163,12 +165,12 @@ function GroupList({
                 >
                   <span className="nm">{g.name}</span>
                   <span className="sub">
-                    {VISIBILITY[g.visibility].title} · {g.members} Mitglieder
-                    {g.owner ? ' · du bist Admin' : ` · von ${g.ownerName}`}
+                    {t(VIS_TITLE[g.visibility])} · {t('group.memberCount', { n: g.members })} ·{' '}
+                    {g.owner ? t('group.youAreAdmin') : t('group.byOwner', { name: g.ownerName })}
                   </span>
                 </button>
                 <button type="button" className="ufs-btn" onClick={() => onOpen(g.id)}>
-                  Öffnen
+                  {t('group.open')}
                 </button>
               </div>
             ))}
@@ -176,27 +178,17 @@ function GroupList({
         )}
       </Card>
 
-      <Card title="Neue Gruppe">
+      <Card title={t('group.create')}>
         <div className="ufs-row">
           <input
             value={name}
             maxLength={60}
-            placeholder="Name der Gruppe"
+            placeholder={t('group.namePlaceholder')}
             onChange={(e) => setName(e.target.value)}
             className="rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50"
             style={{ minWidth: '220px' }}
           />
-          <select
-            value={vis}
-            onChange={(e) => setVis(e.target.value as Visibility)}
-            className="rounded-xl border border-white/10 bg-[#0b1821] px-3 py-2 text-xs text-slate-300 outline-none focus:border-cyan-400/40"
-          >
-            {(Object.keys(VISIBILITY) as Visibility[]).map((v) => (
-              <option key={v} value={v}>
-                {VISIBILITY[v].title}
-              </option>
-            ))}
-          </select>
+          <Select value={vis} onChange={setVis} options={VISIBILITIES} labels={visLabels} />
           <button
             type="button"
             className="ufs-btn primary"
@@ -206,21 +198,20 @@ function GroupList({
               setName('')
             }}
           >
-            Anlegen
+            {t('group.create')}
           </button>
         </div>
         <p className="ufs-muted" style={{ fontSize: '11.5px', lineHeight: 1.6, marginTop: '.5rem' }}>
-          {VISIBILITY[vis].title}: {VISIBILITY[vis].hint}. Wer eine Gruppe anlegt, ist ihr Admin –
-          verlässt er sie, wird sie aufgelöst.
+          {t(VIS_TITLE[vis])}: {t(VIS_HINT[vis])}. {t('group.createHint')}
         </p>
       </Card>
 
-      <Card title="Mit Code beitreten">
+      <Card title={t('group.joinWithCode')}>
         <div className="ufs-row">
           <input
             value={code}
             maxLength={6}
-            placeholder="ABC123"
+            placeholder={t('group.codePlaceholder')}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             className="rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50"
             style={{ width: '150px', letterSpacing: '.2em' }}
@@ -234,36 +225,36 @@ function GroupList({
               setCode('')
             }}
           >
-            Beitreten
+            {t('group.join')}
           </button>
         </div>
       </Card>
 
       <Card
-        title="Öffentliche Gruppen"
+        title={t('group.directory')}
         extra={
           <div className="ufs-row">
             <input
               value={q}
-              placeholder="suchen …"
+              placeholder={t('group.search')}
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && loadDir()}
               className="rounded-2xl border border-white/10 bg-white/[.045] py-1.5 px-3 text-sm outline-none focus:border-cyan-400/50"
               style={{ width: '170px' }}
             />
             <Toggle active={false} onClick={loadDir}>
-              Suchen
+              {t('group.searchGo')}
             </Toggle>
           </div>
         }
       >
         {!dir ? (
           <p className="ufs-muted" style={{ fontSize: '12px' }}>
-            Wird geladen …
+            {t('app.loading')}
           </p>
         ) : !dir.length ? (
           <p className="ufs-muted" style={{ fontSize: '12px' }}>
-            Keine öffentliche Gruppe gefunden.
+            {t('group.noneFound')}
           </p>
         ) : (
           <div className="ufs-splist">
@@ -272,11 +263,12 @@ function GroupList({
                 <div className="main">
                   <span className="nm">{g.name}</span>
                   <span className="sub">
-                    {fmtNum(g.members)} Mitglieder · von {g.ownerName}
+                    {t('group.memberCount', { n: fmtNum(g.members) })} ·{' '}
+                    {t('group.byOwner', { name: g.ownerName })}
                   </span>
                 </div>
                 {g.member ? (
-                  <span className="ufs-chip">✓ dabei</span>
+                  <span className="ufs-chip">{t('group.alreadyIn')}</span>
                 ) : (
                   <button
                     type="button"
@@ -284,7 +276,7 @@ function GroupList({
                     disabled={busy}
                     onClick={() => run(api('/groups/join', { method: 'POST', json: { id: g.id } }))}
                   >
-                    Beitreten
+                    {t('group.join')}
                   </button>
                 )}
               </div>

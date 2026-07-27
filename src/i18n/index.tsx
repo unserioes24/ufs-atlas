@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+import { setFormatLocale } from '../lib/format'
 import { de } from './de'
 import { en } from './en'
 
@@ -55,12 +56,16 @@ function initial(): Lang {
   return navigator.language.toLowerCase().startsWith('de') ? 'de' : 'en'
 }
 
+// The very first render must already format in the right locale.
+setFormatLocale(initial())
+
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(initial)
 
   useEffect(() => {
     localStorage.setItem(STORE_KEY, lang)
     document.documentElement.lang = lang
+    setFormatLocale(lang)
   }, [lang])
 
   const t = useCallback(

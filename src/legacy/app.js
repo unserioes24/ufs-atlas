@@ -3028,12 +3028,12 @@ function App() {
                         onClick: function () { setSyncNote(null); }
                     }, 'Ok')) : null,
                 view === 'map' && !isGlobal || view === 'angler' || view === 'start' ? null : h('h1', { className: 'mb-4 text-2xl font-black tracking-tight text-white' },
-                    view === 'bait' ? 'Köder & Methoden'
-                        : view === 'arten' ? 'Fischarten'
-                        : view === 'gruppen' ? 'Gruppen'
-                        : view === 'anmelden' ? 'Anmelden'
-                        : view === 'stats' ? 'Statistik'
-                        : 'Gesamtübersicht'),
+                    view === 'bait' ? t('nav.baits')
+                        : view === 'arten' ? t('nav.species')
+                        : view === 'gruppen' ? t('group.title')
+                        : view === 'anmelden' ? t('auth.title')
+                        : view === 'stats' ? t('stats.title')
+                        : t('map.overview')),
                 view === 'start' ? h(StartPage, { onOpenSpecies: function (k) { setOpenSpecies(k); setView('arten'); } })
                 : view === 'angler' ? h(ProfilePage, {
                     name: angler, me: me, lang: lang, local: local,
