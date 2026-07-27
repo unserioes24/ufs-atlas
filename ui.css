@@ -390,6 +390,48 @@
   border-color: rgba(52, 211, 153, .3); background: rgba(52, 211, 153, .08); color: #a7f3d0;
 }
 
+/* --------------------------------------------------------------- Kopfzeile
+
+   Auf dem Handy passen Suche und Menü nicht in eine Zeile. Die Suche nimmt
+   dann die volle Breite, das Menü wandert darunter und lässt sich seitlich
+   schieben – sichtbar bleibt es dadurch immer. */
+.ufs-headrow { display: flex; align-items: center; gap: 1rem; }
+.ufs-headnav { display: flex; align-items: center; gap: .5rem; flex-wrap: nowrap; }
+
+@media (max-width: 900px) {
+  .ufs-headrow { flex-wrap: wrap; gap: .6rem; }
+  .ufs-headrow .ufs-search { order: 3; width: 100%; max-width: none; margin-left: 0; }
+  .ufs-headnav {
+    order: 2; margin-left: auto; overflow-x: auto; scrollbar-width: none;
+    -webkit-overflow-scrolling: touch; max-width: 100%; padding-bottom: 2px;
+  }
+  .ufs-headnav::-webkit-scrollbar { display: none; }
+  .ufs-headnav .ufs-btn { flex: none; }
+}
+@media (max-width: 560px) {
+  /* Beschriftungen weglassen, die Zeichen tragen die Bedeutung schon */
+  .ufs-headnav .ufs-btn .lbl { display: none; }
+  .ufs-headnav .ufs-btn { padding-left: .6rem; padding-right: .6rem; }
+}
+
+/* Auf schmalen Geräten darf die Seite nicht seitlich wandern: breite
+   Tabellen scrollen in ihrer Karte, die Kacheln rücken enger zusammen. */
+@media (max-width: 700px) {
+  .ufs-spotcard { overflow-x: auto; }
+  .ufs-statgrid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .5rem; }
+  .ufs-stat { padding: .6rem .7rem; }
+  .ufs-rec { font-size: 11.5px; }
+  .ufs-rec th, .ufs-rec td { padding: .35rem .35rem; }
+}
+
+/* Knöpfe unter einem Seitenmenü, mit Abstand und über die volle Breite */
+.ufs-menuactions {
+  display: flex; flex-direction: column; gap: .45rem;
+  margin-top: .75rem; padding: .75rem .25rem 0;
+  border-top: 1px solid rgba(255, 255, 255, .1);
+}
+.ufs-menuactions .ufs-btn { width: 100%; justify-content: center; }
+
 /* ------------------------------------------------------------- Startseite
 
    Der Aufmacher ist die Wand aus Beißzeitkurven: das ist die Kurve, die das

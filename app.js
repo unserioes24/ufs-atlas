@@ -2310,7 +2310,7 @@ function ProfilePage(props) {
                             h('span', { className: 'block truncate text-sm font-semibold text-slate-200' }, it.t),
                             h('span', { className: 'block truncate text-[10px] text-slate-500' }, it.s)));
                 })),
-                h('div', { className: 'mt-3 space-y-2 border-t border-white/10 px-1 pt-3' },
+                h('div', { className: 'ufs-menuactions' },
                     h('button', { className: 'ufs-btn', style: { width: '100%' }, onClick: copy },
                         copied ? '✓ Kopiert' : 'Link kopieren'),
                     props.me && !self
@@ -3301,6 +3301,7 @@ function App() {
 
     /* Adressleiste als Zustand: #koeder, #arten, #revier/<id>, #revier/<id>/spot3 */
     const routeReady = useRef(false);
+    const histReady = useRef(false);
     useEffect(function () {
         function apply() {
             const parts = decodeURIComponent((location.hash || '').replace(/^#/, '')).split('/');
@@ -3351,7 +3352,12 @@ function App() {
         else if (view === 'community') hash = '#gruppen';
         else if (view === 'stats') hash = '#statistik';
         else if (view === 'arten') hash = '#arten' + (openSpecies ? '/' + openSpecies : '');
-        if (location.hash !== hash) history.replaceState(null, '', hash);
+        // Jeder Wechsel ist ein eigener Schritt im Verlauf, damit „Zurück“ im
+        // Browser tut, was man erwartet. Der erste Aufruf ersetzt nur, sonst
+        // läge beim Öffnen sofort ein zusätzlicher Eintrag im Verlauf.
+        if (location.hash === hash) return;
+        if (histReady.current) history.pushState(null, '', hash);
+        else { history.replaceState(null, '', hash); histReady.current = true; }
     }, [view, selectedMap, selectedSpot, openSpecies, angler, anglerTab]);
 
     const isGlobal = selectedMap === '__all__';
@@ -3484,54 +3490,56 @@ function App() {
             h('div', { className: 'absolute top-[35%] right-[-8rem] h-[28rem] w-[28rem] rounded-full bg-blue-600/10 blur-3xl' })),
 
         h('header', { className: 'no-print sticky top-0 z-40 border-b border-white/10 bg-[#061017]/80 backdrop-blur-xl' },
-            h('div', { className: 'mx-auto flex max-w-[1700px] items-center gap-4 px-4 py-3 lg:px-7' },
+            h('div', { className: 'ufs-headrow mx-auto max-w-[1700px] px-4 py-3 lg:px-7' },
                 h('button', {
                     onClick: function () {
                         if (API_AVAILABLE) { setView('start'); return; }
                         setView('map'); setSelectedMap(playable[0].id);
                     },
-                    className: 'flex shrink-0 items-center gap-3 text-left'
+                    className: 'flex shrink-0 items-center gap-3 text-left',
+                    style: { cursor: 'pointer' },
+                    title: 'Zur Startseite'
                 },
                     h('span', { className: 'grid h-10 w-10 place-items-center rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-cyan-400/20 to-blue-500/10 shadow-glow' },
                         h(Icon, { name: 'fish', className: 'text-cyan-200' })),
                     h('span', null,
                         h('span', { className: 'block text-sm font-black tracking-[.22em] text-cyan-200' }, 'UFS ATLAS'),
                         h('span', { className: 'block text-[10px] text-slate-500' }, 'Ultimate Fishing Simulator 1'))),
-                h('div', { className: 'relative ml-auto w-full max-w-xl' },
+                h('div', { className: 'ufs-search relative ml-auto w-full max-w-xl' },
                     h(Icon, { name: 'search', className: 'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500' }),
                     h('input', {
                         ref: searchRef, value: query, onChange: function (e) { setQuery(e.target.value); },
                         placeholder: 'Fisch, Köder, Spot oder Methode suchen …  /',
                         className: 'w-full rounded-2xl border border-white/10 bg-white/[.045] py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-cyan-400/50 focus:bg-white/[.07]'
                     })),
-                h('div', { className: 'ufs-row', style: { flexWrap: 'nowrap' } },
+                h('div', { className: 'ufs-headnav' },
                     h('button', {
                         className: cn('ufs-btn', view === 'map' && 'primary'),
                         onClick: function () { setView('map'); }
-                    }, h(Icon, { name: 'map' }), 'Reviere'),
+                    }, h(Icon, { name: 'map' }), h('span', { className: 'lbl' }, 'Reviere')),
                     h('button', {
                         className: cn('ufs-btn', view === 'arten' && 'primary'),
                         onClick: function () { setView('arten'); }
-                    }, h(Icon, { name: 'fish' }), 'Arten'),
+                    }, h(Icon, { name: 'fish' }), h('span', { className: 'lbl' }, 'Arten')),
                     h('button', {
                         className: cn('ufs-btn', view === 'bait' && 'primary'),
                         onClick: function () { setView('bait'); }
-                    }, h(Icon, { name: 'bait' }), 'Köder'),
+                    }, h(Icon, { name: 'bait' }), h('span', { className: 'lbl' }, 'Köder')),
                     h('button', {
                         className: cn('ufs-btn', view === 'stats' && 'primary'),
                         onClick: function () { setView('stats'); }
-                    }, h(Icon, { name: 'scale' }), 'Statistik'),
+                    }, h(Icon, { name: 'scale' }), h('span', { className: 'lbl' }, 'Statistik')),
                     API_AVAILABLE ? h('button', {
-                        className: cn('ufs-btn', view === 'community' && 'primary'),
-                        onClick: function () { setView('community'); }
-                    }, h(Icon, { name: 'star' }), 'Gruppen') : null,
-                    API_AVAILABLE && me ? h('button', {
-                        className: cn('ufs-btn', view === 'angler' && 'primary'),
-                        title: 'Dein Profil – die Adresse lässt sich weitergeben',
-                        onClick: function () { setAngler(me.name); setView('angler'); }
-                    }, h(Icon, { name: 'user' }), 'Profil') : null,
+                        className: cn('ufs-btn', (view === 'angler' || view === 'community') && 'primary'),
+                        title: me ? 'Dein Profil – die Adresse lässt sich weitergeben' : 'Anmelden',
+                        onClick: function () {
+                            if (me) { setAngler(me.name); setAnglerTab('uebersicht'); setView('angler'); }
+                            else setView('community');
+                        }
+                    }, h(Icon, { name: 'user' }), h('span', { className: 'lbl' }, me ? 'Profil' : 'Anmelden')) : null,
                     h('span', { className: 'ufs-chip ufs-mono', title: 'Gefangene Arten insgesamt' }, '✓ ' + allDone + ' / ' + allKeys.length),
-                    h('button', { className: 'ufs-btn', onClick: function () { setSourceOpen(true); } }, h(Icon, { name: 'source' }), 'Quellen')))),
+                    h('button', { className: 'ufs-btn', onClick: function () { setSourceOpen(true); } },
+                        h(Icon, { name: 'source' }), h('span', { className: 'lbl' }, 'Quellen'))))),
 
         h('div', {
             className: cn('relative mx-auto grid max-w-[1700px] grid-cols-1 gap-6 px-4 py-6 lg:px-7',
@@ -3705,10 +3713,15 @@ function App() {
                                         'Das betrifft vor allem die Arten aus dem New-Fish-Species-DLC, die das Spiel erst zur Laufzeit ergänzt. ' +
                                         'Spotangabe stammt dann aus der Community-Recherche.')
                                     : null),
-                        !fishery.fitOk && fishery.spots.length
+                        !fishery.fitOk
                             ? h('div', { className: 'ufs-note', style: { fontSize: '11.5px' } },
-                                'Bei diesem Revier lassen sich die Weltkoordinaten der Schwärme nicht verlässlich auf das Kartenbild projizieren. ' +
-                                'Spotnummern und die Artenzuordnung je Spot stimmen trotzdem – nur die zusätzlichen Schwarm-Punkte bleiben ausgeblendet.')
+                                // Offshore-Reviere führen zu ihren Spots keine Weltkoordinaten:
+                                // dort gibt es keine Reisepunkte, man fährt selbst hinaus.
+                                fishery.spots.some(function (s) { return s.wx !== undefined && s.wx !== null; })
+                                    ? 'Bei diesem Revier lassen sich die Weltkoordinaten der Schwärme nicht verlässlich auf das Kartenbild '
+                                        + 'projizieren. Spotnummern und die Artenzuordnung je Spot stimmen trotzdem – nur die zusätzlichen '
+                                        + 'Schwarm-Punkte bleiben ausgeblendet.'
+                                    : 'Für dieses Revier enthalten die Spieldateien keine Kartenpunkte – hier wird ausschließlich vom Boot aus gefischt.')
                             : null)) : null,
 
                 h('section', { className: 'no-print mt-5 rounded-3xl border border-white/10 bg-white/[.025] p-4' },
