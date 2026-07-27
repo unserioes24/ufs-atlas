@@ -1,179 +1,171 @@
-# Extraktion aus den Spieldateien
+# Reading the game files
 
-Diese Skripte erzeugen `gamedata.js`, `maps/*.jpg` und `fish/*.jpg` direkt aus einer
-lokalen Installation von *Ultimate Fishing Simulator* (Unity 2017.4.29f1). Sie lesen
-ausschließlich und verändern nichts am Spiel.
+These scripts produce `src/data/gamedata.json` and `public/maps/*.jpg` straight from a
+local installation of *Ultimate Fishing Simulator* (Unity 2017.4.29f1). They only read;
+nothing about the game is changed.
 
 ```powershell
-# Windows PowerShell 5.1, im Projektordner:
+# Windows PowerShell 5.1, from the project folder:
 .\tools\extract.ps1
 .\tools\extract.ps1 -Game "D:\Steam\steamapps\common\Ultimate Fishing\UltimateFishing_Data"
-.\tools\extract.ps1 -SkipImages          # ohne Fischtexturen (spart ~3 Minuten)
 ```
 
-Zwischenergebnisse landen in `tools/_work/` und können gelöscht werden.
+Intermediate results land in `tools/_work/` and can be deleted. Afterwards run
+`npm run build` so the site picks up the new numbers.
 
-## Woher welche Angabe stammt
+No game assets are redistributed with this repository beyond the map images the guide
+needs to place its spots.
 
-| Angabe | Quelle im Spiel |
+## Where each value comes from
+
+| Value | Source in the game |
 | --- | --- |
-| Spotnummern und ihre Position auf der Karte | `MapButton`-Objekte im UI der jeweiligen Szene, Position relativ zu `MapImage` |
-| Sommer- und Eis-Spots getrennt | jede Szene hat zwei Kartentafeln, `MapParentNormal` und `MapParentIce`, mit eigenen Buttons |
-| Zusatzarten des New-Fish-Species-DLC | `GameController.fishFromDLC`, Anteil aus `fishSpawnersDLCAmount` |
-| Weltkoordinaten eines Spots | Reiseziel (`QuickJump…`), auf das der Kartenbutton verweist |
-| Arten je Revier, Schwarmpunkte, Fischzahl | `FishSpawner_*`-Objekte: `fishPrefab` und die Liste `fishPrefabs` |
-| Gewicht, Länge, Beißzeitkurve | Fisch-Prefab in `sharedassets2.assets` (Feldversatz 592 ff., AnimationCurve über 0–24 h) |
-| Deutsche Namen, Beschreibungen, Ködernamen | I2-Localization-Tabelle in `resources.assets` (12 Sprachen) |
-| Kartenbilder | `Map*`-Texturen in den `sharedassets*.resS` (RGB24 bzw. DXT1) |
-| Fischbilder | Albedo-/Diffuse-Texturen der Fischmodelle, automatisch auf den sichtbaren Bereich zugeschnitten |
+| Spot numbers and their place on the map | `MapButton` objects in the UI of each scene, positioned relative to `MapImage` |
+| Summer and ice spots kept apart | every scene has two map boards, `MapParentNormal` and `MapParentIce`, with their own buttons |
+| Extra species of the New Fish Species DLC | `GameController.fishFromDLC`, share from `fishSpawnersDLCAmount` |
+| World coordinates of a spot | the travel target (`QuickJump…`) the map button points at |
+| Species per fishery, shoal points, fish counts | `FishSpawner_*` objects: `fishPrefab` and the list `fishPrefabs` |
+| Weight, length, bite curve | fish prefab in `sharedassets2.assets` (field offset 592 ff., AnimationCurve over 0–24 h) |
+| Names, descriptions, bait names | I2 localisation table in `resources.assets` (12 languages) |
+| Map images | `Map*` textures in the `sharedassets*.resS` (RGB24 or DXT1) |
 
-## Dateien
+## Files
 
-- `UfsAssets.cs` – Parser für Unity-`SerializedFile` (Header, Typen, Objekttabelle, externe Referenzen).
-  Die Builds enthalten keine Type-Trees, deshalb werden nur Klassen mit bekanntem Layout gelesen:
-  GameObject (1), Transform (4), RectTransform (224), Texture2D (28) sowie MonoBehaviour-Rohdaten (114).
-- `UfsFishery.cs` – zieht pro Szene Spots, Reiseziele und Spawner heraus.
-- `UfsTex.cs` – Texturdecoder (RGB24, RGBA32, ARGB32, BC1/DXT1, BC3/DXT5) und JPEG-Export.
-- `terms.ps1` – liest die I2-Termtabelle aus einem Speicherauszug von `resources.assets`.
-- `build.ps1` – rechnet Spots auf Kartenkoordinaten um, schätzt die Welt→Karte-Abbildung und
-  ordnet jeden Schwarm dem nächstgelegenen Spot zu.
-- `build2.ps1` – führt alles zu `gamedata.json` zusammen, inklusive Namensauflösung auf
-  Lokalisierungsschlüssel (dieselben Schlüssel nutzt auch der Spielstand).
-- `fishimg.ps1` – ordnet Fischtexturen den Arten zu und schneidet sie zu.
+- `UfsAssets.cs` – parser for Unity `SerializedFile` (header, types, object table, external
+  references). The builds carry no type trees, so only classes with a known layout are read:
+  GameObject (1), Transform (4), RectTransform (224), Texture2D (28) and raw MonoBehaviour
+  data (114).
+- `UfsFishery.cs` – pulls spots, travel targets and spawners out of a scene.
+- `UfsTex.cs` – texture decoder (RGB24, RGBA32, ARGB32, BC1/DXT1, BC3/DXT5) and JPEG export.
+- `terms.ps1` – reads the I2 term table from a memory dump of `resources.assets`.
+- `build.ps1` – turns spots into map coordinates, estimates the world→map projection and
+  assigns every shoal to its nearest spot.
+- `build2.ps1` – merges everything into `src/data/gamedata.json`, including the resolution of
+  names onto localisation keys (the save file uses the same keys).
+- `baits.ps1`, `baittypes.ps1`, `bitecurves.ps1`, `hooks.ps1` – bait tables, bait types, the
+  bite model and the size steps.
 
-## Spawner und DLC-Arten
+## Spawners and DLC species
 
-`FishSpawner` trägt drei Fischfelder, die Reihenfolge stammt aus `Assembly-CSharp.dll`:
-`fishPrefab` (ein Fisch), `fishPrefabs` (Liste, aus der gewürfelt wird) und `fishPrefabsDLC`.
-An Kariba, Grönland, Grönland-See und Thailand ist `fishPrefab` oft leer und nur die Liste
-gefüllt – wer sie überliest, verliert dort mehr als ein Dutzend Arten.
+`FishSpawner` carries three fish fields; the order comes from `Assembly-CSharp.dll`:
+`fishPrefab` (a single fish), `fishPrefabs` (a list to draw from) and `fishPrefabsDLC`.
+At Kariba, Greenland, Greenland Sea and Thailand `fishPrefab` is often empty and only the
+list is filled — miss it and more than a dozen species disappear there.
 
-`fishPrefabsDLC` ist in allen 17 Szenen leer, ebenso `GameController.fishSpawnersDLC`.
-Die Arten des New-Fish-Species-DLC haben also keine festen Plätze: `GameController.fishFromDLC`
-nennt nur, welche Arten ein Revier bekommt, und `fishSpawnersDLCAmount` (0,25 bis 0,40),
-welchen Anteil der gewöhnlichen Spawner das Spiel zur Laufzeit an sie abgibt. Betroffen sind
-allein die acht Basisreviere; die DLC-Karten führen keine Zusatzarten.
+`fishPrefabsDLC` is empty in all 17 scenes, and so is `GameController.fishSpawnersDLC`. The
+species of the New Fish Species DLC therefore have no fixed places: `GameController.fishFromDLC`
+only names which species a fishery gets, and `fishSpawnersDLCAmount` (0.25 to 0.40) says what
+share of the ordinary spawners the game hands to them at runtime. This affects the eight base
+fisheries only; the DLC maps carry no extra species.
 
-`tools/dlcfish.ps1` und `tools/dlccheck.ps1` prüfen beides nach, `tools/guidecheck.ps1`
-vergleicht `data.json` gegen die Spieldateien.
+`tools/dlcfish.ps1` and `tools/dlccheck.ps1` verify both; `tools/guidecheck.ps1` compares the
+guide data against the game files.
 
-## Köder und Bissmodell
+## Baits and the bite model
 
-Welcher Fisch auf welchen Köder anspricht, steht doch in den Spieldateien: jedes
-Köder-Prefab in `sharedassets2.assets` trägt ein `FishLikesParams` mit einer Liste
-`fishInterests`, je Eintrag eine Artennummer und ein Interesse zwischen 0 und 1.
-`tools/baits.ps1` liest das aus (161 Köder, `_work/baits.json`). Erkannt wird der
-Block über sein Ende – hinter der Liste steht `paramsParseText`, danach hört der
-Baustein auf; die Artennummern selbst sind stellenweise unsortiert.
+Which fish wants which bait is in the game files after all: every bait prefab in
+`sharedassets2.assets` carries a `FishLikesParams` with a list `fishInterests`, one entry per
+species number and an interest between 0 and 1. `tools/baits.ps1` reads it (161 baits,
+`_work/baits.json`). The block is recognised by its end — behind the list sits
+`paramsParseText`, and that is where the component stops; the species numbers themselves are
+partly unsorted.
 
-Ob ein Fisch beißt, gewichtet `Fish` über neun Regler mit je einer Kurve:
-Uhrzeit, Hunger, Köderhöhe, Temperatur, Wind, Luftdruck, Bewölkung, Regen und
-Ködergeschwindigkeit. `tools/bitecurves.ps1` liest sie (`_work/bitecurves.json`).
+Whether a fish bites is weighted by `Fish` across nine dials, each with its own curve: time of
+day, hunger, bait depth, temperature, wind, pressure, cloudiness, rain and bait speed.
+`tools/bitecurves.ps1` reads them (`_work/bitecurves.json`).
 
-Bespielt sind davon nur vier: Uhrzeit, Wind, Bewölkung und Regen. Hunger,
-**Köderhöhe**, Temperatur, Luftdruck und Ködergeschwindigkeit stehen bei allen
-134 Arten auf der Konstanten 1, alle neun Gewichte ebenfalls. Die Ködertiefe
-entscheidet also nicht über die Bissbereitschaft – sie entscheidet nur darüber,
-ob der Köder überhaupt dort ankommt, wo der Schwarm steht.
+Only four of them are filled in: time, wind, cloudiness and rain. Hunger, **bait depth**,
+temperature, pressure and bait speed sit at a constant 1 for all 134 species, and so do all
+nine weights. Bait depth therefore does not decide whether a fish is willing to bite — it only
+decides whether the bait reaches where the shoal stands.
 
-## Angelart: Fliege, Kunstköder, Pose, Grund
+## Method: fly, lure, float, ground
 
-Welche Angelart bei einer Art etwas bringt, entscheidet sich in `Fish.LikesBait`:
+Which method works for a species is decided in `Fish.LikesBait`:
 
 ```
-eval  = Mittelwert(Zeit, Wind, Bewölkung, Regen)     FishBaitEvaluator.Evaluate
-eval *= Bait.CheckTaste(fish)                        Ködervorliebe 0…1
-   mit Schwimmer (Pose/Grund):
-        + Boilie.GetFishInterest(art) × 0,2          nur Grundmontage mit Feeder
-   ohne Schwimmer (Spinnfischen, Fliege):
-        × spinningMethodFactor[Führung]              0 bei „keine Führung"
-        × 0,8 zusätzlich, wenn die Rollenstufe nicht zur Fischgröße passt
-eval *= Mathf.Lerp(0,6, 1, 1 − FishingLine.scareFactor)
-Biss, wenn eval ≥ 0,4   (im Casual-Modus ≥ 0,29)
+eval  = mean(time, wind, clouds, rain)               FishBaitEvaluator.Evaluate
+eval *= Bait.CheckTaste(fish)                        bait preference 0…1
+   with a float (float/ground):
+        + Boilie.GetFishInterest(species) × 0.2      ground rig with a feeder only
+   without a float (spinning, fly):
+        × spinningMethodFactor[retrieve]             0 for "no retrieve"
+        × 0.8 on top when the reel level does not match the fish size
+eval *= Mathf.Lerp(0.6, 1, 1 − FishingLine.scareFactor)
+bite when eval ≥ 0.4   (casual mode ≥ 0.29)
 ```
 
-Drei Dinge folgen daraus:
+Three things follow from that:
 
-- **Pose und Grund haben keinen eigenen Faktor.** `floatMethodFactor` steht bei
-  allen Arten auf 1 und wird außerhalb des Konstruktors nirgends gelesen.
-- **Die Schwelle ist hart.** Eine Vorliebe von 0,4 verlangt einen Wetterwert von
-  1,0 – praktisch unerreichbar. Der Unterschied zwischen zwei Angelarten ist
-  deshalb oft nicht „seltener", sondern „nie".
-- **Naturköder lassen sich stapeln.** `CheckTaste` rechnet bei mehreren
-  Köderstücken am Haken `bestes Stück + 0,2 × jedes weitere`, mit drei Stücken
-  also das 1,4-fache.
+- **Float and ground have no factor of their own.** `floatMethodFactor` sits at 1 for every
+  species and is never read outside the constructor.
+- **The threshold is hard.** A preference of 0.4 demands a weather value of 1.0 — practically
+  out of reach. The difference between two methods is therefore often not "rarer" but "never".
+- **Natural bait stacks.** With several pieces on the hook `CheckTaste` computes
+  `best piece + 0.2 × each further one`, so three pieces give 1.4×.
 
-Den Ködertyp liest `tools/baittypes.ps1` aus dem Baustein `Bait` der Prefabs
-(`_work/baittypes.json`): `BaitType` ist das erste Feld hinter `m_Name`.
-Naturköder tragen diesen Baustein nicht – sie sind `baitParts` an einem Haken,
-und der Haken ist das Bait-Objekt. Ein Prefab mit Fischtabelle, aber ohne
-`Bait`, ist damit ein Naturköder. Von 171 Prefabs sind 16 Fliegen, 123
-Kunstköder (Spinner, Blinker, Wobbler, Gummi), 22 Naturköder und 10 Boilies.
+`tools/baittypes.ps1` reads the bait type from the `Bait` component of the prefabs
+(`_work/baittypes.json`): `BaitType` is the first field behind `m_Name`. Natural baits do not
+carry that component — they are `baitParts` on a hook, and the hook is the bait object. A
+prefab with a species table but no `Bait` is therefore a natural bait. Of 171 prefabs, 16 are
+flies, 123 lures (spinners, spoons, wobblers, soft baits), 22 natural baits and 10 boilies.
 
-`build2.ps1` legt daraus je Art vier Prozentwerte in `species.m` ab: die beste
-erreichbare Vorliebe mit Fliege, Kunstköder, Naturköder und Boilie. Über alle
-153 Arten liegt der Median der Spanne zwischen bester und schwächster Angelart
-bei 0,50; bei 51 Arten beträgt sie 0,8 oder mehr.
+From this `build2.ps1` stores four percentages per species in `species.m`: the best preference
+reachable with fly, lure, natural bait and boilie. Across all 153 species the median spread
+between the best and the weakest method is 0.50; for 51 species it is 0.8 or more.
 
-## Größenstufen
+## Size steps
 
-Haken- und Ködergröße rechnet das Spiel über 18 Stufen ab. Im Hauptmenü (`level2`)
-führt `FishManager` vier Listen aus `Vector2`, jede mit einer Zeile je Stufe:
+Hook and bait size are settled over 18 steps. In the main menu (`level2`) `FishManager` carries
+four lists of `Vector2`, each with one row per step:
 
-| Liste | Bedeutung |
+| List | Meaning |
 | --- | --- |
-| `baitToFishSize` | Ködergröße → Fischlänge in Metern |
-| `hookToFishWeight` | Hakengröße → Fischgewicht in kg |
-| `lureToFishWeight` | dasselbe für Kunstköder |
-| `flyToFishWeight` | dasselbe für Fliegen |
+| `baitToFishSize` | bait size → fish length in metres |
+| `hookToFishWeight` | hook size → fish weight in kg |
+| `lureToFishWeight` | the same for lures |
+| `flyToFishWeight` | the same for flies |
 
-Dazu kommt `EquipmentManager.hookSizesCm` – die Spaltbreite des Hakens, trotz des
-Feldnamens in Metern (6 bis 90 mm). `tools/hooks.ps1` liest alles nach
-`_work/hooks.json`.
+On top of that comes `EquipmentManager.hookSizesCm` — the gap of the hook, in metres despite
+the field name (6 to 90 mm). `tools/hooks.ps1` reads it all into `_work/hooks.json`.
 
-Die Spannen überlappen und wandern mit der Größe nach oben: Stufe 1 fängt 0–4 kg,
-Stufe 18 dann 964–3277 kg. Ein zu großer Haken lässt kleine Fische also aus, daher
-die Meldung „Denke über einen kleineren Haken nach“. Kunstköder greifen erst ab
-Stufe 2, Fliegen ab Stufe 4; darunter fangen sie nichts.
+The ranges overlap and move up with the size: step 1 catches 0–4 kg, step 18 then 964–3277 kg.
+A hook that is too big misses small fish, hence the in-game hint to think about a smaller one.
+Lures only start at step 2, flies at step 4; below that they catch nothing.
 
-Die Beschriftung steht nicht als Tabelle in den Daten, sondern entsteht in
-`UtilitiesUnits.GetHookSizeString(int)`. Der IL-Code dort macht nur zweierlei:
-Index 0 bis 5 wird zu `#12, #8, #6, #4, #2, #1`, alles darüber zu
-`#` + (Index − 5) + `/0`. Ergibt genau die 18 Größen **#12, #8, #6, #4, #2, #1,
-#1/0 … #12/0**; `hooks.ps1` legt sie als Liste mit ab.
+The labels are not a table in the data; they are built in `UtilitiesUnits.GetHookSizeString(int)`.
+The IL there does only two things: index 0 to 5 become `#12, #8, #6, #4, #2, #1`, anything above
+becomes `#` + (index − 5) + `/0`. That gives exactly the 18 sizes **#12, #8, #6, #4, #2, #1,
+#1/0 … #12/0**; `hooks.ps1` stores them as a list.
 
-## Führung beim Spinnfischen
+## Retrieve when spin fishing
 
-Hinter den Kurven steht in `Fish` die Liste `spinningMethodFactor`, ein Wert
-zwischen 0 und 1 je Eintrag des Enums `SpinningMethod`: `NONE`, `STRAIGHT_SLOW`,
-`STRAIGHT`, `STRAIGHT_FAST`, `LIFT_DROP`, `STOP_GO`, `TWITCHING`. Danach folgt
-`floatMethodFactor` für das Posenfischen, der bei allen Arten auf 1 steht.
-`bitecurves.ps1` liest beides; für 128 der 134 Arten ist die Liste vorhanden.
+Behind the curves `Fish` holds the list `spinningMethodFactor`, a value between 0 and 1 per
+entry of the `SpinningMethod` enum: `NONE`, `STRAIGHT_SLOW`, `STRAIGHT`, `STRAIGHT_FAST`,
+`LIFT_DROP`, `STOP_GO`, `TWITCHING`. After it comes `floatMethodFactor` for float fishing,
+which sits at 1 for every species. `bitecurves.ps1` reads both; the list is present for 128 of
+the 134 species.
 
-Ein Karpfen etwa steht auf `Straight langsam` bei 100 %, auf `Lift & Drop` und
-`Stop & Go` bei 60 % und auf `Straight`, `Straight schnell` und `Twitching` bei 0 –
-diese drei Führungen bringen bei ihm also gar nichts.
+A carp, for example, sits at 100 % on `Straight slow`, at 60 % on `Lift & drop` and `Stop & go`,
+and at 0 on `Straight`, `Straight fast` and `Twitching` — those three do nothing for it.
 
-## Welt → Karte
+## World → map
 
-Die Abbildung von Weltkoordinaten auf das Kartenbild wird aus den Spots geschätzt,
-die beides mitbringen: Position in der Szene und Position auf dem Kartenbild.
+The projection from world coordinates onto the map image is estimated from the spots that carry
+both: a position in the scene and a position on the map image.
 
-Zuerst wird eine Ähnlichkeitstransformation versucht (Drehung, einheitlicher
-Maßstab, Verschiebung, wahlweise gespiegelt). Trägt die nicht, greift eine affine
-Abbildung mit getrennten Maßstäben je Achse. Das ist bei mehreren Karten nötig,
-weil das Kartenbild in der Breite anders gestaucht ist als in der Höhe – am
-deutlichsten bei Florida, wo der mittlere Fehler von 0,19 auf 0,008 fällt.
-Angenommen wird die affine Lösung nur ab vier Spots und wenn sie klar besser
-liegt; sonst bleibt es bei der einfacheren.
+A similarity transform is tried first (rotation, uniform scale, translation, optionally
+mirrored). Where that does not hold, an affine map with separate scales per axis takes over.
+Several maps need it because the image is squeezed differently in width than in height — most
+clearly Florida, where the mean error drops from 0.19 to 0.008. The affine solution is only
+accepted from four spots upwards and when it is clearly better; otherwise the simpler one stays.
 
-## Grenzen
+## Limits
 
-- Ohne Spots auf dem Kartenbild gibt es keine Abbildung: `Piñas Bay – Ocean` und
-  `Greenland – Sea` sind reine Offshore-Karten und zeigen deshalb keine
-  Schwarmpunkte (`fitOk: false`).
-- Hakengrößen stehen nicht als eigenes Feld in den Spieldaten; das Spiel leitet sie aus der
-  Fischgröße ab. Die Hakenangaben im Guide bleiben deshalb Community-Werte.
-- Die Byte-Offsets der Kartentexturen in `extract.ps1` gelten für den Spielstand vom Juli 2026.
-  Nach einem Spiel-Update müssen sie neu ermittelt werden (Texturnamen beginnen mit `Map`
-  bzw. heißen `map_03`, `map_japan_01`, `florida_map_01`).
+- Without spots on the map image there is no projection: `Piñas Bay – Ocean` and
+  `Greenland – Sea` are pure offshore maps and therefore show no shoal points (`fitOk: false`).
+- Hook sizes are not a field of their own in the game data; the game derives them from the fish
+  size. The hook values in the guide therefore stay community knowledge.
+- The byte offsets of the map textures in `extract.ps1` hold for the July 2026 build. After a
+  game update they have to be found again (texture names start with `Map`, or are called
+  `map_03`, `map_japan_01`, `florida_map_01`).
