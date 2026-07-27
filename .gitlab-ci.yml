@@ -1,14 +1,14 @@
 # CI/CD für ufs-atlas.de
 #
 #   build_web   arm64-Runner → Website-Image bauen und pushen (Caddy + statische Dateien)
-#   deploy      (manuell) docker compose über SSH → web.fuewa.systems (gemeinsamer Host)
+#   deploy      (manuell) docker compose über SSH → fuewa.systems (gemeinsamer Host)
 #
 # Es gibt keinen Build-Schritt für die Seite selbst: der Guide ist fertiges
 # HTML/JS/CSS. Die Daten unter maps/, fish/ und gamedata.js werden
 # lokal mit tools/extract.ps1 aus der Spielinstallation erzeugt und eingecheckt.
 #
 # Benötigte CI/CD-Variable:
-#   SSH_PRIVATE_KEY   Schlüssel für root@web.fuewa.systems (nur Deploy)
+#   SSH_PRIVATE_KEY   Schlüssel für root@fuewa.systems (nur Deploy)
 
 workflow:
   rules:
@@ -51,7 +51,7 @@ deploy:
   needs:
     - build_web
   variables:
-    DOCKER_HOST: "ssh://root@web.fuewa.systems"
+    DOCKER_HOST: "ssh://root@fuewa.systems"
     WEB_IMAGE: "$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA"
     # APP_SECRET, DB_PASSWORD, DB_ROOT_PASSWORD, MAILER_DSN, MAILER_FROM und
     # MAILER_FROM_HEADER kommen aus den CI/CD-Variablen und stehen im Job
@@ -61,8 +61,8 @@ deploy:
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
     # ControlMaster bündelt alle docker-over-SSH-Aufrufe auf EINE Verbindung.
-    - printf 'Host web.fuewa.systems\n  User root\n  IdentityFile ~/.ssh/id_deploy\n  StrictHostKeyChecking accept-new\n  ControlMaster auto\n  ControlPath ~/.ssh/cm-%%r@%%h:%%p\n  ControlPersist 120s\n  ConnectTimeout 30\n  ConnectionAttempts 3\n  ServerAliveInterval 15\n' > ~/.ssh/config
-    - for i in 1 2 3 4 5 6; do ssh -o BatchMode=yes web.fuewa.systems true && break || (echo "ssh retry $i"; sleep 10); done
+    - printf 'Host fuewa.systems\n  User root\n  IdentityFile ~/.ssh/id_deploy\n  StrictHostKeyChecking accept-new\n  ControlMaster auto\n  ControlPath ~/.ssh/cm-%%r@%%h:%%p\n  ControlPersist 120s\n  ConnectTimeout 30\n  ConnectionAttempts 3\n  ServerAliveInterval 15\n' > ~/.ssh/config
+    - for i in 1 2 3 4 5 6; do ssh -o BatchMode=yes fuewa.systems true && break || (echo "ssh retry $i"; sleep 10); done
   script:
     # Lieber hier abbrechen als mit leeren Geheimnissen ausrollen
     - |
