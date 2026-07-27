@@ -47,6 +47,20 @@ export const en: Partial<Dict> = {
   'map.fishHere': '{n} fish',
   'map.noProjection':
     'For this fishery the world coordinates of the shoals cannot be projected onto the map image reliably. Spot numbers and the species per spot still hold – only the extra shoal points stay hidden.',
+  'map.alt': 'Map of the fishery from the game files',
+  'map.spotTitle': 'Spot {n}',
+  'map.spotHead': 'SPOT {n}',
+  'map.moreSpecies': '+ {n} more species',
+  'map.noShoals': 'No shoals within casting range',
+  'map.shoals': 'Fish shoals ({n})',
+  'map.greenMarks': 'Marked green: spots holding {name}',
+  'map.clearPick': 'Clear the selection',
+  'map.spotPanelHead': 'Spot {n} · {count} species in range',
+  'map.fishCount': '{n} fish',
+  'map.atSpot': 'at the spot',
+  'map.metres': '~{n} m',
+  'map.noShoalsHere':
+    'No shoal points within casting range – here you troll or fish from the boat.',
   'map.boatOnly':
     'The game files hold no map points for this fishery – here you fish from the boat only.',
 

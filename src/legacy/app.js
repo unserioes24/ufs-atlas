@@ -27,6 +27,7 @@ import { FishCard } from '../components/species/FishCard'
 import StatsPage from '../components/stats/StatsPage'
 import { Stat } from '../components/primitives'
 import GlobalOverview from '../components/stats/GlobalOverview'
+import { FisheryMap, SpotPanel } from '../components/map/FisheryMap'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
@@ -184,103 +185,6 @@ function Bar(props) {
 
 /* ------------------------------------------------- Köder- und Wetterblöcke */
 
-/** Die stärksten Köder einer Art, mit Balken für den Interessenwert. */
-/* ------------------------------------------------------------- Revierkarte */
-
-function FisheryMap(props) {
-    const fy = props.fishery;
-    const [hover, setHover] = useState(null);
-    const [dotTip, setDotTip] = useState(null);
-    const [showDots, setShowDots] = useState(false);
-    const spots = fy.spots.filter(function (s) { return typeof s.u === 'number'; });
-    if (!spots.length) {
-        return h('div', { className: 'ufs-note' },
-            'Für dieses Revier enthalten die Spieldateien keine Kartenpunkte – hier wird ausschließlich vom Boot aus gefischt.');
-    }
-    const hl = props.highlight || null;
-    const tip = hover !== null ? spots.filter(function (s) { return s.n === hover; })[0] : null;
-
-    function hasSpecies(s) {
-        return hl ? s.fish.some(function (f) { return f.s === hl; }) : false;
-    }
-
-    return h('div', null,
-        h('div', { className: 'ufs-map-wrap' },
-            h('img', { src: fy.map, alt: 'Revierkarte aus den Spieldateien', loading: 'lazy' }),
-            h('div', { className: 'ufs-map-layer' },
-                showDots && fy.dots ? fy.dots.map(function (d, i) {
-                    return h('div', {
-                        key: 'd' + i,
-                        className: cn('ufs-dot', hl && d[0] === hl && 'hl'),
-                        style: { left: (d[1] * 100) + '%', top: (d[2] * 100) + '%' },
-                        title: speciesName(d[0], props.lang),
-                        onMouseEnter: function () { setDotTip({ s: d[0], u: d[1], v: d[2] }); },
-                        onMouseLeave: function () { setDotTip(null); }
-                    });
-                }) : null,
-                dotTip ? (function () {
-                    const sp = SPECIES[dotTip.s] || {};
-                    return h('div', {
-                        className: 'ufs-tip small',
-                        style: { left: (dotTip.u * 100) + '%', top: (dotTip.v * 100) + '%' }
-                    },
-                        h('h4', null, (props.caught[dotTip.s] ? '✓ ' : '') + speciesName(dotTip.s, props.lang)),
-                        sp.wMax ? h('div', { className: 'sub' }, sp.wMin + '–' + sp.wMax + ' kg · ' + sp.lMin + '–' + sp.lMax + ' cm') : null);
-                })() : null,
-                spots.map(function (s) {
-                    return h('div', {
-                        key: s.n,
-                        className: cn('ufs-spot', props.selected === s.n && 'sel', hl && (hasSpecies(s) ? 'hit' : 'dim')),
-                        style: { left: (s.u * 100) + '%', top: (s.v * 100) + '%' },
-                        onMouseEnter: function () { setHover(s.n); },
-                        onMouseLeave: function () { setHover(null); },
-                        onClick: function () { props.onSelect(props.selected === s.n ? null : s.n); },
-                        title: 'Spot ' + s.n
-                    }, s.n);
-                }),
-                tip ? h('div', {
-                    className: 'ufs-tip',
-                    style: { left: (tip.u * 100) + '%', top: (tip.v * 100) + '%' }
-                },
-                    h('h4', null, 'SPOT ' + tip.n),
-                    tip.fish.slice(0, 6).map(function (f) {
-                        return h('div', { key: f.s, className: 'r' },
-                            h('span', { style: props.caught[f.s] ? { color: '#6ee7b7' } : null },
-                                (props.caught[f.s] ? '✓ ' : '') + speciesName(f.s, props.lang)),
-                            h('span', null, f.f + '×'));
-                    }),
-                    tip.fish.length > 6 ? h('div', { className: 'more' }, '+ ' + (tip.fish.length - 6) + ' weitere Arten') : null,
-                    !tip.fish.length ? h('div', { className: 'more' }, 'Keine Schwärme in Wurfweite') : null) : null)),
-        h('div', { className: 'ufs-map-legend' },
-            h('span', null, h('b', null, spots.length), ' Reisepunkte aus den Spieldateien'),
-            fy.dots && fy.dots.length ? h('button', {
-                className: cn('ufs-chip ufs-chip-btn', showDots && 'ufs-chip-on'),
-                onClick: function () { setShowDots(!showDots); }
-            }, (showDots ? '✓ ' : '') + 'Fischschwärme (' + fy.dots.length + ')') : null,
-            hl ? h('span', null, 'Grün markiert: Spots mit ', h('b', null, speciesName(hl, props.lang)))
-               : h('span', { className: 'ufs-muted' }, 'Punkt überfahren für Details, klicken zum Filtern'),
-            props.selected ? h('button', { className: 'ufs-chip ufs-chip-btn', onClick: function () { props.onSelect(null); } }, 'Auswahl aufheben') : null));
-}
-
-/* --------------------------------------------------------------- Spotliste */
-
-function SpotPanel(props) {
-    const s = props.spot;
-    return h('div', { className: 'ufs-spotcard' },
-        h('h3', null, 'Spot ' + s.n + ' · ' + s.fish.length + ' Arten in Reichweite'),
-        h('div', { className: 'ufs-splist' },
-            s.fish.map(function (f) {
-                const sp = SPECIES[f.s] || {};
-                return h('div', { key: f.s, className: 'ufs-spline' },
-                    h('span', { className: cn('n', props.caught[f.s] && 'done') },
-                        (props.caught[f.s] ? '✓ ' : '') + speciesName(f.s, props.lang),
-                        sp.wMax ? h('span', { className: 'd' }, '  ' + sp.wMin + '–' + sp.wMax + ' kg') : null),
-                    h('span', { className: 'q' }, f.f + ' Fische'),
-                    h('span', { className: 'd' }, f.d === 0 ? 'am Spot' : '~' + f.d + ' m'));
-            })),
-        !s.fish.length ? h('div', { className: 'ufs-muted', style: { fontSize: '12px' } },
-            'Keine Schwarmpunkte in Wurfweite – hier wird geschleppt oder vom Boot gefischt.') : null);
-}
 
 /* -------------------------------------------------------- Spielstand-Import */
 
@@ -1959,11 +1863,11 @@ function App() {
                 fishery ? h('section', { className: 'no-print mt-5 ufs-maplayout' },
                     h(FisheryMap, {
                         fishery: fishery, selected: selectedSpot, onSelect: setSelectedSpot,
-                        caught: caught, lang: lang, highlight: pinned || highlight
+                        caught: caught, highlight: pinned || highlight
                     }),
                     h('div', { className: 'ufs-col' },
                         spotObj
-                            ? h(SpotPanel, { spot: spotObj, caught: caught, lang: lang })
+                            ? h(SpotPanel, { spot: spotObj, caught: caught })
                             : h('div', { className: 'ufs-spotcard' },
                                 h('h3', null, 'Arten in diesem Revier'),
                                 h('div', { className: 'ufs-splist' },
@@ -2000,10 +1904,8 @@ function App() {
                                 // Offshore-Reviere führen zu ihren Spots keine Weltkoordinaten:
                                 // dort gibt es keine Reisepunkte, man fährt selbst hinaus.
                                 fishery.spots.some(function (s) { return s.wx !== undefined && s.wx !== null; })
-                                    ? 'Bei diesem Revier lassen sich die Weltkoordinaten der Schwärme nicht verlässlich auf das Kartenbild '
-                                        + 'projizieren. Spotnummern und die Artenzuordnung je Spot stimmen trotzdem – nur die zusätzlichen '
-                                        + 'Schwarm-Punkte bleiben ausgeblendet.'
-                                    : 'Für dieses Revier enthalten die Spieldateien keine Kartenpunkte – hier wird ausschließlich vom Boot aus gefischt.')
+                                    ? t('map.noProjection')
+                                    : t('map.boatOnly'))
                             : null)) : null,
 
                 h('section', { className: 'no-print mt-5 rounded-3xl border border-white/10 bg-white/[.025] p-4' },

@@ -48,6 +48,20 @@ export const de = {
   'map.fishHere': '{n} Fische',
   'map.noProjection':
     'Bei diesem Revier lassen sich die Weltkoordinaten der Schwärme nicht verlässlich auf das Kartenbild projizieren. Spotnummern und die Artenzuordnung je Spot stimmen trotzdem – nur die zusätzlichen Schwarm-Punkte bleiben ausgeblendet.',
+  'map.alt': 'Revierkarte aus den Spieldateien',
+  'map.spotTitle': 'Spot {n}',
+  'map.spotHead': 'SPOT {n}',
+  'map.moreSpecies': '+ {n} weitere Arten',
+  'map.noShoals': 'Keine Schwärme in Wurfweite',
+  'map.shoals': 'Fischschwärme ({n})',
+  'map.greenMarks': 'Grün markiert: Spots mit {name}',
+  'map.clearPick': 'Auswahl aufheben',
+  'map.spotPanelHead': 'Spot {n} · {count} Arten in Reichweite',
+  'map.fishCount': '{n} Fische',
+  'map.atSpot': 'am Spot',
+  'map.metres': '~{n} m',
+  'map.noShoalsHere':
+    'Keine Schwarmpunkte in Wurfweite – hier wird geschleppt oder vom Boot gefischt.',
   'map.boatOnly':
     'Für dieses Revier enthalten die Spieldateien keine Kartenpunkte – hier wird ausschließlich vom Boot aus gefischt.',
 
