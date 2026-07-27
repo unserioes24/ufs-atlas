@@ -13,6 +13,7 @@ import { Follows } from '../components/profile/Follows'
 import StartPage from '../components/start/StartPage'
 import { LangSwitch } from '../components/LangSwitch'
 import { useI18n } from '../i18n'
+import { fisheryLabel, parseProfile, profileToCatches } from '../lib/savegame'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
@@ -216,164 +217,6 @@ function toGerman(text) {
     if (!text || typeof text !== 'string' || !TERM_RX) return text;
     TERM_RX.lastIndex = 0;
     return text.replace(TERM_RX, function (m) { return TERM_MAP[m.toLowerCase()] || m; });
-}
-
-/* ------------------------------------------------- Spielstand (Easy Save 2) */
-
-/* Typkennungen von Easy Save 2, wie sie in PROFILE_x direkt hinter dem 0xFF stehen. */
-const ES2_INT = 0xE2A80856, ES2_FLOAT = 0x6E3ED76B, ES2_STRING = 0xFDE9F1EE, ES2_BOOL = 0xAD4D7C9C;
-
-/**
- * Liest ein PROFILE_x aus %AppData%\LocalLow\PlayWay\UltimateFishing.
- * Satzformat: '~' + Schlüssellänge + Schlüssel + int32 Blocklänge + 0xFF + Typ-Hash + Wert.
- * Es wird jede Byteposition geprüft, damit ein unbekannter Datentyp den Rest
- * des Durchlaufs nicht verschiebt.
- */
-function parseProfile(buffer) {
-    const u8 = new Uint8Array(buffer);
-    const dv = new DataView(buffer);
-    const out = {};
-    const dec = new TextDecoder('utf-8');
-    for (let i = 0; i + 8 < u8.length; i++) {
-        if (u8[i] !== 0x7E) continue;
-        const kl = u8[i + 1];
-        if (kl < 3 || kl > 64 || i + 2 + kl + 5 > u8.length) continue;
-        let ok = true, key = '';
-        for (let j = 0; j < kl; j++) {
-            const c = u8[i + 2 + j];
-            if (!((c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 95 || c === 47)) { ok = false; break; }
-            key += String.fromCharCode(c);
-        }
-        if (!ok) continue;
-        let p = i + 2 + kl;
-        const blob = dv.getInt32(p, true); p += 4;
-        if (blob < 5 || blob > 65536 || p + blob > u8.length) continue;
-        if (u8[p] !== 0xFF) continue;
-        const type = dv.getUint32(p + 1, true);
-        const vp = p + 5;
-        if (type === ES2_INT && vp + 4 <= u8.length) out[key] = dv.getInt32(vp, true);
-        else if (type === ES2_FLOAT && vp + 4 <= u8.length) out[key] = dv.getFloat32(vp, true);
-        else if (type === ES2_BOOL && vp < u8.length) out[key] = u8[vp] !== 0;
-        else if (type === ES2_STRING && vp < u8.length) {
-            const sl = u8[vp];
-            if (sl < 128 && vp + 1 + sl <= u8.length) out[key] = dec.decode(u8.subarray(vp + 1, vp + 1 + sl));
-        }
-    }
-    return out;
-}
-
-/**
- * Manche Arten werden je Modellvariante getrennt gezählt (BROWN_TROUT und
- * BROWN_TROUT_B). Auf den Basisschlüssel zusammenführen, sofern es ihn gibt –
- * Arten wie TIGER_SHARK_D heißen aber wirklich so und bleiben unangetastet.
- */
-function normSpeciesKey(k) {
-    if (SPECIES[k]) return k;
-    const m = /^(.*)_[A-Z]{1,2}$/.exec(k);
-    if (m && SPECIES[m[1]]) return m[1];
-    return k;
-}
-
-/** Wandelt rohe Profilwerte in Fangstatus, Rekorde und Statistik um. */
-function profileToCatches(raw) {
-    const caught = {}, bests = {};
-    Object.keys(raw).forEach(function (k) {
-        const m = /^([A-Z0-9_]+)_caughtCount$/.exec(k);
-        if (!m) return;
-        const n = raw[m[1] + '_caughtCount'] | 0;
-        if (n <= 0) return;
-        const key = normSpeciesKey(m[1]);
-        const w = raw[m[1] + '_weight'], l = raw[m[1] + '_length'], f = raw[m[1] + '_fishery'];
-        const sum = raw[m[1] + '_caughtWeightSum'];
-        caught[key] = true;
-        const b = bests[key] || (bests[key] = { count: 0, weight: null, length: null, fishery: null, sum: 0 });
-        b.count += n;
-        if (typeof sum === 'number') b.sum += sum;
-        if (typeof w === 'number' && (b.weight === null || w > b.weight)) {
-            b.weight = w;
-            b.length = typeof l === 'number' ? l : b.length;
-            b.fishery = typeof f === 'string' && f ? f : b.fishery;
-        }
-    });
-
-    // Revierstatistik: LEVELS/<X>_NAME[_WINTER]_Stats_*
-    const fisheries = {};
-    Object.keys(FISHERIES).forEach(function (id) {
-        const pre = FISHERIES[id].save;
-        if (!pre) return;
-        const g = function (n) { const v = raw[pre + '_Stats_' + n]; return typeof v === 'number' ? v : 0; };
-        const st = {
-            fish: g('fishCaught'), bites: g('bitesAmount'), score: g('score'),
-            time: g('timeSpent'), weight: g('weightSum'),
-            bigW: g('biggestWeight'), bigL: g('biggestLength'),
-            entries: typeof raw[pre + '_availableEntries'] === 'number' ? raw[pre + '_availableEntries'] : null
-        };
-        if (st.fish || st.bites || st.time || st.weight) fisheries[id] = st;
-    });
-
-    // Die fünf Rutensets: Set 1 ohne Index, Sets 2–5 mit Index im Schlüssel
-    const SLOTS = [
-        ['ROD', 'Rute'], ['ICE_ROD', 'Eisrute'], ['REEL', 'Rolle'], ['LINE', 'Schnur'],
-        ['FLOAT', 'Pose'], ['HOOK', 'Haken'], ['BOILIE', 'Boilie'], ['FEEDER', 'Feeder'],
-        ['FEEDER_BAIT', 'Feederköder'], ['ROD_STAND', 'Ständer'], ['BITE_INDICATOR', 'Bissanzeiger']
-    ];
-    const sets = [];
-    for (let n = 1; n <= 5; n++) {
-        const eq = n === 1 ? 'currentEquipment_' : 'currentEquipment_' + n + '_';
-        const bt = n === 1 ? 'currentBaits_' : 'currentBaits_' + n + '_';
-        const sfx = n === 1 ? '' : n + '_';
-        const parts = [];
-        SLOTS.forEach(function (s) {
-            const v = raw[eq + s[0]];
-            if (typeof v === 'string' && v) parts.push({ slot: s[1], id: v });
-        });
-        const baits = [];
-        for (let i = 0; i < 3; i++) {
-            const v = raw[bt + i];
-            if (typeof v === 'string' && v) baits.push(v);
-        }
-        if (!parts.length && !baits.length) continue;
-        sets.push({
-            n: n, parts: parts, baits: baits,
-            depth: raw['currentFloatDepth' + sfx],
-            weight: raw['currentFloatWeight' + sfx],
-            hookSize: raw['currentHookSize' + sfx]
-        });
-    }
-
-    // Besitz je Kategorie aus den <ITEM>_isBought-Schlüsseln
-    const owned = {};
-    Object.keys(raw).forEach(function (k) {
-        const m = /^([A-Z][A-Z0-9_]+)_isBought$/.exec(k);
-        if (!m || raw[k] !== true) return;
-        const cat = /^(ICE_ROD|ROD_STAND|FEEDER_BAIT|BITE_INDICATOR|[A-Z]+)/.exec(m[1]);
-        const c = cat ? cat[1] : 'SONST';
-        owned[c] = (owned[c] || 0) + 1;
-    });
-
-    const player = {
-        sets: sets,
-        owned: owned,
-        name: raw.playerName || null,
-        level: raw.playersLevel || 0,
-        score: raw.playersScore || 0,
-        money: raw.playersMoney || 0,
-        exp: raw.playersExperience || 0,
-        luck: raw.playersLuck || 0,
-        strength: raw.playersStrength || 0,
-        version: raw.gameVersion || null
-    };
-    return {
-        caught: caught, bests: bests, fisheries: fisheries, player: player,
-        total: Object.keys(caught).length
-    };
-}
-
-function fisheryLabel(loc) {
-    if (!loc) return null;
-    const m = /^LEVELS\/(.+)_NAME$/.exec(loc);
-    if (!m) return loc;
-    return m[1].replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, function (c) { return c.toUpperCase(); });
 }
 
 /* -------------------------------------------------------------- Bausteine */
@@ -1262,6 +1105,7 @@ function itemLabel(id) {
 }
 
 function RodSets(props) {
+    const t = useI18n().t;
     const sets = props.sets || [];
     if (!sets.length) return null;
     return h('div', { className: 'ufs-setgrid' }, sets.map(function (s) {
@@ -1270,7 +1114,7 @@ function RodSets(props) {
             h('div', { className: 'rows' },
                 s.parts.map(function (p) {
                     return h('div', { key: p.slot },
-                        h('span', null, p.slot), h('em', null, itemLabel(p.id)));
+                        h('span', null, t(p.slot)), h('em', null, itemLabel(p.id)));
                 }),
                 s.baits.length
                     ? h('div', null, h('span', null, 'Köder'),

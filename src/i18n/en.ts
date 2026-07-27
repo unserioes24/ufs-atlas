@@ -269,6 +269,19 @@ export const en: Partial<Dict> = {
   'col.state': 'Save from',
   'col.noProfile': 'no profile',
 
+  // Parts of a rod set, as the save file lists them
+  'slot.rod': 'Rod',
+  'slot.iceRod': 'Ice rod',
+  'slot.reel': 'Reel',
+  'slot.line': 'Line',
+  'slot.float': 'Float',
+  'slot.hook': 'Hook',
+  'slot.boilie': 'Boilie',
+  'slot.feeder': 'Feeder',
+  'slot.feederBait': 'Feeder bait',
+  'slot.rodStand': 'Rod stand',
+  'slot.biteIndicator': 'Bite indicator',
+
   // Follows
   'follows.followYou': 'Follow you',
   'follows.followThem': 'Follow {name}',

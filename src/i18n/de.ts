@@ -272,6 +272,19 @@ export const de = {
   'col.state': 'Stand',
   'col.noProfile': 'kein Profil',
 
+  // Teile eines Rutensets, wie der Spielstand sie führt
+  'slot.rod': 'Rute',
+  'slot.iceRod': 'Eisrute',
+  'slot.reel': 'Rolle',
+  'slot.line': 'Schnur',
+  'slot.float': 'Pose',
+  'slot.hook': 'Haken',
+  'slot.boilie': 'Boilie',
+  'slot.feeder': 'Feeder',
+  'slot.feederBait': 'Feederköder',
+  'slot.rodStand': 'Ständer',
+  'slot.biteIndicator': 'Bissanzeiger',
+
   // Follower
   'follows.followYou': 'Folgen dir',
   'follows.followThem': 'Folgen {name}',
