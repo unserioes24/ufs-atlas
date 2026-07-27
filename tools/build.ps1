@@ -76,9 +76,8 @@ function FitSimilarity($pts, [bool]$mirror) {
 
 function ApplyFit($fit, $x, $z) {
     if ($fit.affine) {
-        # Ausdrücklich als Gleitkomma rechnen: PowerShell richtet sich beim
-        # Rechnen nach dem linken Operanden, und aus der Hashtabelle kommt
-        # sonst schon mal ein ganzzahliger Typ zurück.
+        # Compute in floating point on purpose: PowerShell follows the left
+        # operand's type, and the hashtable can hand back an integer one.
         $xx = [double]$x; $zz = [double]$z
         $u = [double]$fit.ca * $xx + [double]$fit.cb * $zz + [double]$fit.cc
         $v = [double]$fit.cd * $xx + [double]$fit.ce * $zz + [double]$fit.cf
@@ -91,10 +90,10 @@ function ApplyFit($fit, $x, $z) {
 }
 
 <#
-    Manche Kartenbilder sind nicht maßstabsgetreu: Florida etwa ist in der
-    Breite anders gestaucht als in der Höhe. Eine Ähnlichkeitstransformation
-    (Drehung plus einheitlicher Maßstab) trifft das nicht, eine affine schon.
-    Gelöst wird über die Normalgleichungen, 3x3 nach Cramer.
+    Some map images are not true to scale: Florida for one is squeezed
+    differently in width than in height. A similarity transform (rotation plus
+    uniform scale) cannot express that, an affine one can. Solved through the
+    normal equations, 3x3 by Cramer's rule.
 
         u = a*x + b*z + c        v = d*x + e*z + f
 #>
@@ -106,8 +105,8 @@ function Det3($a11, $a12, $a13, $a21, $a22, $a23, $a31, $a32, $a33) {
 }
 
 function FitAffine($pts) {
-    # Unterbestimmt wäre die Abbildung ab drei Punkten exakt lösbar, aber ohne
-    # jede Kontrolle. Erst ab vier Punkten hat der Fehler eine Aussage.
+    # From three points the map is exactly solvable but unchecked. Only from
+    # four points does the residual mean anything.
     if ($pts.Count -lt 4) { return $null }
     $sxx = 0.0; $sxz = 0.0; $sx = 0.0; $szz = 0.0; $sz = 0.0; $s1 = 0.0
     $sux = 0.0; $suz = 0.0; $su = 0.0; $svx = 0.0; $svz = 0.0; $sv = 0.0
@@ -128,8 +127,8 @@ function FitAffine($pts) {
     $e = (Det3 $sxx $svx $sx  $sxz $svz $sz  $sx $sv $s1) / $det
     $f = (Det3 $sxx $sxz $svx  $sxz $szz $svz  $sx $sz $sv) / $det
 
-    # Entartete Lösungen aussortieren: die Abbildung muss die Fläche erhalten
-    # und darf nicht zu einer Linie zusammenfallen.
+    # Drop degenerate solutions: the map has to preserve area and must not
+    # collapse onto a line.
     $area = [Math]::Abs($a * $e - $b * $d)
     if ($area -lt 1e-9) { return $null }
 
@@ -146,7 +145,7 @@ foreach ($fy in $FISH) {
     if (-not (Test-Path $lf)) { Write-Host "skipping $($fy.k)"; continue }
     $L = ConvertFrom-Json ([IO.File]::ReadAllText($lf))
 
-    # Passende Kartentafel wählen: Winterreviere nutzen MapParentIce, sonst MapParentNormal.
+    # Pick the right map board: winter fisheries use MapParentIce, else MapParentNormal.
     $wantIce = $fy.k -like '*-winter'
     $panel = $null
     if ($L.panels) {
@@ -155,7 +154,7 @@ foreach ($fy in $FISH) {
         if (-not $panel) { $panel = $L.panels[0] }
     }
     if (-not $panel) { $panel = [pscustomobject]@{ mapImage = $L.mapImage; spots = @() } }
-    # Liegt das MapImage der Tafel nicht dort, wo erwartet, greift das erste der Szene.
+    # If the board's MapImage is not where expected, the scene's first one is used.
     $mi = $panel.mapImage
     if (-not $mi -or $mi.w -le 0) { $mi = $L.mapImage }
 
@@ -211,9 +210,9 @@ foreach ($fy in $FISH) {
         if ($score -gt $bestScore) { $bestScore = $score; $best = $f; $bestErr = $err }
     }
 
-    # Trägt die Ähnlichkeitstransformation nicht, wird die affine geprüft. Sie
-    # gewinnt nur, wenn sie die Spots deutlich besser trifft – sonst bleibt es
-    # bei der einfacheren Abbildung.
+    # Where the similarity transform does not hold, the affine one is tried. It
+    # only wins when it hits the spots clearly better; otherwise the simpler
+    # map stays.
     $aff = FitAffine $pairs
     if ($aff) {
         $errA = 0.0

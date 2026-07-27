@@ -6,7 +6,7 @@ param(
 $sp = $Work
 $proj = $Proj
 
-# ------------------------------------------------------------ Lokalisierung
+# ------------------------------------------------------------- Localisation
 $terms = @{}
 foreach ($line in [IO.File]::ReadAllLines("$sp\terms.tsv")) {
     $c = $line -split "`t"
@@ -42,11 +42,11 @@ $ALIAS = @{
     'AtlanticTarponFlorida'='ATLANTIC_TARPON_D'; 'TarponAtl'='ATLANTIC_TARPON_D'
     'TunnyLittle'='LITTLE_TUNNY_C'; 'TunaBlackfin'='BLACKFIN_TUNA_C'
     'GraySnapperFlorida'='GREY_SNAPER'; 'GreatBaracudaFlorida'='BARRACUDA'
-    # Florida führt einzelne Arten unter eigenen Prefabnamen, teils mit
-    # Ortszusatz oder Tiefenvariante.
+    # Florida keeps some species under their own prefab names, partly with a
+    # place suffix or a depth variant.
     'DrumBlack_D_under'='DRUM_BLACK_D'; 'AtlanticTarponDryTortugas'='ATLANTIC_TARPON_D'
     'BlueMarlin_DryTortugas'='BLUE_MARLIN'
-    # Taupo nutzt ein gemeinsames Modell für Regenbogen- und Cutthroat-Forelle.
+    # Taupo shares one model for rainbow and cutthroat trout.
     'TroutRain+Cut_D'='RAINBOW_TROUT'; 'TroutRain+Cut'='RAINBOW_TROUT'
 }
 $DROP = @('NearCoast','Test','Rig','Fish','SharkTest')
@@ -66,11 +66,11 @@ function ToKey($raw) {
     $n = ($raw -replace '\(Clone\)', '' -replace '\s*\(\d+\)\s*$', '').Trim()
     $n = $n -replace '\s+', ''
     $n = $n -replace '_\d+$', ''
-    $n = $n -replace '_[vV]\d+$', ''      # Versionszusatz, z. B. VunduCatfish_v1
+    $n = $n -replace '_[vV]\d+$', ''      # version suffix, e.g. VunduCatfish_v1
     $base = $n
     if ($DROP -contains ($n -replace '_.*$', '')) { $resolveCache[$raw] = $null; return $null }
 
-    # optionaler Varianten-Suffix (Florida-DLC nutzt z. B. TIGER_SHARK_D)
+    # optional variant suffix (the Florida DLC uses e.g. TIGER_SHARK_D)
     $suffix = ''
     if ($n -match '^(.*)_([A-Za-z]{1,2})$') { $base = $Matches[1]; $suffix = $Matches[2].ToUpper() }
 
@@ -113,7 +113,7 @@ function ToKey($raw) {
     return $res
 }
 
-# ------------------------------------------------------------- 1) Fischarten
+# ---------------------------------------------------------------- 1) Species
 $fp = ConvertFrom-Json ([IO.File]::ReadAllText("$sp\fishprefabs.json"))
 function ReadCfg($ob) {
     $c = ($ob.comps | Where-Object { $_.cls -eq 114 -and $_.size -gt 1500 -and $_.size -lt 1900 })
@@ -185,7 +185,7 @@ foreach ($ob in $fp.objects) {
     if ($ac) { $e.act = $ac }
     $species[$key] = $e
 }
-# Zuordnung Prefabname -> Artenschlüssel, wird vom Mesh-Export gebraucht
+# Prefab name -> species key, used when resolving references
 $prefabKeys = [ordered]@{}
 foreach ($ob in $fp.objects) {
     $raw = $ob.name.Substring(5)
@@ -205,11 +205,11 @@ foreach ($lk in $locKeys.Keys) {
     $species[$lk] = $e
 }
 
-# ---------------------------------------------------------------- 2) Reviere
+# -------------------------------------------------------------- 2) Fisheries
 $ORDER = @('betty','betty-winter','powell','zeno','baikal','baikal-winter','atchafalaya','moraine','moraine-winter',
            'uvac','pinas','pinas-ocean','greenland','greenland-sea','kariba','amazon','japan','thailand','taupo','florida')
 
-# Präfix, unter dem der Spielstand die Revierstatistik ablegt
+# Prefix the save file stores its fishery statistics under
 $SAVEKEY = @{
     'betty' = 'LEVELS/BETTY_NAME'; 'betty-winter' = 'LEVELS/BETTY_NAME_WINTER'
     'powell' = 'LEVELS/ARIZONA_NAME'; 'zeno' = 'LEVELS/BLUEBELL_NAME'
@@ -286,7 +286,7 @@ foreach ($k in $ORDER) {
         }
     }
 
-    # DLC-Zusatzarten anhängen, sofern sie nicht ohnehin Spawner besitzen
+    # Append DLC species unless they already have spawners of their own
     $have = @{}
     foreach ($x in $sl) { $have[$x.s] = $true }
     foreach ($dn in $f.dlcSpecies) {
@@ -317,7 +317,7 @@ foreach ($k in $ORDER) {
     Write-Host ("{0,-16} spots={1,-3} species={2,-3} dots={3}" -f $k, $spots.Count, $sl.Count, $dots.Count)
 }
 
-# --------------------------------------------------------------- 3) Glossar
+# -------------------------------------------------------------- 3) Glossary
 $gl = [ordered]@{ bait = [ordered]@{}; lure = [ordered]@{}; method = [ordered]@{}; categories = @() }
 foreach ($t in $terms.GetEnumerator()) {
     if ($t.Key -like 'EQUIPMENT/NATURAL_BAITS/*' -or $t.Key -like 'EQUIPMENT/BOILIE/*') { $gl.bait[$t.Value.en] = $t.Value.de }
@@ -341,7 +341,7 @@ $gl.categories = @(
     [pscustomobject]@{ key = 'gear';    title = 'Montage & Ausrüstung'; note = ''; items = CatItems '^EQUIPMENT/(HOOK|FLOAT|FEEDER|LINE|REEL|ROD|ROD_POD|BITE_INDICATOR|FLOAT_WEIGHT|FISHING_NET)S?$' }
 )
 
-# ------------------------------------ 3b) Köder und Bissmodell aus den Prefabs
+# ------------------------------ 3b) Baits and the bite model from the prefabs
 # baits.ps1 liefert je Köder-Prefab die Liste fishInterests, bitecurves.ps1 je
 # Art die neun Gewichtungskurven. Beides wird hier zusammengefasst:
 #  - Prefabs, die sich nur in der laufenden Nummer unterscheiden, werden zu
@@ -553,7 +553,7 @@ $json = $data | ConvertTo-Json -Depth 12 -Compress
 New-Item -ItemType Directory -Force (Join-Path $proj 'src\data') | Out-Null
 [IO.File]::WriteAllText("$proj\src\data\gamedata.json", $json)
 
-# ---------------------------------------------- 4) Stammdaten für den Server
+# ------------------------------------------------- 4) Master data for the API
 # Der Symfony-Dienst wertet hochgeladene Spielstände selbst aus und braucht
 # dafür Artenliste, Reviere mit ihren Arten und die Spielstand-Schlüssel.
 $srvSpecies = [ordered]@{}
@@ -581,4 +581,4 @@ New-Item -ItemType Directory -Force (Join-Path $proj 'server\data') | Out-Null
 [IO.File]::WriteAllText((Join-Path $proj 'server\data\gamedata-server.json'),
     ($srv | ConvertTo-Json -Depth 8 -Compress))
 Write-Host "-> server/data/gamedata-server.json"
-Write-Host "-> src/data/gamedata.json  $([Math]::Round($json.Length/1KB)) KB   Arten gesamt: $($species.Count)"
+Write-Host "-> src/data/gamedata.json  $([Math]::Round($json.Length/1KB)) KB   species in total: $($species.Count)"

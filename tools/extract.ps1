@@ -1,12 +1,12 @@
 <#
-    Vollständige Extraktions-Pipeline: aus der Spielinstallation entstehen
-    gamedata.js und maps\*.jpg.
+    The full pipeline: from a game installation come src\data\gamedata.json
+    and public\maps\*.jpg.
 
-    Aufruf (Windows PowerShell 5.1):
+    Usage (Windows PowerShell 5.1):
         .\tools\extract.ps1
         .\tools\extract.ps1 -Game "D:\Steam\steamapps\common\Ultimate Fishing\UltimateFishing_Data"
 
-    Es werden ausschließlich lokal installierte Spieldateien gelesen, nichts verändert.
+    Only locally installed game files are read; nothing is changed.
 #>
 param(
     [string]$Game = 'C:\Program Files (x86)\Steam\steamapps\common\Ultimate Fishing\UltimateFishing_Data',
@@ -16,21 +16,21 @@ param(
 
 $ErrorActionPreference = 'Stop'
 [Threading.Thread]::CurrentThread.CurrentCulture = [Globalization.CultureInfo]::InvariantCulture
-if (-not (Test-Path $Game)) { throw "Spielverzeichnis nicht gefunden: $Game" }
+if (-not (Test-Path $Game)) { throw "Game directory not found: $Game" }
 New-Item -ItemType Directory -Force $Work | Out-Null
 New-Item -ItemType Directory -Force (Join-Path $Work 'fisheries') | Out-Null
 
-# UfsFishery.cs nutzt Typen aus UfsAssets.cs, beide müssen gemeinsam übersetzt werden.
+# UfsFishery.cs uses types from UfsAssets.cs; both have to be compiled together.
 Add-Type -Path @("$PSScriptRoot\UfsAssets.cs", "$PSScriptRoot\UfsFishery.cs")
 Add-Type -Path "$PSScriptRoot\UfsTex.cs" -ReferencedAssemblies 'System.Drawing'
 
-# Szenenindex laut BuildSettings, siehe globalgamemanagers:
+# Scene index per BuildSettings, see globalgamemanagers:
 #  4 PinasBay   5 PinasBayOcean  6 Arizona     7 Baikal    8 BettyLake  9 Louisiana
 # 10 Bluebell  11 UvacRiver     14 MoraineLake 15 KaribaDam 16 Greenland 17 GreenlandSea
 # 18 AmazonRiver 19 Japan       20 Thailand    22 Tongariro 23 DryTortugas
 $LEVELS = 4, 5, 6, 7, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 22, 23
 
-# Kartentexturen: Datei, Byte-Offset und Größe im jeweiligen .resS
+# Map textures: file, byte offset and size inside the matching .resS
 $MAPS = @(
     @{ k = 'pinas';          f = 'sharedassets4.assets.resS';  o = 402716520; s = 1778688; w = 1024; h = 579;  fmt = 3 },
     @{ k = 'powell';         f = 'sharedassets6.assets.resS';  o = 93832604;  s = 1778688; w = 1024; h = 579;  fmt = 3 },
@@ -52,7 +52,7 @@ $MAPS = @(
     @{ k = 'florida';        f = 'sharedassets23.assets.resS'; o = 19224320;  s = 4323600; w = 1201; h = 1200; fmt = 3 }
 )
 
-# ------------------------------------------------- 1) Lokalisierungstabelle
+# ------------------------------------------------- 1) Localisation table
 Write-Host "`n[1/5] Localisation table (I2, 12 languages)" -ForegroundColor Cyan
 $res = Join-Path $Game 'resources.assets'
 $fs = [IO.File]::OpenRead($res)
@@ -67,7 +67,7 @@ try {
 [IO.File]::WriteAllBytes("$Work\terms.bin", $buf)
 & "$PSScriptRoot\terms.ps1" -In "$Work\terms.bin" -Out "$Work\terms.tsv"
 
-# ------------------------------------------------------------ 2) Reviere
+# ----------------------------------------------------------- 2) Fisheries
 Write-Host "`n[2/5] Fisheries (spots, spawners, travel points)" -ForegroundColor Cyan
 foreach ($i in $LEVELS) {
     $lv = Join-Path $Game "level$i"
@@ -76,7 +76,7 @@ foreach ($i in $LEVELS) {
     Write-Host "  level$i"
 }
 
-# ---------------------------------------------------- 3) Fisch-Prefabs
+# ---------------------------------------------------- 3) Fish prefabs
 Write-Host "`n[3/5] Fish prefabs (weight, length, bite times)" -ForegroundColor Cyan
 [IO.File]::WriteAllText("$Work\fishprefabs.json",
     [Ufs.Extractor]::Run((Join-Path $Game 'sharedassets2.assets'), '^Fish_[A-Z]', $false, 1800))
@@ -94,7 +94,7 @@ foreach ($file in (Get-ChildItem "$Game\sharedassets*.assets") + @(Get-Item "$Ga
 }
 $idx | ConvertTo-Json -Depth 4 -Compress | Set-Content "$Work\fishindex.json" -Encoding UTF8
 
-# ------------------------------------------------------- 4) Kartenbilder
+# --------------------------------------------------------- 4) Map images
 Write-Host "`n[4/5] Map images" -ForegroundColor Cyan
 New-Item -ItemType Directory -Force "$Proj\maps" | Out-Null
 foreach ($m in $MAPS) {
@@ -104,7 +104,7 @@ foreach ($m in $MAPS) {
     Write-Host ("  {0,-16} {1}" -f $m.k, $r)
 }
 
-# ------------------------------------------- 5) Zusammenführen zu gamedata
+# --------------------------------------------- 5) Merge into the data file
 Write-Host "`n[5/5] Building the data files" -ForegroundColor Cyan
 & "$PSScriptRoot\baits.ps1"      -Work $Work -Game $Game
 & "$PSScriptRoot\baittypes.ps1"  -Work $Work -Game $Game | Out-Null
