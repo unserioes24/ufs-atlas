@@ -7,7 +7,11 @@
  * and this file shrinks until it disappears.
  */
 import React from 'react'
-import { GAME, GUIDE } from '../data'
+import { GAME, GUIDE, norm } from '../data'
+import { API_AVAILABLE, api } from '../lib/api'
+import { DASH, cn, fmtAgo, fmtNum, fmtTime, fmtWhen, newerThan } from '../lib/format'
+import { Badge, Bar, Icon, Mini, Select } from '../components/primitives'
+import { Toggle } from '../components/ui'
 import GroupsPage from '../components/groups/GroupsPage'
 import { Follows } from '../components/profile/Follows'
 import StartPage from '../components/start/StartPage'
@@ -52,8 +56,6 @@ const accent = {
     stone: 'from-stone-400/15 via-slate-500/10 to-transparent'
 };
 
-function cn() { return Array.prototype.filter.call(arguments, Boolean).join(' '); }
-function norm(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
 
 /* ------------------------------------------------------------------ Arten */
 
@@ -146,113 +148,8 @@ function baitName(b, lang) { return (lang === 'en' ? b.en : b.de) || b.en || b.k
 const HOOKS = G.hooks || null;
 
 
-function Badge(props) {
-    const tones = {
-        cyan: 'border-cyan-400/30 bg-cyan-400/10 text-cyan-200', green: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200',
-        amber: 'border-amber-400/30 bg-amber-400/10 text-amber-200', red: 'border-rose-400/30 bg-rose-400/10 text-rose-200',
-        violet: 'border-violet-400/30 bg-violet-400/10 text-violet-200', slate: 'border-white/10 bg-white/[.045] text-slate-300'
-    };
-    return h('span', { className: cn('inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wide', tones[props.tone || 'slate']) }, props.children);
-}
-function Icon(props) {
-    const icons = {
-        search: '⌕', map: '◫', fish: '◈', hook: '⌁', bait: '●', depth: '↕', method: '↝', star: '★',
-        source: '↗', filter: '≡', info: 'i', print: '▣', close: '×', check: '✓', import: '↧', game: '▤',
-        user: '☺', share: '⇗'
-    };
-    return h('span', { 'aria-hidden': true, className: cn('inline-flex h-5 w-5 items-center justify-center font-mono', props.className) }, icons[props.name] || '•');
-}
-function Toggle(props) {
-    return h('button', {
-        onClick: props.onClick,
-        className: cn('inline-flex items-center gap-1 rounded-xl border px-3 py-2 text-xs font-semibold transition',
-            props.active ? 'border-cyan-400/30 bg-cyan-400/10 text-cyan-100' : 'border-white/10 bg-white/[.03] text-slate-500 hover:text-slate-300')
-    }, props.active ? h(Icon, { name: 'check' }) : null, props.children);
-}
-function Select(props) {
-    return h('select', {
-        value: props.value, onChange: function (e) { props.onChange(e.target.value); },
-        className: 'rounded-xl border border-white/10 bg-[#0b1821] px-3 py-2 text-xs text-slate-300 outline-none focus:border-cyan-400/40'
-    }, props.options.map(function (o) { return h('option', { key: o, value: o }, (props.labels || {})[o] || o); }));
-}
-function Mini(props) {
-    return h('div', { className: 'rounded-2xl border border-white/10 bg-black/15 p-4' },
-        h('div', { className: 'text-[10px] font-bold uppercase tracking-[.16em] text-slate-500' }, props.label),
-        h('div', { className: 'mt-1 text-sm font-semibold text-slate-200' }, props.value));
-}
-function Bar(props) {
-    const pct = props.total ? Math.round(props.value / props.total * 100) : 0;
-    return h('div', { className: cn('ufs-bar', props.thin && 'thin') }, h('span', { style: { width: pct + '%' } }));
-}
-
-/* ------------------------------------------------- Köder- und Wetterblöcke */
 
 
-
-
-/* ---------------------------------------------------------- Statistikseite */
-
-function fmtTime(sec) {
-    if (!sec) return '–';
-    const h2 = Math.floor(sec / 3600), m = Math.round(sec % 3600 / 60);
-    return h2 ? h2 + ' h ' + m + ' min' : m + ' min';
-}
-function fmtNum(n, d) {
-    if (n === null || n === undefined) return '–';
-    return n.toLocaleString('de-DE', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });
-}
-/** Abstand zu jetzt in Worten, etwa „vor 3 Tagen“. */
-function fmtAgo(iso) {
-    const t = Date.parse(iso || '');
-    if (isNaN(t)) return 'unbekannt';
-    const s = Math.max(0, (Date.now() - t) / 1000);
-    if (s < 90) return 'gerade eben';
-    if (s < 5400) return 'vor ' + Math.round(s / 60) + ' Min.';
-    if (s < 172800) return 'vor ' + Math.round(s / 3600) + ' Std.';
-    if (s < 2592000) return 'vor ' + Math.round(s / 86400) + ' Tagen';
-    if (s < 31536000) return 'vor ' + Math.round(s / 2592000) + ' Monaten';
-
-    return 'vor über einem Jahr';
-}
-
-/** Zeitpunkt kurz und lesbar, etwa „27.07.2026, 14:05“. */
-function fmtWhen(iso) {
-    const t = Date.parse(iso || '');
-    if (isNaN(t)) return 'unbekannt';
-    return new Date(t).toLocaleString('de-DE', {
-        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
-}
-
-
-
-
-/* ------------------------------------------------------------- API-Zugriff */
-
-// Ohne Server (Datei direkt im Browser geöffnet) läuft alles rein lokal weiter.
-const API_AVAILABLE = location.protocol === 'http:' || location.protocol === 'https:';
-
-/** Kleiner Wrapper um fetch; wirft bei Fehlern mit der Serverfehlermeldung. */
-function api(path, opts) {
-    opts = opts || {};
-    const init = {
-        method: opts.method || 'GET',
-        credentials: 'same-origin',
-        headers: {}
-    };
-    if (opts.json !== undefined) {
-        init.headers['Content-Type'] = 'application/json';
-        init.body = JSON.stringify(opts.json);
-    } else if (opts.body !== undefined) {
-        init.body = opts.body;
-    }
-    return fetch('/api' + path, init).then(function (r) {
-        return r.json().catch(function () { return {}; }).then(function (data) {
-            if (!r.ok) throw new Error(data.error || ('Serverfehler ' + r.status));
-            return data;
-        });
-    });
-}
 
 /* --------------------------------------------------------- Profilspeicher */
 
@@ -277,14 +174,6 @@ function loadLocal() {
     return { caught: caught, bests: bests, stats: stats, updatedAt: at };
 }
 
-/** Ist a später als b? Ein fehlender Zeitpunkt gilt als „uralt“. */
-function newerThan(a, b) {
-    const ta = Date.parse(a || '');
-    if (isNaN(ta)) return false;
-    const tb = Date.parse(b || '');
-
-    return isNaN(tb) || ta > tb;
-}
 
 /* ------------------------------------------------------------ Anmeldung */
 
@@ -1672,9 +1561,9 @@ function App() {
                             h('h1', { className: 'max-w-4xl text-3xl font-black tracking-tight text-white sm:text-5xl' }, map.name),
                             h('p', { className: 'mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base' }, map.summary),
                             h('div', { className: 'mt-6 grid gap-3 sm:grid-cols-3' },
-                                h(Mini, { label: 'Angelstil', value: map.style }),
-                                h(Mini, { label: 'Arten', value: mapKeys.length ? (mapDone + ' von ' + mapKeys.length + ' gefangen') : (rows.length + ' Einträge') }),
-                                h(Mini, { label: 'Spots laut Spieldaten', value: fishery && fishery.spots.length ? String(fishery.spots.length) : '–' })),
+                                h(Mini, { label: t('map.style'), value: map.style }),
+                                h(Mini, { label: t('nav.species'), value: mapKeys.length ? t('map.caughtOf', { done: mapDone, total: mapKeys.length }) : t('map.entries', { n: rows.length }) }),
+                                h(Mini, { label: t('map.spotsFromFiles'), value: fishery && fishery.spots.length ? String(fishery.spots.length) : DASH })),
                             mapKeys.length ? h('div', { style: { marginTop: '.9rem', maxWidth: '520px' } }, h(Bar, { value: mapDone, total: mapKeys.length })) : null),
                         h('div', { className: 'rounded-3xl border border-white/10 bg-black/20 p-5 backdrop-blur-xl' },
                             h('div', { className: 'flex items-center gap-2 text-sm font-bold text-cyan-100' }, h(Icon, { name: 'info' }), 'So liest du die Angaben'),

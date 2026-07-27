@@ -47,6 +47,7 @@ export const en: Partial<Dict> = {
   'map.fishHere': '{n} fish',
   'map.noProjection':
     'For this fishery the world coordinates of the shoals cannot be projected onto the map image reliably. Spot numbers and the species per spot still hold – only the extra shoal points stay hidden.',
+  'map.entries': '{n} entries',
   'map.alt': 'Map of the fishery from the game files',
   'map.spotTitle': 'Spot {n}',
   'map.spotHead': 'SPOT {n}',

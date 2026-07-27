@@ -93,9 +93,9 @@ export function Select<T extends string>({
 export function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
   return (
     <div className="ufs-stat">
-      <div className="lbl">{label}</div>
-      <div className="val">{value}</div>
-      {sub ? <div className="sub">{sub}</div> : null}
+      <div className="lb">{label}</div>
+      <div className="vl">{value}</div>
+      {sub ? <div className="sb">{sub}</div> : null}
     </div>
   )
 }
@@ -147,5 +147,15 @@ export function BiteCurve({
       <path className="area" d={`${line} L${W} ${H} L0 ${H} Z`} />
       <path className="line" d={line} />
     </svg>
+  )
+}
+
+/** A small labelled figure, used in the header of a fishery. */
+export function Mini({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
+      <div className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-500">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-slate-200">{value}</div>
+    </div>
   )
 }

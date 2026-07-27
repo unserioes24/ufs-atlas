@@ -48,6 +48,7 @@ export const de = {
   'map.fishHere': '{n} Fische',
   'map.noProjection':
     'Bei diesem Revier lassen sich die Weltkoordinaten der Schwärme nicht verlässlich auf das Kartenbild projizieren. Spotnummern und die Artenzuordnung je Spot stimmen trotzdem – nur die zusätzlichen Schwarm-Punkte bleiben ausgeblendet.',
+  'map.entries': '{n} Einträge',
   'map.alt': 'Revierkarte aus den Spieldateien',
   'map.spotTitle': 'Spot {n}',
   'map.spotHead': 'SPOT {n}',
