@@ -1,18 +1,18 @@
 <#
-    Liest aus den Köder-Prefabs, welcher Fisch wie stark auf welchen Köder beißt.
+    Reads from the bait prefabs how keenly which fish takes which bait.
 
-    Die Klasse Bait trägt ein Feld fishLikesParams (FishLikesParams):
+    The class Bait carries a field fishLikesParams (FishLikesParams):
 
-        float             defaultValue     Grundinteresse aller übrigen Arten
-        List<FishInterest> fishInterests   je Eintrag: int species, float interest
-        string            paramsParseText  im Build leer, nur Editor-Hilfe
-        string[]          split            ebenso leer
+        float             defaultValue     base interest of every other species
+        List<FishInterest> fishInterests   per entry: int species, float interest
+        string            paramsParseText  empty in the build, an editor aid only
+        string[]          split            empty as well
 
-    Im serialisierten Block ergibt das die Folge
+    In the serialised block that gives the sequence
         [float][int n][n * (int, float)][int 0][int 0]
-    und die ist zusammen mit dem Wertebereich der Artennummern eindeutig genug.
+    which, together with the range of the species numbers, is distinct enough.
 
-    Ausgabe: tools\_work\baits.json
+    Output: tools\_work\baits.json
 #>
 param(
     [string]$Game = 'C:\Program Files (x86)\Steam\steamapps\common\Ultimate Fishing\UltimateFishing_Data',
@@ -52,9 +52,9 @@ foreach ($k in $keys) {
         if ($co.ClassId -ne 114) { continue }
         $d = $sf.Read($co)
 
-        # Erkannt wird der Block über sein Ende: hinter der Liste steht
-        # paramsParseText, und damit hört der Baustein auf. Die Artennummern
-        # sind teils unsortiert, taugen also nicht als Merkmal.
+        # The block is recognised by its end: behind the list sits
+        # paramsParseText, and that is where the component stops. The species
+        # numbers are partly unsorted, so they are no help as a marker.
         for ($p = 28; $p + 8 -le $d.Length; $p += 4) {
             $def = [BitConverter]::ToSingle($d, $p)
             if ($def -lt 0 -or $def -gt 1) { continue }

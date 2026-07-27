@@ -325,44 +325,46 @@ foreach ($t in $terms.GetEnumerator()) {
     elseif ($t.Key -match '^EQUIPMENT/(SPOON|SPINNER|WOBBLER|CRANKBAIT|SOFT_BAIT|LURES|FLIES|FLOAT|HOOK|FEEDER|LINE|REEL|ROD|BOILIE|ARTIFICIAL_BAIT|FISHING_NET|ROD_POD|BITE_INDICATOR)S?$') { $gl.lure[$t.Value.en] = $t.Value.de }
 }
 
-# Köderseite: Kategorien mit den Originalbezeichnungen aus dem Spiel
+# The bait side, grouped. Heading and note are not written here: the site takes
+# them from its own dictionaries under gloss.<key>.title and .note, so the page
+# follows the chosen language. Only the key and the items belong in the data.
 function CatItems($pattern) {
     $list = @()
-    foreach ($t in ($terms.GetEnumerator() | Where-Object { $_.Key -match $pattern } | Sort-Object { $_.Value.de })) {
+    foreach ($t in ($terms.GetEnumerator() | Where-Object { $_.Key -match $pattern } | Sort-Object { $_.Value.en })) {
         $list += [pscustomobject]@{ en = $t.Value.en; de = $t.Value.de; key = $t.Key }
     }
     return @($list)
 }
 $gl.categories = @(
-    [pscustomobject]@{ key = 'natural'; title = 'Naturköder'; note = 'Werden am Haken angeboten, mehrere Stücke vergrößern den Anziehungsradius.'; items = CatItems '^EQUIPMENT/NATURAL_BAITS/' },
-    [pscustomobject]@{ key = 'boilie';  title = 'Boilies';    note = 'Für Karpfen und Großfisch, an der Haarmontage.'; items = CatItems '^EQUIPMENT/BOILIE/' },
-    [pscustomobject]@{ key = 'lure';    title = 'Kunstköder-Arten'; note = 'Werden aktiv geführt; die Führungsart entscheidet mit über den Biss.'; items = CatItems '^EQUIPMENT/(SPOON|SPINNER|WOBBLER|CRANKBAIT|SOFT_BAIT|LURES|FLIES|ARTIFICIAL_BAIT)S?$' },
-    [pscustomobject]@{ key = 'method';  title = 'Angelmethoden'; note = 'Die fünf Spinnfisch-Führungen haben je drei Geschwindigkeitsstufen.'; items = CatItems '^GUI/METHODS_' },
-    [pscustomobject]@{ key = 'gear';    title = 'Montage & Ausrüstung'; note = ''; items = CatItems '^EQUIPMENT/(HOOK|FLOAT|FEEDER|LINE|REEL|ROD|ROD_POD|BITE_INDICATOR|FLOAT_WEIGHT|FISHING_NET)S?$' }
+    [pscustomobject]@{ key = 'natural'; items = CatItems '^EQUIPMENT/NATURAL_BAITS/' },
+    [pscustomobject]@{ key = 'boilie';  items = CatItems '^EQUIPMENT/BOILIE/' },
+    [pscustomobject]@{ key = 'lure';    items = CatItems '^EQUIPMENT/(SPOON|SPINNER|WOBBLER|CRANKBAIT|SOFT_BAIT|LURES|FLIES|ARTIFICIAL_BAIT)S?$' },
+    [pscustomobject]@{ key = 'method';  items = CatItems '^GUI/METHODS_' },
+    [pscustomobject]@{ key = 'gear';    items = CatItems '^EQUIPMENT/(HOOK|FLOAT|FEEDER|LINE|REEL|ROD|ROD_POD|BITE_INDICATOR|FLOAT_WEIGHT|FISHING_NET)S?$' }
 )
 
 # ------------------------------ 3b) Baits and the bite model from the prefabs
-# baits.ps1 liefert je Köder-Prefab die Liste fishInterests, bitecurves.ps1 je
-# Art die neun Gewichtungskurven. Beides wird hier zusammengefasst:
-#  - Prefabs, die sich nur in der laufenden Nummer unterscheiden, werden zu
-#    einem Eintrag verschmolzen (BellamySwimJig_01..03 ist derselbe Köder),
-#  - die Interessen kommen als "Index:Prozent"-Liste in die Datei, sonst wäre
-#    sie um ein Vielfaches größer,
-#  - von den Kurven bleiben die drei, die überhaupt bespielt sind.
+# baits.ps1 gives the list fishInterests per bait prefab, bitecurves.ps1 the
+# nine weighting curves per species. Both are folded together here:
+#  - prefabs that differ only in their running number are merged into one
+#    entry (BellamySwimJig_01..03 is the same bait),
+#  - the interests go into the file as an "index:percent" list, otherwise it
+#    would be several times its size,
+#  - of the curves the three that are filled in at all are kept.
 
 function BaitNorm($s) {
     $x = ($s -replace '[^A-Za-z0-9]', '').ToLower()
     $x = $x -replace '\d+$', ''
     return ($x -replace 's$', '')
 }
-# Schreibweisen, die zwischen Prefab und Lokalisierung auseinanderlaufen
-# Schlüssel greifen sowohl auf den rohen Grundnamen als auch auf die normierte
-# Form. Young_Fish_S braucht die rohe Form, weil BaitNorm das End-s entfernt.
+# Spellings that drift apart between prefab and localisation. Keys match both
+# the raw base name and the normalised form. Young_Fish_S needs the raw form,
+# because BaitNorm strips the trailing s.
 $BAIT_ALIAS = @{
     'gingerbreadherbal' = 'gingerherbal'
     'Young_Fish_L' = 'youngfishlarge'; 'Young_Fish_M' = 'youngfishmedium'; 'Young_Fish_S' = 'youngfishsmall'
 }
-# Fliegentypen tragen keinen Ausrüstungsnamen, nur den Typ
+# Fly types carry no equipment name, only the type
 $FLY_NAMES = @{
     'FlyDry' = @('Dry fly', 'Trockenfliege'); 'FlyWet' = @('Wet fly', 'Nassfliege')
     'FlyNymph' = @('Nymph', 'Nymphe'); 'FlyStreamer' = @('Streamer', 'Streamer')
@@ -378,9 +380,9 @@ foreach ($tk in $terms.Keys) {
     }
 }
 
-# Die Interessenliste nennt Arten teils unter einem Varianten-Schlüssel
-# (TENCH_B) oder umgekehrt ohne den, den die Artenliste führt (RED_DRUM neben
-# RED_DRUM_D). Beides wird auf den Schlüssel der Artenliste gezogen.
+# The interest list names some species under a variant key (TENCH_B) or, the
+# other way round, without the one the species list carries (RED_DRUM next to
+# RED_DRUM_D). Both are pulled onto the species list's key.
 $SPECIES_ALIAS = @{
     'ATLANTIC_GOLIATH_GROUPER' = 'GIANT_GROUPER_D'; 'BLACK_DRUM' = 'DRUM_BLACK_D'
     'GIANT_TRAVELLY' = 'GIANT_TREVALLY'; 'KOI_CARP' = 'CARP_KOI'; 'MAHI_MAHI' = 'DORADO'
@@ -390,7 +392,7 @@ $speciesAlias = @{}
 function BaitSpeciesKey($k) {
     if ($speciesAlias.ContainsKey($k)) { return $speciesAlias[$k] }
     $res = $null
-    if ($k -like 'old_*') { $res = $null }                       # verworfene Altbestände
+    if ($k -like 'old_*') { $res = $null }                       # discarded leftovers
     elseif ($species.Contains($k)) { $res = $k }
     elseif ($SPECIES_ALIAS.ContainsKey($k) -and $species.Contains($SPECIES_ALIAS[$k])) { $res = $SPECIES_ALIAS[$k] }
     elseif ($k -match '^(.*)_FLORIDA$' -and $species.Contains($Matches[1])) { $res = $Matches[1] }
@@ -404,9 +406,9 @@ function BaitSpeciesKey($k) {
     return $res
 }
 
-# Der Ködertyp kommt aus dem Baustein Bait, nicht aus der Namensgebung:
-# baittypes.ps1 liest ihn je Prefab aus. Prefabs ohne diesen Baustein sind
-# Naturköder – sie werden als Köderstücke an einen Haken gesteckt.
+# The bait type comes from the Bait component, not from the naming:
+# baittypes.ps1 reads it per prefab. Prefabs without that component are
+# natural baits – they go onto a hook as pieces of bait.
 $baitKindOf = @{}
 $typeFile = Join-Path $sp 'baittypes.json'
 if (Test-Path $typeFile) {
@@ -425,7 +427,7 @@ $baits = [ordered]@{}
 $baitSpecies = @()
 $baitSpeciesIdx = @{}
 $baitDropped = @{}
-$baitBest = @{}          # je Art und Angelart das höchste Interesse
+$baitBest = @{}          # highest interest per species and method
 $baitFile = Join-Path $sp 'baits.json'
 if (Test-Path $baitFile) {
     $raw = Get-Content $baitFile -Raw | ConvertFrom-Json
@@ -447,7 +449,7 @@ if (Test-Path $baitFile) {
             $de = $en
         }
 
-        # Varianten derselben Art zusammenfassen, der höhere Wert gewinnt
+        # Fold variants of the same species together, the higher value wins
         $merged = [ordered]@{}
         foreach ($f in $p.Value.fish.PSObject.Properties) {
             $v = [double]$f.Value
@@ -472,8 +474,8 @@ if (Test-Path $baitFile) {
         Write-Host ("  without a match in the species list: " + (($baitDropped.Keys | Sort-Object) -join ', '))
     }
 
-    # Beste erreichbare Ködervorliebe je Art und Angelart. Hier zählt jedes
-    # Prefab, auch die Varianten, die oben zu einem Eintrag verschmolzen wurden.
+    # Best reachable bait preference per species and method. Every prefab counts
+    # here, including the variants merged into one entry above.
     foreach ($p in $raw.PSObject.Properties) {
         $kind = BaitKind $p.Name
         foreach ($f in $p.Value.fish.PSObject.Properties) {
@@ -488,8 +490,8 @@ if (Test-Path $baitFile) {
         }
     }
 
-    # Als vier Prozentwerte an die Art hängen: Fliege, Kunstköder,
-    # Naturköder, Boilie. Der Naturköder gilt für ein einzelnes Stück;
+    # Attach four percentages to the species: fly, lure, natural bait, boilie.
+    # The natural bait figure is for a single piece;
     # Bait.CheckTaste rechnet bei mehreren "bestes + 0,2 je weiteres".
     $withMethods = 0
     foreach ($sk in $baitBest.Keys) {
@@ -505,7 +507,7 @@ if (Test-Path $baitFile) {
     Write-Host "Fishing methods rated per species: $withMethods"
 }
 
-# Nur die drei Kurven, die je Art überhaupt gefüllt sind.
+# Only the three curves that are filled in per species at all.
 $curveFile = Join-Path $sp 'bitecurves.json'
 if (Test-Path $curveFile) {
     $bc = Get-Content $curveFile -Raw | ConvertFrom-Json
@@ -522,16 +524,16 @@ if (Test-Path $curveFile) {
         }
         if ($bite.Count) { $species[$p.Name].bite = $bite }
 
-        # Führung beim Spinnfischen: ein Faktor je Eintrag des Enums
+        # Retrieve when spin fishing: one factor per entry of the enum
         # SpinningMethod. Der erste Wert (NONE) bleibt weg, er beschreibt
-        # "keine Führung" und steht bei allen Arten auf 0.
+        # "no retrieve" and sits at 0 for every species.
         if ($p.Value.spin -and $p.Value.spin.Count -eq 7) {
             $species[$p.Name].spin = @($p.Value.spin[1..6])
         }
     }
 }
 
-# Größentabellen: Haken- und Ködergröße gegen Fischgewicht bzw. -länge.
+# Size tables: hook and bait size against fish weight and length.
 $hooks = $null
 $hookFile = Join-Path $sp 'hooks.json'
 if (Test-Path $hookFile) {
@@ -554,8 +556,8 @@ New-Item -ItemType Directory -Force (Join-Path $proj 'src\data') | Out-Null
 [IO.File]::WriteAllText("$proj\src\data\gamedata.json", $json)
 
 # ------------------------------------------------- 4) Master data for the API
-# Der Symfony-Dienst wertet hochgeladene Spielstände selbst aus und braucht
-# dafür Artenliste, Reviere mit ihren Arten und die Spielstand-Schlüssel.
+# The Symfony service evaluates uploaded save files itself and needs the
+# species list, the fisheries with their species and the save-file keys.
 $srvSpecies = [ordered]@{}
 foreach ($k in $species.Keys) {
     $s = $species[$k]

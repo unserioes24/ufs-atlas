@@ -1,9 +1,9 @@
 <#
-    Vergleicht data.json (recherchierter Guide) mit gamedata.js (Spieldateien):
-    Welche Art steht im Guide an einem Revier, ohne dort in den Spieldateien
-    vorzukommen?
+    Compares data.json (the researched guide) against the game files: which
+    species does the guide list at a fishery without it occurring there in the
+    game files?
 
-    -Apply schreibt data.json ohne diese Einträge zurück.
+    -Apply writes data.json back without those entries.
 #>
 param(
     [string]$Proj = (Split-Path $PSScriptRoot -Parent),
@@ -17,7 +17,7 @@ $gjson = $gtext.Substring($gtext.IndexOf('{'))
 $gjson = $gjson.TrimEnd() -replace ';$', ''
 $game = $gjson | ConvertFrom-Json
 
-# Namensindex der Spieldaten: englisch und deutsch -> Artenschlüssel
+# Name index of the game data: English and German -> species key
 $byName = @{}
 foreach ($p in $game.species.PSObject.Properties) {
     $k = $p.Name; $s = $p.Value
@@ -27,7 +27,7 @@ foreach ($p in $game.species.PSObject.Properties) {
         if ($norm -and -not $byName.ContainsKey($norm)) { $byName[$norm] = $k }
     }
 }
-# Dieselben Regeln wie NAME_ALIAS und EQUIV in app.js.
+# The same rules as NAME_ALIAS and EQUIV in the app.
 $NAME_ALIAS = @{
     'apapa' = 'APAPA'; 'grayling' = 'WHITE_GRAYLING'; 'commonbleak' = 'BLEAK'
     'longfineel' = 'LONGFIN_EEL'; 'redlionfish' = 'COMMON_LIONFISH'; 'graysnapper' = 'GREY_SNAPER'
@@ -75,12 +75,12 @@ $drop = New-Object System.Collections.ArrayList
 foreach ($f in $data.fish) {
     $key = Get-Key $f.name $f.de
     $known = $inFishery.ContainsKey($f.mapId)
-    if (-not $known) { [void]$keep.Add($f); continue }          # Revier ohne Spieldaten (Italy)
+    if (-not $known) { [void]$keep.Add($f); continue }          # fishery without game data (Italy)
     if (Test-InFishery $key $f.mapId) { [void]$keep.Add($f); continue }
     [void]$drop.Add([pscustomobject]@{
         Revier = $mapName[$f.mapId]; MapId = $f.mapId
         Art    = $f.name; De = $f.de
-        Key    = if ($key) { $key } else { '(kein Artenschlüssel)' }
+        Key    = if ($key) { $key } else { '(no species key)' }
         Id     = $f.id
     })
 }

@@ -1,10 +1,10 @@
 <#
-    Prüft, ob die Arten des New-Fish-Species-DLC eigene Spawnpunkte haben.
+    Checks whether the species of the New Fish Species DLC have spawn points of
+    their own.
 
-    Liest jede Szene mit dem echten Feld-Layout von FishSpawner (aus
-    Assembly-CSharp.dll) und zählt, an welchen Spawnern eine fishPrefabsDLC-Liste
-    hängt. Ergebnis: tools\_work\dlc\<level>.json plus eine Übersicht auf der
-    Konsole.
+    Reads every scene with the real field layout of FishSpawner (from
+    Assembly-CSharp.dll) and counts which spawners carry a fishPrefabsDLC list.
+    Result: tools\_work\dlc\<level>.json plus a summary on the console.
 #>
 param(
     [string]$Game = 'C:\Program Files (x86)\Steam\steamapps\common\Ultimate Fishing\UltimateFishing_Data',
@@ -20,11 +20,11 @@ $LEVELS = 4, 5, 6, 7, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 22, 23
 $dst = Join-Path $Work 'dlc'
 New-Item -ItemType Directory -Force $dst | Out-Null
 
-# Nummer -> Artenschlüssel, aus dem Enum Fish.Species
+# Number -> species key, from the enum Fish.Species
 $enum = @{}
 foreach ($e in (Get-Content (Join-Path $Work 'species_enum.json') -Raw | ConvertFrom-Json)) { $enum[[int]$e.v] = $e.n }
 
-# Prefab-Pfad -> Artenschlüssel, über fishindex/prefabkeys aus der bestehenden Pipeline
+# Prefab path -> species key, through fishindex/prefabkeys from the existing pipeline
 $fishIndex = Get-Content (Join-Path $Work 'fishindex.json') -Raw | ConvertFrom-Json
 $prefabKeys = Get-Content (Join-Path $Work 'prefabkeys.json') -Raw | ConvertFrom-Json
 

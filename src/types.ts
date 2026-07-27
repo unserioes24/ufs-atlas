@@ -170,7 +170,7 @@ export interface GuideFish {
 export interface GuideData {
   maps: GuideMap[]
   fish: GuideFish[]
-  sources: Record<string, { title: string; url?: string; note?: string }>
+  sources: Record<string, { title: string; url?: string; note?: string; type?: string }>
   generated: string
   scope: string
 }

@@ -1,20 +1,20 @@
 <#
-    Liest die Größentabellen aus dem Hauptmenü (level2).
+    Reads the size tables from the main menu (level2).
 
-    FishManager führt vier Listen aus Vector2, jede mit 18 Stufen:
+    FishManager holds four lists of Vector2, each with 18 steps:
 
-        baitToFishSize    Ködergröße   -> Fischlänge  (Meter)
-        hookToFishWeight  Hakengröße   -> Fischgewicht (kg)
-        lureToFishWeight  Kunstköder   -> Fischgewicht (kg)
-        flyToFishWeight   Fliege       -> Fischgewicht (kg)
+        baitToFishSize    bait size   -> fish length (metres)
+        hookToFishWeight  hook size   -> fish weight (kg)
+        lureToFishWeight  lure        -> fish weight (kg)
+        flyToFishWeight   fly         -> fish weight (kg)
 
-    EquipmentManager führt dazu hookSizesCm, ebenfalls 18 Werte: die Spaltbreite
-    des Hakens in Metern, trotz des Feldnamens.
+    On top of that EquipmentManager holds hookSizesCm, 18 values as well: the
+    gap of the hook, in metres despite the field name.
 
-    Die vier Listen stehen am Ende der FishManager-Klasse und lassen sich
-    deshalb vom Blockende her sicher lesen.
+    The four lists sit at the end of the FishManager class and can therefore be
+    read safely from the end of the block backwards.
 
-    Ausgabe: tools\_work\hooks.json
+    Output: tools\_work\hooks.json
 #>
 param(
     [string]$Game = 'C:\Program Files (x86)\Steam\steamapps\common\Ultimate Fishing\UltimateFishing_Data',
@@ -43,7 +43,7 @@ foreach ($o in $sf.Objects) {
 
 function Get-Blob($name, $minSize) {
     $k = @($goName.Keys | Where-Object { $goName[$_] -eq $name })[0]
-    if ($null -eq $k) { throw "$name nicht in $Scene gefunden" }
+    if ($null -eq $k) { throw "$name not found in $Scene" }
     foreach ($cid in $goComps[$k]) {
         if (-not $sf.ById.ContainsKey([long]$cid)) { continue }
         $co = $sf.ById[[long]$cid]
@@ -52,7 +52,7 @@ function Get-Blob($name, $minSize) {
     throw "Kein passender Baustein an $name"
 }
 
-# --- FishManager: vier Vector2-Listen, vom Blockende rückwärts
+# --- FishManager: four Vector2 lists, read backwards from the end of the block
 $d = Get-Blob 'FishManager' 4000
 $p = $d.Length
 $lists = @()
@@ -73,12 +73,12 @@ for ($round = 0; $round -lt 4; $round++) {
         $hit = @{ start = $start; rows = $rows }
         break
     }
-    if (-not $hit) { throw "Liste $round nicht gefunden (Position $p)" }
+    if (-not $hit) { throw "list $round not found (position $p)" }
     $lists = , $hit + $lists
     $p = $hit.start
 }
 
-# --- EquipmentManager: hookSizesCm, aufsteigende Reihe gleicher Länge
+# --- EquipmentManager: hookSizesCm, a rising row of the same length
 $e = Get-Blob 'EquipmentManager' 4000
 $want = $lists[0].rows.Count
 $sizes = $null
@@ -95,11 +95,11 @@ for ($q = 28; $q + 4 -le $e.Length; $q += 4) {
 }
 $sf.Close()
 
-# Beschriftung der Stufen. Sie steht nirgends als Tabelle, sondern entsteht in
-# UtilitiesUnits.GetHookSizeString(int). Der Code dort macht nichts anderes als:
+# Labels for the steps. They are nowhere as a table; they are built in
+# UtilitiesUnits.GetHookSizeString(int). The code there does nothing but:
 #     Index 0..5  ->  "#" + {12, 8, 6, 4, 2, 1}
 #     Index > 5   ->  "#" + (Index - 5) + "/0"
-# also #12, #8, #6, #4, #2, #1, #1/0, #2/0 ... #12/0 – genau 18 Stufen.
+# giving #12, #8, #6, #4, #2, #1, #1/0, #2/0 ... #12/0 – exactly 18 steps.
 $SMALL = 12, 8, 6, 4, 2, 1
 $labels = @()
 for ($i = 0; $i -lt $want; $i++) {
@@ -109,10 +109,10 @@ for ($i = 0; $i -lt $want; $i++) {
 
 $out = [ordered]@{
     steps      = $want
-    label      = $labels                # Beschriftung wie im Laden
-    gap        = $sizes                 # Spaltbreite des Hakens in Metern
-    baitLength = $lists[0].rows         # Ködergröße -> Fischlänge in Metern
-    hook       = $lists[1].rows         # Hakengröße -> Fischgewicht in kg
+    label      = $labels                # labels as in the shop
+    gap        = $sizes                 # gap of the hook, in metres
+    baitLength = $lists[0].rows         # bait size -> fish length in metres
+    hook       = $lists[1].rows         # hook size -> fish weight in kg
     lure       = $lists[2].rows
     fly        = $lists[3].rows
 }

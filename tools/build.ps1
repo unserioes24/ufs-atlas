@@ -254,8 +254,8 @@ foreach ($fy in $FISH) {
         if ($ns -gt 0) { $e.sp = $ns; $e.d = [int]$nd }
         $spw += [pscustomobject]$e
 
-        # Spawner mit Artenliste würfeln unter mehreren Arten; die Fischzahl
-        # verteilt sich entsprechend, gezählt werden alle beteiligten Arten.
+        # Spawners with a species list draw among several species; the fish count
+        # spreads accordingly, and every species involved is counted.
         $share = $cnt / $names.Count
         foreach ($nm in $names) {
             if (-not $agg.ContainsKey($nm)) { $agg[$nm] = @{ points = 0.0; fish = 0.0; spots = @{} } }
@@ -274,10 +274,10 @@ foreach ($fy in $FISH) {
         $sl += [pscustomobject][ordered]@{ s = $kv.Key; points = [Math]::Round($kv.Value.points); fish = [Math]::Round($kv.Value.fish); spots = @($topSpots) }
     }
 
-    # Zusatzarten des New-Fish-Species-DLC. Sie stehen im GameController unter
-    # fishFromDLC; feste Spawnplätze haben sie nicht, das Spiel überlässt ihnen
-    # zur Laufzeit den in fishSpawnersDLCAmount hinterlegten Anteil der übrigen.
-    # Aus den Kandidaten wird der genommen, dessen Verweise sich restlos als
+    # Extra species of the New Fish Species DLC. GameController lists them under
+    # fishFromDLC; they have no fixed spawn places, at runtime the game hands
+    # them the share of the others stored in fishSpawnersDLCAmount.
+    # Of the candidates the one is taken whose references resolve without a
     # Fisch-Prefabs auflösen lassen.
     $dlcNames = @()
     $dlcAmount = 0

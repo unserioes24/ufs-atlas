@@ -21,6 +21,7 @@ import {
     bestHours, methodTop, spinTop
 } from '../components/species/facts'
 import SpeciesPage from '../components/species/SpeciesPage'
+import { FishCard } from '../components/species/FishCard'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
@@ -131,68 +132,11 @@ Object.keys(BAITS).forEach(function (k) {
 Object.keys(BAITS_FOR).forEach(function (s) {
     BAITS_FOR[s].sort(function (a, b) { return b.v - a.v || a.bait.de.localeCompare(b.bait.de); });
 });
-
-const BAIT_KIND = {
-    natural: 'Naturköder', boilie: 'Boilie', fly: 'Fliege', lure: 'Kunstköder'
-};
 function baitName(b, lang) { return (lang === 'en' ? b.en : b.de) || b.en || b.key; }
 
 /* The size steps themselves now live in src/lib/hooks.ts. */
 const HOOKS = G.hooks || null;
 
-/* ------------------------------------------------------- Köder-Übersetzung */
-
-const EXTRA_TERMS = {
-    'Red Worm': 'Regenwurm', 'Worm': 'Wurm', 'Earthworm': 'Regenwurm', 'Maggot': 'Made',
-    'Live Bait': 'Lebendköder', 'Fly': 'Fliege', 'Corn': 'Mais', 'Pea': 'Erbse', 'Bread': 'Brot',
-    'Leech': 'Blutegel', 'Wax Worm': 'Wachswurm', 'Dragonfly': 'Libelle', 'Grasshopper': 'Grashüpfer',
-    'Cheese': 'Käse', 'Marshmallow': 'Schaum', 'Dough Ball': 'Teigball', 'Dough': 'Teig',
-    'Semolina Ball': 'Grießball', 'Eggs': 'Fischeier', 'Egg': 'Fischei',
-    'Natural Egg': 'Natürliches Fischei', 'Artificial Egg': 'Künstliches Fischei',
-    'Cutbait Small': 'Kleiner Schnittköder', 'Cutbait Big': 'Großer Schnittköder',
-    'Cutbait Large': 'Großer Schnittköder', 'Small Cutbait': 'Kleiner Schnittköder', 'Cutbait': 'Schnittköder',
-    'Insects': 'Insekten', 'Boilie': 'Boilie', 'Softbait': 'Gummiköder', 'Soft Bait': 'Gummiköder',
-    'Soft lure': 'Gummiköder', 'Spoon': 'Blinker', 'Spinner': 'Spinner', 'Wobbler': 'Wobbler',
-    'Hard lure': 'Wobbler', 'Crankbait': 'Wobbler', 'Lure': 'Kunstköder', 'Lures': 'Kunstköder',
-    'Straight Slow': 'Straight Slow – sehr langsam einholen',
-    'Straight': 'Straight – gleichmäßig einholen',
-    'Lift & Drop': 'Lift & Drop – anheben und absinken lassen',
-    'Lift and Drop': 'Lift & Drop – anheben und absinken lassen',
-    'Stop & Go': 'Stop & Go – einholen, absinken, kurz liegen lassen',
-    'Stop and Go': 'Stop & Go – einholen, absinken, kurz liegen lassen',
-    'Twitching': 'Twitching – regelmäßig zupfen',
-    'Trolling': 'Schleppfischen', 'Slit Finesse': 'Slit Finesse'
-};
-
-const TERM_MAP = {};
-(function buildTerms() {
-    const gl = G.glossary || {};
-    [gl.bait, gl.lure, gl.method].forEach(function (grp) {
-        if (!grp) return;
-        Object.keys(grp).forEach(function (en) { TERM_MAP[en.toLowerCase()] = grp[en]; });
-    });
-    Object.keys(EXTRA_TERMS).forEach(function (en) { TERM_MAP[en.toLowerCase()] = EXTRA_TERMS[en]; });
-})();
-
-const TERM_RX = (function () {
-    const keys = Object.keys(TERM_MAP).sort(function (a, b) { return b.length - a.length; });
-    if (!keys.length) return null;
-    const esc = keys.map(function (k) { return k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
-    try {
-        return new RegExp('(?<![\\wäöüß])(' + esc.join('|') + ')(?![\\wäöüß])', 'gi');
-    } catch (e) {
-        return new RegExp('\\b(' + esc.join('|') + ')\\b', 'gi');
-    }
-})();
-
-/** Ersetzt englische Köder- und Führungsbegriffe durch die Begriffe aus dem Spiel. */
-function toGerman(text) {
-    if (!text || typeof text !== 'string' || !TERM_RX) return text;
-    TERM_RX.lastIndex = 0;
-    return text.replace(TERM_RX, function (m) { return TERM_MAP[m.toLowerCase()] || m; });
-}
-
-/* -------------------------------------------------------------- Bausteine */
 
 function Badge(props) {
     const tones = {
@@ -201,11 +145,6 @@ function Badge(props) {
         violet: 'border-violet-400/30 bg-violet-400/10 text-violet-200', slate: 'border-white/10 bg-white/[.045] text-slate-300'
     };
     return h('span', { className: cn('inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wide', tones[props.tone || 'slate']) }, props.children);
-}
-function Confidence(props) {
-    const map = { hoch: ['hoch', 'green'], mittel: ['mittel', 'amber'], niedrig: ['abgeleitet', 'red'] };
-    const v = map[props.value] || map.mittel;
-    return h(Badge, { tone: v[1] }, 'Vertrauen: ' + v[0]);
 }
 function Icon(props) {
     const icons = {
@@ -406,165 +345,6 @@ function ImportDialog(props) {
         }, 'Fangliste zurücksetzen')));
 }
 
-/* --------------------------------------------------------------- Fischkarte */
-
-function FishCard(props) {
-    const t = useI18n().t;
-    const f = props.f, lang = props.lang, key = props.speciesKey;
-    const sp = key ? SPECIES[key] : null;
-    const gm = props.gameEntry;
-    const best = key ? props.bests[key] : null;
-    const done = key ? !!props.caught[key] : false;
-
-    const spots = gm && gm.spots && gm.spots.length ? gm.spots : null;
-
-    // Werte aus den Spieldateien, die die Angaben des Guides ersetzen.
-    const hookIdx = sp && sp.wMax ? fitSteps(HOOKS && HOOKS.hook, sp.wMin || 0, sp.wMax) : [];
-    const hookText = hookIdx.length ? stepRange(hookIdx) + '  ' + gapRange(hookIdx) : null;
-    const hours = sp && sp.act ? bestHours(sp.act, t('fish.allDay')) : null;
-    const top = sp && sp.spin ? spinTop(sp.spin) : null;
-    const mTop = sp && sp.m ? methodTop(sp.m) : null;
-
-    return h('article', { id: f.id, className: 'print-card group overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/[.055] to-white/[.022] shadow-xl transition hover:border-cyan-300/25' },
-        h('div', { className: 'flex flex-wrap items-start gap-4 border-b border-white/10 p-5 lg:p-6' },
-            h('div', { className: 'grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-cyan-300/15 bg-cyan-400/[.07] text-xl text-cyan-200' }, '◈'),
-            h('div', { className: 'min-w-0 flex-1' },
-                h('div', { className: 'flex flex-wrap items-center gap-2' },
-                    // Namen aus den Spieldateien haben Vorrang: im Guide fehlt bei
-                    // einigen Arten die deutsche Bezeichnung.
-                    h('h2', { className: 'text-xl font-black text-white' },
-                        lang === 'en' ? ((sp && sp.en) || f.name) : ((sp && sp.de) || f.de || f.name)),
-                    h('span', { className: 'text-sm text-slate-500' },
-                        '· ' + (lang === 'en' ? ((sp && sp.de) || f.de || f.name) : ((sp && sp.en) || f.name))),
-                    f.dlc ? h(Badge, { tone: 'violet' }, f.dlc) : null,
-                    props.gameOnly ? h(Badge, { tone: 'cyan' }, 'nur Spieldaten') : null),
-                h('div', { className: 'mt-2 flex flex-wrap gap-2' },
-                    h(Confidence, { value: f.confidence }),
-                    h(Badge, null, f.method),
-                    f.time !== 'Keine feste Zeit belegt' ? h(Badge, { tone: 'amber' }, f.time) : null)),
-            h('div', { className: 'ufs-col', style: { alignItems: 'flex-end' } },
-                key ? h('button', {
-                    className: cn('ufs-catch', done && 'on'),
-                    onClick: function () { props.onToggleCatch(key); },
-                    title: 'Als gefangen markieren'
-                }, h('span', { className: 'box' }, done ? '✓' : ''), done ? 'gefangen' : 'offen') : null,
-                h('button', {
-                    onClick: props.onFav, title: 'Favorit',
-                    className: cn('no-print rounded-xl border p-2 transition', props.favorite ? 'border-amber-300/30 bg-amber-300/10 text-amber-200' : 'border-white/10 text-slate-600 hover:text-amber-200')
-                }, h(Icon, { name: 'star' })))),
-
-        h('div', { className: cn('grid gap-px bg-white/[.06]', props.compact ? 'grid-cols-2' : 'sm:grid-cols-2 xl:grid-cols-4') },
-            h(Fact, {
-                icon: 'map', label: 'Spot',
-                value: spots
-                    ? h('span', { className: 'ufs-row' }, spots.map(function (n) {
-                        return h('button', {
-                            key: n,
-                            className: cn('ufs-chip ufs-chip-btn ufs-chip-spot', props.selectedSpot === n && 'ufs-chip-on'),
-                            onClick: function () { props.onPickSpot(n); }
-                        }, 'Spot ' + n);
-                    }))
-                    : f.spots
-            }),
-            h(Fact, { icon: 'hook', label: 'Haken', value: hookText || f.hook }),
-            h(Fact, { icon: 'star', label: 'Beste Zeit', value: hours || f.time }),
-            mTop ? h(Fact, {
-                icon: 'bait', label: 'Beste Angelart',
-                value: h('span', null, mTop.rows.map(function (x) { return t(x.name); }).join(' / '),
-                    h('span', { className: 'ufs-muted', style: { fontWeight: 400 } }, '  ' + mTop.value + ' %'))
-            }) : null,
-            h(Fact, {
-                icon: 'method', label: 'Beste Führung',
-                value: top
-                    ? h('span', null, top.names.map(t).join(' / '),
-                        h('span', { className: 'ufs-muted', style: { fontWeight: 400 } },
-                            '  ' + Math.round(top.value * 100) + ' %'))
-                    : (lang === 'de' ? toGerman(f.method) : f.method)
-            })),
-
-        h('div', { className: cn('grid gap-4 p-5 lg:p-6', props.compact ? '' : 'lg:grid-cols-2') },
-            // Köder als Marken: die stärksten laut Prefab, nicht die Guide-Aufzählung.
-            key && (BAITS_FOR[key] || []).length
-                ? h('div', { className: 'rounded-2xl border border-white/10 bg-black/15 p-4' },
-                    h('div', { className: 'text-[10px] font-bold uppercase tracking-[.15em] text-slate-600' }, 'Köder'),
-                    h('div', { className: 'ufs-row', style: { marginTop: '.5rem' } },
-                        (BAITS_FOR[key] || []).slice(0, 8).map(function (e) {
-                            return h('span', {
-                                key: e.bait.key,
-                                className: cn('ufs-chip ufs-baitchip', e.bait.kind),
-                                title: BAIT_KIND[e.bait.kind]
-                            }, baitName(e.bait, lang), h('b', null, Math.round(e.v * 100) + ' %'));
-                        })))
-                : h(Detail, { title: 'Köder', value: lang === 'de' ? toGerman(f.bait) : f.bait }),
-            h(Detail, { title: 'Grundfutter / Anfütterung', value: lang === 'de' ? toGerman(f.groundbait) : f.groundbait }),
-
-            sp ? h('div', { className: cn('ufs-gamebox', props.compact ? '' : 'lg:col-span-2') },
-                h('div', { className: 'hd' }, 'Aus den Spieldateien'),
-                h('div', { className: 'ufs-stats' },
-                    sp.wMax ? h('span', null, 'Gewicht: ', h('b', null, sp.wMin + '–' + sp.wMax + ' kg')) : null,
-                    sp.lMax ? h('span', null, 'Länge: ', h('b', null, sp.lMin + '–' + sp.lMax + ' cm')) : null,
-                    gm && gm.points ? h('span', null, 'Schwarmpunkte hier: ', h('b', null, gm.points)) : null,
-                    gm && gm.fish ? h('span', null, 'Fische hier: ', h('b', null, gm.fish)) : null,
-                    gm && gm.dlc ? h('span', null, h('b', null, 'DLC-Art'), ' – ohne feste Spawnpunkte in der Szene') : null),
-                sp.act ? h('div', { style: { marginTop: '.6rem' } }, h(Activity, { act: sp.act })) : null,
-                HOOKS && sp.wMax
-                    ? h('div', { style: { marginTop: '.7rem' } },
-                        h('div', { className: 'hd' }, 'Passende Größenstufen'),
-                        h(SizeFit, { sp: sp }))
-                    : null,
-                sp.m
-                    ? h('div', { style: { marginTop: '.7rem' } },
-                        h('div', { className: 'hd' }, 'Angelart'),
-                        h(MethodList, { m: sp.m }))
-                    : null,
-                key && (BAITS_FOR[key] || []).length
-                    ? h('div', { style: { marginTop: '.7rem' } },
-                        h('div', { className: 'hd' }, 'Köder, Interesse laut Prefab'),
-                        h(BaitTop, { speciesKey: key }))
-                    : null,
-                sp.spin
-                    ? h('div', { style: { marginTop: '.7rem' } },
-                        h('div', { className: 'hd' }, 'Führung beim Spinnfischen'),
-                        h(RetrieveList, { spin: sp.spin }))
-                    : null,
-                sp.bite
-                    ? h('div', { style: { marginTop: '.7rem' } },
-                        h('div', { className: 'hd' }, 'Wetter'),
-                        h(BiteFactors, { bite: sp.bite }))
-                    : null,
-                best ? h('div', { className: 'ufs-stats', style: { marginTop: '.6rem' } },
-                    h('span', null, 'Dein Rekord: ', h('b', null,
-                        (best.weight ? best.weight.toFixed(2) + ' kg' : '–') +
-                        (best.length ? ' · ' + Math.round(best.length * 100) + ' cm' : ''))),
-                    best.count ? h('span', null, 'Fänge: ', h('b', null, best.count)) : null,
-                    best.fishery ? h('span', null, 'Rekordrevier: ', h('b', null, fisheryLabel(best.fishery))) : null) : null,
-                sp.info ? h('p', { style: { margin: '.6rem 0 0', fontSize: '12px', lineHeight: 1.65, color: '#94a3b8' } }, sp.info) : null) : null,
-
-            f.notes ? h('div', { className: cn('rounded-2xl border border-white/10 bg-black/15 p-4 text-sm leading-6 text-slate-400', props.compact ? '' : 'lg:col-span-2') },
-                h('span', { className: 'font-bold text-slate-200' }, 'Praxisnotiz: '), f.notes) : null,
-
-            h('div', { className: cn('no-print flex flex-wrap items-center gap-2 text-xs text-slate-500', props.compact ? '' : 'lg:col-span-2') },
-                'Quellen: ',
-                f.sources.map(function (s) {
-                    return h('button', {
-                        key: s, onClick: props.onSource,
-                        className: 'rounded-lg border border-white/10 bg-white/[.035] px-2 py-1 hover:text-cyan-200'
-                    }, (D.sources[s] || {}).type || s);
-                }),
-                sp ? h('span', { className: 'ufs-chip' }, h(Icon, { name: 'game' }), 'Spieldateien') : null)));
-}
-
-function Fact(props) {
-    return h('div', { className: 'bg-[#0b1821]/90 p-4' },
-        h('div', { className: 'flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.15em] text-slate-600' },
-            h(Icon, { name: props.icon }), props.label),
-        h('div', { className: 'mt-2 text-sm font-semibold leading-6 text-slate-200' }, props.value));
-}
-function Detail(props) {
-    return h('div', { className: 'rounded-2xl border border-white/10 bg-black/15 p-4' },
-        h('div', { className: 'text-[10px] font-bold uppercase tracking-[.15em] text-slate-600' }, props.title),
-        h('div', { className: 'mt-2 text-sm leading-6 text-slate-300' }, props.value));
-}
 
 function Sources(props) {
     return h('div', {
@@ -2384,7 +2164,7 @@ function App() {
                 })
                 : view === 'arten' ? h(SpeciesPage, {
                     caught: caught, bests: bests,
-                    initialOpen: openSpecies, onOpen: setOpenSpecies, toGerman: toGerman
+                    initialOpen: openSpecies, onOpen: setOpenSpecies
                 })
                 : isGlobal ? h(GlobalOverview, {
                     caught: caught, allKeys: allKeys, lang: lang,

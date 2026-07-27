@@ -1,8 +1,8 @@
 <#
-    Liest je Fischart das Gewichtungsmodell für den Biss aus den Prefabs.
+    Reads the weighting model behind the bite, per species, from the prefabs.
 
-    In der Klasse Fish stehen neun Gewichte und danach zehn Kurven, in dieser
-    Reihenfolge (Quelle: Assembly-CSharp.dll):
+    The class Fish holds nine weights and after them ten curves, in this order
+    (source: Assembly-CSharp.dll):
 
         float timeWeight, hungerWeight, baitDepthWeight, temperatureWeight,
               windWeight, pressureWeight, cloudinessWeight, rainWeight,
@@ -11,15 +11,14 @@
               windCurve, pressureCurve, cloudinessCurve, rainCurve,
               baitSpeedCurve, waterPlant
 
-    Eine AnimationCurve serialisiert als [int Anzahl][je Schlüssel 16 Byte:
-    Zeit, Wert, Eingangs- und Ausgangssteigung][3 int Nachspann], also 48 Byte
-    bei zwei Schlüsseln.
+    An AnimationCurve serialises as [int count][16 bytes per key: time, value,
+    in and out slope][3 int trailer], so 48 bytes with two keys.
 
-    Angesetzt wird an der Beißzeitkurve: sie ist die einzige, die bei 0 beginnt
-    und bei 24 endet. Von dort laufen die übrigen der Reihe nach, die neun
-    Gewichte liegen unmittelbar davor.
+    The anchor is the bite-time curve: it is the only one that starts at 0 and
+    ends at 24. From there the rest follow in order, and the nine weights sit
+    directly in front of it.
 
-    Ausgabe: tools\_work\bitecurves.json
+    Output: tools\_work\bitecurves.json
 #>
 param(
     [string]$Work = (Join-Path $PSScriptRoot '_work')
@@ -77,8 +76,8 @@ foreach ($ob in $fp.objects) {
     }
     if ($curves.Count -lt 9) { $skipped++; continue }
 
-    # Direkt hinter den Kurven: List<float> spinningMethodFactor mit einem Wert
-    # je Eintrag des Enums SpinningMethod (NONE, STRAIGHT_SLOW, STRAIGHT,
+    # Straight behind the curves: List<float> spinningMethodFactor with one value
+    # per entry of the SpinningMethod enum (NONE, STRAIGHT_SLOW, STRAIGHT,
     # STRAIGHT_FAST, LIFT_DROP, STOP_GO, TWITCHING), danach floatMethodFactor.
     $spin = $null; $floatFactor = $null
     if ($curves.Count -eq 10 -and $p + 4 -le $b.Length) {
@@ -109,7 +108,7 @@ foreach ($ob in $fp.objects) {
 "Arten mit Kurven : $($out.Count)"
 "übersprungen     : $skipped"
 
-# Welche Regler sind überhaupt bespielt?
+# Which dials are filled in at all?
 "`nAbweichung von der Konstanten 1:"
 foreach ($nm in $NAMES) {
     if ($nm -eq 'time' -or $nm -eq 'waterPlant') { continue }
@@ -119,7 +118,7 @@ foreach ($nm in $NAMES) {
         if (-not $cv) { continue }
         foreach ($pt in $cv) { if ([Math]::Abs($pt[1] - 1) -gt 0.001) { $n++; break } }
     }
-    "  {0,-12} {1,3} von {2} Arten" -f $nm, $n, $out.Count
+    "  {0,-12} {1,3} of {2} species" -f $nm, $n, $out.Count
 }
 $mitSpin = 0
 foreach ($k in $out.Keys) { if ($out[$k].spin) { $mitSpin++ } }

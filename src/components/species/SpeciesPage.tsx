@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { BAITS_FOR, FISHERIES, GUIDE, HOOKS, SPECIES, speciesKey, speciesName } from '../../data'
 import { useI18n } from '../../i18n'
+import { translateTerms } from '../../i18n/terms'
 import { cn, fmtNum } from '../../lib/format'
 import type { BestCatch } from '../../types'
 import { Toggle } from '../ui'
@@ -49,11 +50,9 @@ interface Props {
   bests: Record<string, BestCatch>
   initialOpen: string | null
   onOpen: (key: string | null) => void
-  /** Translates a bait or retrieve name from the guide into German. */
-  toGerman: (s: string) => string
 }
 
-export function SpeciesPage({ caught, bests, initialOpen, onOpen, toGerman }: Props) {
+export function SpeciesPage({ caught, bests, initialOpen, onOpen }: Props) {
   const { t, lang } = useI18n()
   // Direct link to a species: prefill the search so its card sits on top.
   const [q, setQ] = useState(() =>
@@ -143,7 +142,7 @@ export function SpeciesPage({ caught, bests, initialOpen, onOpen, toGerman }: Pr
                   {g && Object.keys(g.baits).length ? (
                     <Line label={t('fish.baits')}>
                       {topKeys(g.baits, 6)
-                        .map((b) => (lang === 'de' ? toGerman(b) : b))
+                        .map((b) => translateTerms(b, lang))
                         .join(', ')}
                     </Line>
                   ) : null}
@@ -156,7 +155,7 @@ export function SpeciesPage({ caught, bests, initialOpen, onOpen, toGerman }: Pr
                   {g && Object.keys(g.retrieves).length ? (
                     <Line label={t('species.retrieve')}>
                       {topKeys(g.retrieves, 2)
-                        .map((b) => (lang === 'de' ? toGerman(b) : b))
+                        .map((b) => translateTerms(b, lang))
                         .join(' · ')}
                     </Line>
                   ) : null}
