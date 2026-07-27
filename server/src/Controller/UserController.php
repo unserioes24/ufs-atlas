@@ -57,8 +57,9 @@ class UserController extends AbstractController
             ];
         }
 
-        // From the angler data only what shows progress – the rod sets stay
-        // with the account they belong to.
+        // From the angler data what says something about the angler: the
+        // figures, the gear they bought, the rigs they fish and the skills they
+        // unlocked. Not in here is anything that identifies the account.
         $d = $p->getDetails();
 
         return [
@@ -71,6 +72,9 @@ class UserController extends AbstractController
             'strength' => (float) ($d['strength'] ?? 0),
             'version' => $d['version'] ?? null,
             'owned' => \is_array($d['owned'] ?? null) ? $d['owned'] : [],
+            'sets' => \is_array($d['sets'] ?? null) ? $d['sets'] : [],
+            'skills' => \is_array($d['skills'] ?? null) ? $d['skills'] : [],
+            'skillPoints' => (int) ($d['skillPoints'] ?? 0),
             'totals' => [
                 'fish' => $p->getTotalFish(),
                 'bites' => $p->getTotalBites(),

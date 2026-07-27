@@ -369,7 +369,7 @@ export const en: Partial<Dict> = {
 
   'privacy.publicTitle': 'What others can see',
   'privacy.publicText':
-    'Your profile is reachable at its address once you pass it on: display name, the figures from your save file and your public groups. Your e-mail address is never shown. Inside a group the members see your name and your figures.',
+    'Your profile is reachable at its address once you pass it on: display name, the figures from your save file, the gear you bought, your rod sets, the skills you unlocked and your public groups. Your e-mail address is never shown. Inside a group the members see your name and your figures.',
 
   'privacy.cookiesTitle': 'Cookies',
   'privacy.cookiesText':

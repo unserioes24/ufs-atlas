@@ -372,7 +372,7 @@ export const de = {
 
   'privacy.publicTitle': 'Was andere sehen',
   'privacy.publicText':
-    'Dein Profil ist über seine Adresse erreichbar, sobald du sie weitergibst: Anzeigename, die Zahlen aus deinem Spielstand und deine öffentlichen Gruppen. Deine E-Mail-Adresse ist nie sichtbar. In einer Gruppe sehen die Mitglieder deinen Namen und deine Kennzahlen.',
+    'Dein Profil ist über seine Adresse erreichbar, sobald du sie weitergibst: Anzeigename, die Zahlen aus deinem Spielstand, deine gekaufte Ausrüstung, deine Rutensets, deine freigeschalteten Fähigkeiten und deine öffentlichen Gruppen. Deine E-Mail-Adresse ist nie sichtbar. In einer Gruppe sehen die Mitglieder deinen Namen und deine Kennzahlen.',
 
   'privacy.cookiesTitle': 'Cookies',
   'privacy.cookiesText':
