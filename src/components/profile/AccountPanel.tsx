@@ -10,7 +10,9 @@ import { profileUrl } from '../../lib/profile'
 import type { LocalState } from '../../types'
 import { Icon } from '../primitives'
 
+/** The signed-in account, as /auth/me returns it. */
 export interface Account {
+  id: number
   name: string
   email?: string | null
   apiToken: string

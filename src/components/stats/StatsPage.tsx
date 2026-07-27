@@ -13,7 +13,7 @@ import type { Key } from '../../i18n'
 import { DASH, fmtNum, fmtTime } from '../../lib/format'
 import { categoryLabel } from '../../lib/gear'
 import { fisheryLabel } from '../../lib/savegame'
-import type { SaveSummary } from '../../lib/savegame'
+import type { SaveStats } from '../../types'
 import { Icon, Stat } from '../primitives'
 import { Toggle } from '../ui'
 import { RodSets } from '../profile/RodSets'
@@ -27,7 +27,8 @@ const TABS = {
 } as const
 
 export interface StatsPageProps {
-  stats: SaveSummary | null
+  /** Was der Import im Browser hinterlassen hat, sonst null. */
+  stats: SaveStats | null
   tab?: string
   me: { name: string } | null
   apiAvailable: boolean

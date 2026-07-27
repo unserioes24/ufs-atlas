@@ -193,9 +193,13 @@ export interface LocalState {
   updatedAt: string | null
 }
 
+/**
+ * Was ein Spielstand-Import im Browser hinterlässt. Die Formen kommen
+ * unverändert aus dem Parser; die Statistikseite liest sie so, wie sie sind.
+ */
 export interface SaveStats {
-  player: Record<string, unknown> | null
-  fisheries: Record<string, unknown>
+  player: import('./lib/savegame').PlayerInfo | null
+  fisheries: Record<string, import('./lib/savegame').FisheryStats>
   bests: Record<string, BestCatch>
   total: number
 }
