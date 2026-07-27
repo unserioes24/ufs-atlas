@@ -541,6 +541,30 @@ if (Test-Path $hookFile) {
     Write-Host "Size tables: $($hooks.steps) steps"
 }
 
+# Names for the skill tree. The save file records one flag per step
+# (skill_unlocked_MORE_EXP_2). How many steps a skill has is counted from the
+# save file, not from here: the localisation names only the first step of
+# Hunter Vision although the game has three.
+$skills = @()
+$skillSeen = @{}
+foreach ($t in $terms.GetEnumerator()) {
+    if ($t.Key -notmatch '^SKILLS/(.+)_(\d+)_NAME$') { continue }
+    $base = $Matches[1]
+    $step = [int]$Matches[2]
+    if (-not $skillSeen.ContainsKey($base)) {
+        $skillSeen[$base] = [ordered]@{ key = $base; en = ''; de = ''; descEn = ''; descDe = '' }
+    }
+    $e = $skillSeen[$base]
+    if ($step -eq 1) {
+        $e.en = $t.Value.en
+        $e.de = $t.Value.de
+        $d = $terms["SKILLS/${base}_1_DESC"]
+        if ($d) { $e.descEn = $d.en; $e.descDe = $d.de }
+    }
+}
+foreach ($k in ($skillSeen.Keys | Sort-Object)) { $skills += [pscustomobject]$skillSeen[$k] }
+Write-Host "Skills named: $($skills.Count)"
+
 $data = [ordered]@{
     generated   = (Get-Date -Format 'yyyy-MM-dd')
     source      = 'Ultimate Fishing Simulator, Spieldateien (Unity 2017.4.29f1)'
@@ -550,6 +574,7 @@ $data = [ordered]@{
     baitSpecies = $baitSpecies
     baits       = $baits
     hooks       = $hooks
+    skills      = $skills
 }
 $json = $data | ConvertTo-Json -Depth 12 -Compress
 New-Item -ItemType Directory -Force (Join-Path $proj 'src\data') | Out-Null

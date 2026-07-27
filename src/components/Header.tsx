@@ -2,10 +2,12 @@
  * The bar at the top: brand, search, navigation, language and the counter of
  * species caught.
  *
- * The row is allowed to wrap and the navigation to scroll sideways at every
- * width. Guessing a breakpoint for that had left a gap around 1000 px where
- * neither applied and the page slid sideways.
+ * From 1024 px up the navigation stands in the row. Below that it collapses
+ * into a burger: on a phone a row of eight buttons either overflows or shrinks
+ * until nothing is readable, and a panel that opens on demand costs one tap and
+ * shows every entry with its full label.
  */
+import { useEffect, useRef, useState } from 'react'
 import type { MutableRefObject } from 'react'
 import { API_AVAILABLE } from '../lib/api'
 import { useI18n } from '../i18n'
@@ -29,9 +31,11 @@ export interface HeaderProps {
 }
 
 interface NavItem {
-  view: View
+  key: string
   icon: string
   label: string
+  active: boolean
+  run: () => void
 }
 
 export function Header({
@@ -48,13 +52,56 @@ export function Header({
   total,
 }: HeaderProps) {
   const { t } = useI18n()
+  const [open, setOpen] = useState(false)
+  const panelRef = useRef<HTMLDivElement | null>(null)
+
+  // The panel closes on Escape, on a click outside, and whenever the view
+  // changes - otherwise it would stay open over the page you just picked.
+  useEffect(() => setOpen(false), [view])
+  useEffect(() => {
+    if (!open) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    function onDown(e: MouseEvent) {
+      if (!panelRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('mousedown', onDown)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('mousedown', onDown)
+    }
+  }, [open])
 
   const items: NavItem[] = [
-    { view: 'map', icon: 'map', label: t('nav.fisheries') },
-    { view: 'arten', icon: 'fish', label: t('nav.species') },
-    { view: 'bait', icon: 'bait', label: t('nav.baits') },
-    { view: 'stats', icon: 'scale', label: t('nav.stats') },
+    { key: 'map', icon: 'map', label: t('nav.fisheries'), active: view === 'map', run: () => onView('map') },
+    { key: 'arten', icon: 'fish', label: t('nav.species'), active: view === 'arten', run: () => onView('arten') },
+    { key: 'bait', icon: 'bait', label: t('nav.baits'), active: view === 'bait', run: () => onView('bait') },
+    { key: 'stats', icon: 'scale', label: t('nav.stats'), active: view === 'stats', run: () => onView('stats') },
   ]
+  if (API_AVAILABLE) {
+    items.push({
+      key: 'self',
+      icon: 'user',
+      label: me ? t('nav.profile') : t('nav.login'),
+      active: view === 'angler' || view === 'anmelden',
+      run: onOpenSelf,
+    })
+  }
+  items.push({
+    key: 'sources',
+    icon: 'source',
+    label: t('nav.sources'),
+    active: false,
+    run: onSources,
+  })
+
+  const counter = (
+    <span className="ufs-chip ufs-mono" title={t('nav.caughtTotal')}>
+      {'✓ ' + caught + ' / ' + total}
+    </span>
+  )
 
   return (
     <header className="no-print sticky top-0 z-40 border-b border-white/10 bg-[#061017]/80 backdrop-blur-xl">
@@ -76,6 +123,21 @@ export function Header({
           </span>
         </button>
 
+        {/* The burger sits beside the brand and only shows on narrow screens. */}
+        <button
+          className="ufs-burger ufs-btn"
+          aria-expanded={open}
+          aria-label={open ? t('nav.closeMenu') : t('nav.openMenu')}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <span className="bars" aria-hidden>
+            <span />
+            <span />
+            <span />
+          </span>
+          <span className="lbl">{t('nav.menu')}</span>
+        </button>
+
         <div className="ufs-search relative ml-auto w-full max-w-xl">
           <Icon
             name="search"
@@ -93,34 +155,40 @@ export function Header({
         <div className="ufs-headnav">
           {items.map((it) => (
             <button
-              key={it.view}
-              className={cn('ufs-btn', view === it.view && 'primary')}
-              onClick={() => onView(it.view)}
+              key={it.key}
+              className={cn('ufs-btn', it.active && 'primary')}
+              onClick={it.run}
             >
               <Icon name={it.icon} />
               <span className="lbl">{it.label}</span>
             </button>
           ))}
-          {API_AVAILABLE ? (
-            <button
-              className={cn('ufs-btn', (view === 'angler' || view === 'anmelden') && 'primary')}
-              title={me ? t('map.profileTitle') : t('nav.login')}
-              onClick={onOpenSelf}
-            >
-              <Icon name="user" />
-              <span className="lbl">{me ? t('nav.profile') : t('nav.login')}</span>
-            </button>
-          ) : null}
           <LangSwitch />
-          <span className="ufs-chip ufs-mono" title={t('nav.caughtTotal')}>
-            {'✓ ' + caught + ' / ' + total}
-          </span>
-          <button className="ufs-btn" onClick={onSources}>
-            <Icon name="source" />
-            <span className="lbl">{t('nav.sources')}</span>
-          </button>
+          {counter}
         </div>
       </div>
+
+      {open ? (
+        <div className="ufs-menupanel" ref={panelRef}>
+          {items.map((it) => (
+            <button
+              key={it.key}
+              className={cn('row', it.active && 'on')}
+              onClick={() => {
+                setOpen(false)
+                it.run()
+              }}
+            >
+              <Icon name={it.icon} />
+              <span>{it.label}</span>
+            </button>
+          ))}
+          <div className="foot">
+            <LangSwitch />
+            {counter}
+          </div>
+        </div>
+      ) : null}
     </header>
   )
 }

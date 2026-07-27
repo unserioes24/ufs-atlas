@@ -32,6 +32,9 @@ export const en: Partial<Dict> = {
   'nav.sources': 'Sources',
   'nav.caughtTotal': 'Species caught in total',
   'nav.toStart': 'To the start page',
+  'nav.menu': 'Menu',
+  'nav.openMenu': 'Open the menu',
+  'nav.closeMenu': 'Close the menu',
 
   // ----------------------------------------------------------- Fisheries
   'map.overview': 'All fisheries',
@@ -322,6 +325,13 @@ export const en: Partial<Dict> = {
   'profile.sortName': 'Name',
   'profile.experience': '{n} experience',
   'profile.skills': 'Skills',
+  // The skill tree from the save file
+  'skills.title': 'Skills',
+  'skills.unlocked': '{done} of {total} unlocked',
+  'skills.points': '{n} points to spend',
+  'skills.step': 'step {level} of {steps}',
+  'skills.have': 'unlocked',
+  'skills.open': 'open',
   'profile.luck': 'Luck {n}',
   'profile.strength': 'Strength {n}',
   'profile.topSpecies': 'Strongest species',

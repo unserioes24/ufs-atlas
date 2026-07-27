@@ -1,5 +1,6 @@
-/* UFS Atlas – Bausteine für Spieldaten, Revierkarte und Fangfortschritt.
-   Bewusst eigenständig gehalten, weil styles.css ein fixer Tailwind-Build ist. */
+/* UFS Atlas – building blocks for the game data, the fishery map and catch
+   progress. Kept separate on purpose, because styles.css is a fixed Tailwind
+   build. */
 
 :root {
   --ufs-line: rgba(255, 255, 255, .10);
@@ -29,7 +30,7 @@
 .ufs-chip-on { border-color: rgba(103, 232, 249, .5); background: rgba(34, 211, 238, .14); color: #cffafe; }
 .ufs-chip-spot { font-variant-numeric: tabular-nums; }
 
-/* ------------------------------------------------------------- Fanghaken */
+/* ------------------------------------------------------------- Catch tick */
 .ufs-catch {
   display: inline-flex; align-items: center; gap: .5rem; cursor: pointer;
   border: 1px solid var(--ufs-line); background: var(--ufs-panel);
@@ -44,12 +45,12 @@
 }
 .ufs-catch.on .box { background: rgba(52, 211, 153, .3); }
 
-/* ------------------------------------------------------------ Fortschritt */
+/* -------------------------------------------------------------- Progress */
 .ufs-bar { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; }
 .ufs-bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #22d3ee, #34d399); transition: width .35s ease; }
 .ufs-bar.thin { height: 4px; }
 
-/* ------------------------------------------------------------ Revierkarte */
+/* ----------------------------------------------------------- Fishery map */
 .ufs-maplayout { display: grid; gap: 1rem; align-items: start; }
 @media (min-width: 1180px) { .ufs-maplayout { grid-template-columns: minmax(0, 1fr) 340px; } }
 .ufs-map-wrap {
@@ -116,22 +117,36 @@
 }
 .ufs-spline:last-child { border-bottom: 0; }
 .ufs-spline:hover { background: rgba(255, 255, 255, .04); }
-/* Die hervorgehobene Zeile – der eigene Eintrag in einer Rangliste, die
-   angeheftete Art neben der Karte. Sie bekommt seitlich Luft und rückt dafür
-   um denselben Betrag nach außen: so klebt der Text nicht am farbigen Rand,
-   und die Spalten stehen weiter in einer Flucht mit den übrigen Zeilen. */
+/* The highlighted row – your own entry on a leaderboard, the pinned species
+   next to the map. It gets extra horizontal padding plus a matching negative
+   margin, so the text never touches the coloured edge while the columns stay
+   aligned with the other rows. */
 .ufs-spline.pin {
   background: rgba(34, 211, 238, .12); border-radius: 8px;
   box-shadow: inset 0 0 0 1px rgba(103, 232, 249, .3);
   padding-left: .55rem; padding-right: .55rem;
   margin-left: -.45rem; margin-right: -.45rem;
 }
+/* Skill rows carry a hint under the name and a row of pips for the steps. */
+.ufs-skill { grid-template-columns: 1fr auto auto; align-items: center; }
+.ufs-skill .n .hint {
+  display: block; font-size: 10.5px; font-weight: 400; color: #64748b;
+  margin-top: 1px; line-height: 1.35;
+}
+.ufs-skill .pips { display: inline-flex; gap: 3px; }
+.ufs-skill .pips span {
+  width: 7px; height: 7px; border-radius: 999px;
+  background: rgba(255, 255, 255, .12);
+}
+.ufs-skill .pips span.on { background: var(--ufs-cyan); }
+.ufs-skill:not(.has) .n { color: #64748b; }
+
 .ufs-spline .n { color: #e2e8f0; font-weight: 600; }
 .ufs-spline .n.done { color: #6ee7b7; }
 .ufs-spline .q { color: #7dd3fc; font-variant-numeric: tabular-nums; font-size: 11px; }
 .ufs-spline .d { color: #64748b; font-variant-numeric: tabular-nums; font-size: 11px; }
 
-/* ---------------------------------------------------------- Spieldatenbox */
+/* ---------------------------------------------------------- Game data box */
 .ufs-gamebox {
   border: 1px solid rgba(103, 232, 249, .18); background: rgba(34, 211, 238, .05);
   border-radius: 18px; padding: .85rem 1rem;
@@ -148,14 +163,14 @@
   border: 1px solid var(--ufs-line); background: #060f16; flex: none;
 }
 
-/* --------------------------------------------------------- Aktivitätskurve */
+/* ---------------------------------------------------------- Activity curve */
 .ufs-act { width: 100%; height: 46px; display: block; }
 .ufs-act .grid { stroke: rgba(255, 255, 255, .09); stroke-width: 1; }
 .ufs-act .area { fill: rgba(34, 211, 238, .18); }
 .ufs-act .line { fill: none; stroke: #22d3ee; stroke-width: 1.8; }
 .ufs-actlabels { display: flex; justify-content: space-between; font-size: 9.5px; color: #64748b; margin-top: 1px; }
 
-/* -------------------------------------------------------------- 3D-Modell */
+/* --------------------------------------------------------------- 3D model */
 .ufs-model {
   position: relative; width: 100%; height: 265px; border-radius: 14px;
   overflow: hidden; border: 1px solid var(--ufs-line); background: #060f16;
@@ -171,7 +186,7 @@
   color: #64748b; pointer-events: none; letter-spacing: .04em;
 }
 
-/* ------------------------------------------------------------ Gruppen */
+/* ------------------------------------------------------------- Groups */
 .ufs-boardgrid { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
 .ufs-cmd {
   margin: 0 0 .8rem; padding: .7rem .8rem; border-radius: 12px;
@@ -198,7 +213,7 @@
 .ufs-profilemenu .row em { font-style: normal; font-size: 10.5px; color: #64748b; }
 .ufs-profilemenu .sep { height: 1px; background: var(--ufs-line); margin: .3rem .2rem; }
 
-/* ------------------------------------------------------------- Rutensets */
+/* -------------------------------------------------------------- Rod sets */
 .ufs-setgrid { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
 .ufs-setcard {
   border: 1px solid var(--ufs-line); background: var(--ufs-panel-2);
@@ -223,7 +238,7 @@
 
 .ufs-rec td.win { color: #6ee7b7; font-weight: 700; }
 
-/* -------------------------------------------------------------- Statistik */
+/* ------------------------------------------------------------- Statistics */
 .ufs-statgrid { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .ufs-stat {
   border: 1px solid var(--ufs-line); background: var(--ufs-panel-2);
@@ -238,7 +253,7 @@
 }
 .ufs-stat .sb { font-size: 11px; color: #7dd3fc; margin-top: .2rem; }
 
-/* --------------------------------------------------------------- Rekorde */
+/* --------------------------------------------------------------- Records */
 .ufs-rec { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .ufs-rec th {
   text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .14em;
@@ -253,7 +268,7 @@
 .ufs-recbar { position: relative; height: 5px; border-radius: 999px; background: rgba(255,255,255,.08); min-width: 90px; }
 .ufs-recbar > span { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg,#22d3ee,#34d399); }
 
-/* --------------------------------------------------------------- Köderseite */
+/* ---------------------------------------------------------------- Bait page */
 .ufs-baitgrid { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
 .ufs-baitcard {
   border: 1px solid var(--ufs-line); background: var(--ufs-panel);
@@ -272,9 +287,9 @@
 .ufs-baitcard .list > div { display: flex; justify-content: space-between; gap: .7rem; font-size: 11.5px; color: #cbd5e1; }
 .ufs-baitcard .list em { font-style: normal; color: #64748b; }
 
-/* --------------------------------------------------- Köder und Wetterregler */
-/* Zwei Listen mit gleicher Bauweise: Name links, Balken, Wert rechts.
-   Der Balken zeigt den Wert aus den Spieldateien, nicht eine Schätzung. */
+/* --------------------------------------------------- Baits and weather dials */
+/* Two lists built the same way: name on the left, bar, value on the right.
+   The bar shows the value from the game files, not an estimate. */
 .ufs-baitlist, .ufs-bite { display: flex; flex-direction: column; gap: .18rem; margin-top: .35rem; }
 .ufs-baitlist .row, .ufs-bite .row {
   display: grid; align-items: center; gap: .5rem; font-size: 12px; color: #cbd5e1;
@@ -303,7 +318,7 @@
   position: absolute; left: 0; top: 0; height: 100%; border-radius: 999px;
   background: linear-gradient(90deg, #22d3ee, #34d399);
 }
-/* Was drei Köderstücke am Haken zusätzlich brächten */
+/* The extra reach three baits on the hook would add */
 .ufs-baitlist .bar > span.ghost { background: rgba(52, 211, 153, .3); }
 .ufs-bite .bar > span { display: block; height: 100%; border-radius: 999px; background: #f59e0b; }
 .ufs-bite .bar > span.up { background: #34d399; }
@@ -316,7 +331,7 @@
 
 .ufs-baitlist > .ufs-chip-btn { align-self: flex-start; }
 
-/* Größenstufen: Bezeichnung, Stufenbereich, Zusatz (Spaltbreite). */
+/* Size steps: label, range of steps, extra detail (gap width). */
 .ufs-sizes { display: flex; flex-direction: column; gap: .18rem; margin-top: .35rem; }
 .ufs-sizes .row {
   display: grid; grid-template-columns: 96px auto 1fr; gap: .5rem;
@@ -326,17 +341,17 @@
 .ufs-sizes .st { color: #e2e8f0; font-weight: 600; font-variant-numeric: tabular-nums; }
 .ufs-sizes .ex { color: #7dd3fc; font-size: 11px; font-variant-numeric: tabular-nums; }
 
-/* Köder als Marken auf der Fischkarte, eingefärbt nach Köderart. */
+/* Baits as chips on the fish card, coloured by kind of bait. */
 .ufs-baitchip b { font-weight: 800; font-variant-numeric: tabular-nums; opacity: .75; }
 .ufs-baitchip.natural { border-color: rgba(110, 231, 183, .3); color: #d1fae5; background: rgba(52, 211, 153, .1); }
 .ufs-baitchip.boilie  { border-color: rgba(252, 211, 77, .3);  color: #fde68a; background: rgba(252, 211, 77, .1); }
 .ufs-baitchip.fly     { border-color: rgba(196, 181, 253, .3); color: #ede9fe; background: rgba(196, 181, 253, .1); }
 .ufs-baitchip.lure    { border-color: rgba(125, 211, 252, .3); color: #e0f2fe; background: rgba(125, 211, 252, .1); }
 
-/* Führung ohne Wirkung wird gedämpft dargestellt. */
+/* A retrieve with no effect is shown muted. */
 .ufs-baitlist .nm.off { color: #64748b; font-weight: 500; }
 
-/* Auf schmalen Anzeigen fallen Zusatzspalte und Erläuterung weg. */
+/* On narrow displays the extra column and the hint are dropped. */
 @media (max-width: 640px) {
   .ufs-baitlist .row { grid-template-columns: minmax(0, 1fr) 60px 40px; }
   .ufs-baitlist .kd { display: none; }
@@ -375,7 +390,7 @@
   border: 1px solid rgba(252, 211, 77, .25); background: rgba(252, 211, 77, .07);
   border-radius: 14px; padding: .65rem .8rem; font-size: 12px; line-height: 1.6; color: #fde68a;
 }
-/* Bot-Prüfung: bewusst unaufgeregt, sie läuft von allein durch. */
+/* Bot check: deliberately understated — it completes by itself. */
 .ufs-altcha {
   display: flex; align-items: center; gap: .55rem;
   border: 1px solid rgba(255, 255, 255, .1); background: rgba(255, 255, 255, .035);
@@ -396,12 +411,13 @@
   border-color: rgba(52, 211, 153, .3); background: rgba(52, 211, 153, .08); color: #a7f3d0;
 }
 
-/* --------------------------------------------------------------- Kopfzeile
+/* ------------------------------------------------------------------ Header
 
-   Suche und Menü passen nicht auf jeder Breite in eine Zeile. Statt einen
-   Umschaltpunkt zu raten, darf die Zeile immer umbrechen und das Menü immer
-   seitlich schieben – sichtbar bleibt es dadurch bei jeder Fensterbreite.
-   Auf dem Handy nimmt die Suche zusätzlich die ganze Zeile. */
+   From 1024 px up the navigation sits inline in the header row. Below that it
+   folds into a burger menu: eight buttons side by side either overflow on a
+   phone or shrink until nothing is legible. The panel costs one extra tap, but
+   in return every item is shown with its full label.
+   The row may still wrap – the search then takes the whole width. */
 .ufs-headrow { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .ufs-headnav {
   display: flex; align-items: center; gap: .5rem; flex-wrap: nowrap;
@@ -411,19 +427,41 @@
 .ufs-headnav::-webkit-scrollbar { display: none; }
 .ufs-headnav .ufs-btn { flex: none; }
 
-@media (max-width: 900px) {
-  .ufs-headrow { gap: .6rem; }
-  .ufs-headrow .ufs-search { order: 3; width: 100%; max-width: none; margin-left: 0; }
-  .ufs-headnav { order: 2; margin-left: auto; }
-}
-@media (max-width: 560px) {
-  /* Beschriftungen weglassen, die Zeichen tragen die Bedeutung schon */
-  .ufs-headnav .ufs-btn .lbl { display: none; }
-  .ufs-headnav .ufs-btn { padding-left: .6rem; padding-right: .6rem; }
+/* The burger itself: only visible below 1024 px. */
+.ufs-burger { display: none; align-items: center; gap: .5rem; }
+.ufs-burger .bars { display: grid; gap: 3px; width: 16px; }
+.ufs-burger .bars span {
+  display: block; height: 2px; border-radius: 2px; background: currentColor;
 }
 
-/* Auf schmalen Geräten darf die Seite nicht seitlich wandern: breite
-   Tabellen scrollen in ihrer Karte, die Kacheln rücken enger zusammen. */
+.ufs-menupanel {
+  display: none; flex-direction: column; gap: .2rem;
+  padding: .5rem .75rem .9rem; border-top: 1px solid var(--ufs-line);
+}
+.ufs-menupanel .row {
+  display: flex; align-items: center; gap: .7rem; width: 100%;
+  padding: .7rem .8rem; border-radius: 14px; border: 1px solid transparent;
+  background: none; color: #cbd5e1; font-size: 14px; font-weight: 600; text-align: left;
+}
+.ufs-menupanel .row:hover { background: rgba(255, 255, 255, .045); }
+.ufs-menupanel .row.on {
+  border-color: rgba(103, 232, 249, .25); background: rgba(34, 211, 238, .1); color: #a5f3fc;
+}
+.ufs-menupanel .foot {
+  display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+  margin-top: .5rem; padding-top: .7rem; border-top: 1px solid var(--ufs-line);
+}
+
+@media (max-width: 1023px) {
+  .ufs-headnav { display: none; }
+  .ufs-burger { display: inline-flex; order: 2; margin-left: auto; }
+  .ufs-menupanel { display: flex; }
+  .ufs-headrow { gap: .6rem; }
+  .ufs-headrow .ufs-search { order: 3; width: 100%; max-width: none; margin-left: 0; }
+}
+
+/* On narrow devices the page must not scroll sideways: wide tables scroll
+   inside their card, and the tiles move closer together. */
 @media (max-width: 700px) {
   .ufs-spotcard { overflow-x: auto; }
   .ufs-statgrid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .5rem; }
@@ -432,7 +470,7 @@
   .ufs-rec th, .ufs-rec td { padding: .35rem .35rem; }
 }
 
-/* Knöpfe unter einem Seitenmenü, mit Abstand und über die volle Breite */
+/* Buttons below a side menu, spaced out and across the full width */
 .ufs-menuactions {
   display: flex; flex-direction: column; gap: .45rem;
   margin-top: .75rem; padding: .75rem .25rem 0;
@@ -440,11 +478,11 @@
 }
 .ufs-menuactions .ufs-btn { width: 100%; justify-content: center; }
 
-/* ------------------------------------------------------------- Startseite
+/* ------------------------------------------------------------- Start page
 
-   Der Aufmacher ist die Wand aus Beißzeitkurven: das ist die Kurve, die das
-   Spiel je Art mitbringt, und damit das ehrlichste Bild dessen, was dieser
-   Atlas tut. Alles andere bleibt bewusst ruhig. */
+   The page opens with the wall of bite curves – the curve the game ships for
+   each species, and therefore the most honest picture of what this atlas does.
+   Everything else stays deliberately quiet. */
 
 .ufs-start { max-width: 1080px; margin: 0 auto; }
 .ufs-start section { margin-bottom: 3.5rem; }
@@ -466,7 +504,7 @@
   font-size: 15px; line-height: 1.7; color: #94a3b8; max-width: 62ch; margin: 0 0 1.4rem;
 }
 
-/* Kurvenwand */
+/* Curve wall */
 .ufs-start .wall {
   margin-top: 2.5rem; border-top: 1px solid rgba(255, 255, 255, .1); padding-top: 1rem;
 }
@@ -501,7 +539,7 @@
 .ufs-curve .area { fill: rgba(34, 211, 238, .18); }
 .ufs-curve .line { fill: none; stroke: #22d3ee; stroke-width: 1.6; }
 
-/* Zahlenleiste */
+/* Stats bar */
 .ufs-start .facts {
   display: grid; gap: 1px; background: rgba(255, 255, 255, .08);
   border: 1px solid rgba(255, 255, 255, .08); border-radius: 18px; overflow: hidden;
@@ -517,7 +555,7 @@
   text-transform: uppercase; color: #64748b;
 }
 
-/* Funktionskarten */
+/* Feature cards */
 .ufs-start .cards {
   display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
@@ -546,7 +584,7 @@
 .ufs-start .oss p { margin: 0; font-size: 12.5px; line-height: 1.65; color: #94a3b8; max-width: 60ch; }
 .ufs-start .foot { font-size: 11px; color: #475569; text-align: center; margin: 0 0 1rem; }
 
-/* ---------------------------------------------------- Profil und Vergleich */
+/* ------------------------------------------------------ Profile and duel */
 
 .ufs-profhead {
   display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
@@ -561,7 +599,7 @@
 .ufs-stand .val { font-size: 13px; font-weight: 700; color: #e2e8f0; font-variant-numeric: tabular-nums; }
 .ufs-stand .sub { font-size: 11px; color: #94a3b8; }
 
-/* Kopf des Vergleichs: beide Angler nebeneinander, jeder mit seinem Stand */
+/* Duel header: both anglers side by side, each with their own stats */
 .ufs-duelhead {
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: .6rem;
   margin-top: 1rem;
@@ -577,7 +615,7 @@
 .ufs-duelside .sub { font-size: 11.5px; color: #94a3b8; }
 .ufs-duelvs { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #475569; }
 
-/* Breite Tabellen dürfen scrollen, die Seite selbst nicht */
+/* Wide tables may scroll, the page itself may not */
 .ufs-scroll { overflow-x: auto; }
 
 .ufs-two { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; align-items: start; }
@@ -598,7 +636,7 @@
   .ufs-two { grid-template-columns: 1fr; }
 }
 
-/* Gruppenzeile im Profil: Name links, Knöpfe rechts, Bearbeiten darunter */
+/* Group row in the profile: name left, buttons right, editing below */
 .ufs-grouprow {
   display: flex; flex-wrap: wrap; align-items: center; gap: .6rem;
   border-bottom: 1px solid rgba(255, 255, 255, .06); padding: .55rem 0;
@@ -609,7 +647,7 @@
 .ufs-grouprow .sub { display: block; font-size: 11px; color: #94a3b8; }
 .ufs-grouprow .edit { flex: 1 1 100%; padding-top: .3rem; }
 
-/* Angemeldet bleiben und Ähnliches: Kästchen mit Beschriftung in einer Zeile */
+/* Checkboxes such as "stay signed in": box and label on a single line */
 .ufs-check {
   display: flex; align-items: center; gap: .5rem;
   font-size: 12.5px; color: #cbd5e1; cursor: pointer; user-select: none;

@@ -17,6 +17,7 @@ import type { SaveStats } from '../../types'
 import { Icon, Stat } from '../primitives'
 import { Toggle } from '../ui'
 import { RodSets } from '../profile/RodSets'
+import { Skills } from './Skills'
 
 const TABS = {
   fische: 'arten',
@@ -27,7 +28,7 @@ const TABS = {
 } as const
 
 export interface StatsPageProps {
-  /** Was der Import im Browser hinterlassen hat, sonst null. */
+  /** What the import left behind in the browser, otherwise null. */
   stats: SaveStats | null
   tab?: string
   me: { name: string } | null
@@ -210,6 +211,7 @@ export function StatsPage({
               </div>
             </div>
           ) : null}
+          <Skills skills={p.skills ?? []} points={p.skillPoints ?? 0} />
         </div>
       ) : null}
 

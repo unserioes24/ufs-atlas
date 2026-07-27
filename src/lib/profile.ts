@@ -9,6 +9,7 @@
 import { FISHERIES, GUIDE } from '../data'
 import { DASH, fmtNum, fmtTime } from './format'
 import type { Key } from '../i18n'
+import type { RodSet, SkillState } from './savegame'
 
 export interface SpeciesRecord {
   count: number
@@ -48,6 +49,10 @@ export interface PublicProfile {
   species: Record<string, SpeciesRecord>
   fisheries: Record<string, FisheryRecord>
   owned?: Record<string, number>
+  /** Rod sets, skills: what the save file carried. Older profiles have none. */
+  sets?: RodSet[]
+  skills?: SkillState[]
+  skillPoints?: number
 }
 
 export interface FisheryRecord {

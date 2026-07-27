@@ -2,8 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Eigene Bausteine, die kein Tailwind-Gegenstück haben. Sie standen bisher im
-   <style>-Block von index.html. */
+/* Our own building blocks, the ones Tailwind has no equivalent for. They used
+   to live in the <style> block of index.html. */
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -17,7 +17,7 @@
 }
 
 @layer components {
-  /* Feines Raster im Hintergrund, wie Tiefenlinien auf einer Seekarte */
+  /* A fine grid in the background, like depth lines on a nautical chart */
   .water-grid {
     background-image:
       linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
@@ -25,7 +25,7 @@
     background-size: 32px 32px;
   }
 
-  /* Milchglas für Kopfzeile und Seitenmenüs */
+  /* Frosted glass for the header and the side menus */
   .glass {
     background: linear-gradient(180deg, rgba(16, 31, 42, 0.86), rgba(8, 20, 29, 0.8));
     backdrop-filter: blur(18px);

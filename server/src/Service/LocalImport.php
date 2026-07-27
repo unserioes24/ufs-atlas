@@ -123,6 +123,8 @@ final class LocalImport
                 'exp' => (int) $this->num($player['exp'] ?? 0, 0, 1_000_000_000),
                 'luck' => $this->num($player['luck'] ?? 0, 0, 100),
                 'strength' => $this->num($player['strength'] ?? 0, 0, 100),
+                'skillPoints' => (int) $this->num($player['skillPoints'] ?? 0, 0, 1000),
+                'skills' => $this->skills($player['skills'] ?? null),
                 'version' => \is_string($player['version'] ?? null) ? mb_substr($player['version'], 0, 40) : null,
                 'sets' => \is_array($player['sets'] ?? null) ? \array_slice($player['sets'], 0, 5) : [],
                 'owned' => \is_array($player['owned'] ?? null) ? $player['owned'] : [],
@@ -140,6 +142,37 @@ final class LocalImport
     private function isSpeciesKey(mixed $key): bool
     {
         return \is_string($key) && $key !== '' && \strlen($key) <= 64 && preg_match('/^[A-Z0-9_]+$/', $key) === 1;
+    }
+
+    /**
+     * The skill tree as the browser read it out of the save file. Shape and
+     * bounds are checked here as well - this arrives over the wire.
+     *
+     * @return list<array{key: string, level: int, steps: int}>
+     */
+    private function skills(mixed $raw): array
+    {
+        if (!\is_array($raw)) {
+            return [];
+        }
+        $out = [];
+        foreach (\array_slice($raw, 0, 50) as $s) {
+            if (!\is_array($s) || !\is_string($s['key'] ?? null)) {
+                continue;
+            }
+            $key = mb_substr($s['key'], 0, 64);
+            if (preg_match('/^[A-Z0-9_]+$/', $key) !== 1) {
+                continue;
+            }
+            $steps = (int) $this->num($s['steps'] ?? 0, 0, 20);
+            $out[] = [
+                'key' => $key,
+                'level' => (int) $this->num($s['level'] ?? 0, 0, $steps),
+                'steps' => $steps,
+            ];
+        }
+
+        return $out;
     }
 
     private function num(mixed $v, float $min, float $max): float

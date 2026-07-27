@@ -5,12 +5,12 @@ import { de } from './de'
 import { en } from './en'
 
 /**
- * Zwei Ebenen von Sprache:
+ * Two layers of language:
  *
- *  - Die Texte des Guides stehen hier, je Sprache eine Datei. Fehlt ein
- *    Schlüssel, greift Deutsch, damit nie ein Platzhalter erscheint.
- *  - Namen von Arten, Ködern und Revieren kommen aus der Lokalisierung des
- *    Spiels und liegen in den Spieldaten. Sie werden nicht hier gepflegt.
+ *  - The guide's own text lives here, one file per language. Where a key is
+ *    missing, German fills in, so a placeholder never shows.
+ *  - Names of species, baits and fisheries come from the game's own
+ *    localisation and live in the game data. They are not maintained here.
  */
 export const LANGS = ['de', 'en'] as const
 export type Lang = (typeof LANGS)[number]
@@ -30,7 +30,7 @@ export type Dict = Record<Key, string>
 
 const DICTS: Record<Lang, Partial<Dict>> = { de, en }
 
-/** Platzhalter der Form {name} durch Werte ersetzen. */
+/** Replace placeholders of the form {name} with their values. */
 function fill(text: string, vars?: Record<string, string | number>): string {
   if (!vars) return text
   return text.replace(/\{(\w+)\}/g, (whole, name: string) => {
@@ -52,7 +52,7 @@ const STORE_KEY = 'ufs-lang'
 function initial(): Lang {
   const saved = localStorage.getItem(STORE_KEY)
   if (saved && (LANGS as readonly string[]).includes(saved)) return saved as Lang
-  // Ohne Wahl richtet sich die Seite nach dem Browser.
+  // With nothing chosen, the page follows the browser.
   return navigator.language.toLowerCase().startsWith('de') ? 'de' : 'en'
 }
 

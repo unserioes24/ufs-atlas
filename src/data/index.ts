@@ -3,9 +3,9 @@ import guideRaw from './guide.json'
 import type { Bait, BaitKind, GameData, GuideData, Hooks, Species } from '../types'
 
 /**
- * Zugriff auf die beiden Datenquellen. Alles, was einmal berechnet werden kann,
- * entsteht hier beim Laden: Namensverzeichnisse, die umgekehrte Ködersicht und
- * die Größenstufen. Die Seiten bekommen fertige Strukturen.
+ * Access to the two data sources. Anything that can be worked out once is built
+ * here at load time: the name indexes, the reverse bait view and the size
+ * steps. Pages receive ready-made structures.
  */
 
 export const GAME = gamedataRaw as unknown as GameData
@@ -15,12 +15,12 @@ export const SPECIES = GAME.species
 export const FISHERIES = GAME.fisheries
 export const HOOKS: Hooks | null = GAME.hooks
 
-/** Kleinschreiben und alles wegwerfen, was nicht Buchstabe oder Ziffer ist. */
+/** Lower-case the string and strip anything that is not a letter or a digit. */
 export function norm(s: string | null | undefined): string {
   return (s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
-// --------------------------------------------------------------- Artennamen
+// -------------------------------------------------------------- Species names
 
 const enIndex: Record<string, string> = {}
 const deIndex: Record<string, string> = {}
@@ -29,17 +29,17 @@ for (const [key, s] of Object.entries(SPECIES)) {
   if (s.de && !deIndex[norm(s.de)]) deIndex[norm(s.de)] = key
 }
 
-/** Der Guide nennt einige Arten anders als das Spiel. */
+/** The guide calls a few species by a different name than the game does. */
 const NAME_ALIAS: Record<string, string> = {
-  apapa: 'APAPA', // im Spiel „Apapá“
-  grayling: 'WHITE_GRAYLING', // Baikal, im Spiel „White Grayling“
+  apapa: 'APAPA', // "Apapá" in the game
+  grayling: 'WHITE_GRAYLING', // Baikal, "White Grayling" in the game
   commonbleak: 'BLEAK',
-  longfineel: 'LONGFIN_EEL', // im Spiel „New Zealand longfin eel“
+  longfineel: 'LONGFIN_EEL', // "New Zealand longfin eel" in the game
   redlionfish: 'COMMON_LIONFISH',
-  graysnapper: 'GREY_SNAPER', // Schreibweise des Spiels
+  graysnapper: 'GREY_SNAPER', // the game's own spelling
 }
 
-/** Arten, die doppelt in den Spieldaten stecken – je Revier-Generation eine. */
+/** Species that appear twice in the game data – one per fishery generation. */
 const EQUIV: string[][] = [
   ['GREAT_BARRACUDA', 'BARRACUDA'],
   ['GRAY_SNAPPER_C', 'GREY_SNAPER'],
@@ -47,7 +47,7 @@ const EQUIV: string[][] = [
   ['BLACKTIP_REEF_SHARK', 'BLACKTIP_SHARK_D'],
 ]
 
-/** Guide-Eintrag auf den Artenschlüssel der Spieldaten ziehen. */
+/** Map a guide entry to the species key used by the game data. */
 export function speciesKey(name: string, de: string, mapId?: string): string | null {
   const key =
     NAME_ALIAS[norm(name)] ??
@@ -59,7 +59,7 @@ export function speciesKey(name: string, de: string, mapId?: string): string | n
     null
   if (!key || !mapId) return key
 
-  // Führt der Schlüssel in diesem Revier ins Leere, gilt die Zwillingsart.
+  // If the key matches nothing in this fishery, fall back to its twin species.
   const fy = FISHERIES[mapId]
   if (!fy) return key
   const here = new Set(fy.species.map((g) => g.s))
@@ -77,14 +77,14 @@ export function speciesName(key: string, lang: string): string {
   return (lang === 'en' ? s.en : s.de) || s.en || s.de || key
 }
 
-// ------------------------------------------------------------------- Köder
+// -------------------------------------------------------------------- Baits
 
 export interface BaitEntry {
   key: string
   en: string
   de: string
   kind: BaitKind
-  /** Interesse je Artenschlüssel, 0–1. */
+  /** Interest per species key, 0–1. */
   fish: Record<string, number>
 }
 
@@ -107,7 +107,7 @@ export interface BaitForSpecies {
   v: number
 }
 
-/** Umgekehrte Sicht: welche Köder taugen für eine Art, absteigend. */
+/** The reverse view: which baits work for a species, best first. */
 export const BAITS_FOR: Record<string, BaitForSpecies[]> = {}
 for (const bait of Object.values(BAITS)) {
   for (const [species, v] of Object.entries(bait.fish)) {

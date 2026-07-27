@@ -1,12 +1,12 @@
 /**
- * Deutsch ist die Ausgangssprache: Was hier steht, ist der Maßstab für alle
- * anderen Dateien. Fehlt anderswo ein Schlüssel, wird dieser Text gezeigt.
+ * German is the source language; this file is the reference for every other
+ * one. Where another file is missing a key, this text is shown instead.
  *
- * Aufbau der Schlüssel: <bereich>.<sache>. Platzhalter in {geschweiften
- * Klammern} werden zur Laufzeit gefüllt.
+ * Key layout: <area>.<thing>. Placeholders in {curly braces} are filled in at
+ * runtime.
  */
 export const de = {
-  // ------------------------------------------------------------- Allgemein
+  // ------------------------------------------------------------- General
   'app.name': 'UFS Atlas',
   'app.tagline': 'Ultimate Fishing Simulator 1',
   'app.searchPlaceholder': 'Fisch, Köder, Spot oder Methode suchen …',
@@ -22,7 +22,7 @@ export const de = {
   'app.offline':
     'Konten und Gruppen brauchen den Server. Öffne den Guide dafür über {url} statt als lokale Datei.',
 
-  // ------------------------------------------------------------ Navigation
+  // ---------------------------------------------------------- Navigation
   'nav.start': 'Start',
   'nav.fisheries': 'Reviere',
   'nav.species': 'Arten',
@@ -33,8 +33,11 @@ export const de = {
   'nav.sources': 'Quellen',
   'nav.caughtTotal': 'Gefangene Arten insgesamt',
   'nav.toStart': 'Zur Startseite',
+  'nav.menu': 'Menü',
+  'nav.openMenu': 'Menü öffnen',
+  'nav.closeMenu': 'Menü schließen',
 
-  // --------------------------------------------------------------- Reviere
+  // ----------------------------------------------------------- Fisheries
   'map.overview': 'Gesamtübersicht',
   'map.maps': 'Karten',
   'map.spotsFromFiles': 'Spots laut Spieldaten',
@@ -90,7 +93,7 @@ export const de = {
   'map.groupDlc': 'DLC',
   'map.groupAnnounced': 'Angekündigt',
 
-  // Arten, die nur in den Spieldateien stehen: Platzhalter statt Guide-Text
+  // Species that exist only in the game files: placeholders instead of guide text
   'gameOnly.spots': 'Spots {list}',
   'gameOnly.seeMap': 'siehe Karte',
   'gameOnly.hook': 'an die Fischgröße anpassen',
@@ -115,7 +118,7 @@ export const de = {
   'map.boatOnly':
     'Für dieses Revier enthalten die Spieldateien keine Kartenpunkte – hier wird ausschließlich vom Boot aus gefischt.',
 
-  // ------------------------------------------------------------------ Fisch
+  // ---------------------------------------------------------------- Fish
   'fish.spot': 'Spot',
   'fish.hook': 'Haken',
   'fish.bestTime': 'Beste Zeit',
@@ -152,7 +155,7 @@ export const de = {
   'fish.confMedium': 'mittel',
   'fish.confLow': 'abgeleitet',
 
-  // ------------------------------------------------------------- Angelarten
+  // ------------------------------------------------------------- Methods
   'method.fly': 'Fliege',
   'method.lure': 'Kunstköder',
   'method.natural': 'Naturköder',
@@ -168,7 +171,7 @@ export const de = {
   'method.threePieces':
     'Drei Köderstücke am Haken heben den Naturköder auf bis zu {pct} %.',
 
-  // -------------------------------------------------------------- Statistik
+  // ---------------------------------------------------------- Statistics
   'stats.title': 'Statistik',
   'stats.level': 'Level',
   'stats.points': 'Punkte',
@@ -220,7 +223,7 @@ export const de = {
   'stats.colTotal': 'Gesamt',
   'stats.colRecordFishery': 'Rekordrevier',
 
-  // ------------------------------------------------------ Spielstand-Import
+  // ------------------------------------------------------- Save-file import
   'import.title': 'Spielstand einlesen',
   'import.lead':
     'Der Guide liest deinen Spielstand aus und hakt alle bereits gefangenen Arten ab. Die Datei bleibt lokal im Browser und wird nirgendwohin gesendet.',
@@ -241,7 +244,7 @@ export const de = {
   'import.resetAsk': 'Wirklich alle Haken und importierten Rekorde entfernen?',
   'import.reset': 'Fangliste zurücksetzen',
 
-  // ---------------------------------------------------------------- Quellen
+  // ---------------------------------------------------------------- Sources
   'sources.eyebrow': 'Recherchebasis',
   'sources.title': 'Quellen & Datenqualität',
   'source.official': 'Offiziell',
@@ -253,7 +256,7 @@ export const de = {
   'sources.note':
     'Spots, Artenlisten, Gewichts- und Längenspannen, Beißzeitkurven und die Köderinteressen stammen direkt aus den installierten Spieldateien (Unity-Szenen, Fisch- und Köder-Prefabs, Lokalisierungstabelle). Haken- und Führungsempfehlungen bleiben Community-Erfahrungswerte; niedrig bewertete Angaben sind bewusst als Startpunkt markiert.',
 
-  // ------------------------------------------------------- Gesamtübersicht
+  // ----------------------------------------------------------- All fisheries
   'overview.caught': 'Arten gefangen',
   'overview.caughtSub': '{pct} % der Artenliste',
   'overview.completeSub': 'alle Arten des Reviers gefangen',
@@ -264,7 +267,7 @@ export const de = {
   'overview.colProgress': 'Fortschritt',
   'overview.colOpen': 'Offen',
 
-  // ----------------------------------------------------------------- Konto
+  // -------------------------------------------------------------- Account
   'auth.title': 'Anmelden',
   'auth.intro':
     'Kein Passwort: Du bekommst einen sechsstelligen Code per E-Mail. Mit dem Konto liegt dein Profil auf dem Server, du kannst Gruppen beitreten und dich vergleichen.',
@@ -286,7 +289,7 @@ export const de = {
   'auth.altchaNoCrypto': 'Dieser Browser stellt keine Kryptofunktionen bereit.',
   'auth.altchaFailed': 'Die Bot-Prüfung ging nicht auf. Bitte die Seite neu laden.',
 
-  // ---------------------------------------------------------------- Profil
+  // --------------------------------------------------------------- Profile
   'profile.yours': 'Dein Profil',
   'profile.other': 'Profil',
   'profile.overview': 'Übersicht',
@@ -317,7 +320,7 @@ export const de = {
     'Für den Vergleich fehlt dein eigener Spielstand. Lade ihn unter „Einstellungen“ hoch.',
   'profile.needsServer': 'Profile brauchen den Server. Öffne den Guide über {url}.',
 
-  // Profil, Übersicht und Tabellen
+  // Profile, overview and tables
   'profile.sortSum': 'Masse gesamt',
   'profile.sortBest': 'Bestmasse',
   'profile.sortLength': 'Länge',
@@ -325,6 +328,13 @@ export const de = {
   'profile.sortName': 'Name',
   'profile.experience': '{n} Erfahrung',
   'profile.skills': 'Fähigkeiten',
+  // The skill tree from the save file
+  'skills.title': 'Fähigkeiten',
+  'skills.unlocked': '{done} von {total} freigeschaltet',
+  'skills.points': '{n} Punkte offen',
+  'skills.step': 'Stufe {level} von {steps}',
+  'skills.have': 'freigeschaltet',
+  'skills.open': 'offen',
   'profile.luck': 'Glück {n}',
   'profile.strength': 'Stärke {n}',
   'profile.topSpecies': 'Stärkste Art',
@@ -375,7 +385,7 @@ export const de = {
   'duel.noSpeciesInPick': 'Keine Art in dieser Auswahl.',
   'duel.speciesCount': '{shown} von {total} Arten, die mindestens einer von euch gefangen hat. ',
 
-  // Kontoeinstellungen
+  // Account settings
   'account.nameSaved': 'Name gespeichert.',
   'account.nameHint':
     'Unter diesem Namen finden dich andere in der Suche und in Gruppen. Er ist einmalig – wenn ihn schon jemand hat, musst du dir einen anderen aussuchen.',
@@ -409,7 +419,7 @@ export const de = {
   'account.manageGroups': 'Gruppen verwalten',
   'account.notInGroup': 'Du bist noch in keiner Gruppe.',
 
-  // Vergleich zweier Profile
+  // Comparing two profiles
   'duel.progress': 'Fortschritt',
   'duel.yield': 'Ausbeute',
   'duel.records': 'Rekorde',
@@ -442,7 +452,7 @@ export const de = {
   'duel.filterBehind': 'Er führt',
   'profile.noSave': 'Noch kein Spielstand hochgeladen.',
 
-  // ------------------------------------------------------------ Startseite
+  // ------------------------------------------------------------ Start page
   'start.eyebrow': 'Fan-Atlas · Ultimate Fishing Simulator 1',
   'start.headline': 'Die Zahlen kommen aus den Spieldateien.',
   'start.lead':
@@ -515,7 +525,7 @@ export const de = {
   'start.openCta': 'Auf GitHub ansehen',
   'start.footer': 'Fan-Projekt, nicht mit den Entwicklern verbunden. Guide-Stand {guide}.',
 
-  // --------------------------------------------------------------- Gruppen
+  // ---------------------------------------------------------------- Groups
   'group.public': 'Öffentlich',
   'group.publicHint': 'steht im Verzeichnis, jeder darf beitreten',
   'group.unlisted': 'Nicht gelistet',
@@ -565,7 +575,7 @@ export const de = {
   'group.noData': 'Noch keine Daten',
   'group.done': 'Fertig',
 
-  // Ranglisten einer Gruppe
+  // Group boards
   'board.biggestFish': 'Schwerster Fisch',
   'board.longestFish': 'Längster Fisch',
   'board.totalWeight': 'Meiste Masse gesamt',
@@ -575,7 +585,7 @@ export const de = {
   'board.fish': 'Meiste Fänge',
   'board.time': 'Meiste Angelzeit',
 
-  // Spalten der Mitgliedertabelle
+  // Member table columns
   'col.angler': 'Angler',
   'col.species': 'Arten',
   'col.fisheriesComplete': 'Reviere komplett',
@@ -585,7 +595,7 @@ export const de = {
   'col.state': 'Stand',
   'col.noProfile': 'kein Profil',
 
-  // Führung beim Spinnfischen, Reihenfolge wie im Enum SpinningMethod
+  // Retrieve when spin fishing, in the order of the SpinningMethod enum
   'spin.straightSlow': 'Straight langsam',
   'spin.straight': 'Straight',
   'spin.straightFast': 'Straight schnell',
@@ -593,7 +603,7 @@ export const de = {
   'spin.stopGo': 'Stop & Go',
   'spin.twitching': 'Twitching',
 
-  // Wetterregler
+  // Weather dials
   'weather.wind': 'Wind',
   'weather.windHint': 'windstill → stürmisch',
   'weather.clouds': 'Bewölkung',
@@ -603,7 +613,7 @@ export const de = {
 
   'method.noChance': 'Ohne Aussicht: {list}.',
 
-  // Artenseite
+  // Species page
   'species.searchPlaceholder': 'Art suchen …',
   'species.onlyMissing': 'nur fehlende',
   'species.count': '{n} Arten',
@@ -619,7 +629,7 @@ export const de = {
   'fish.showAllBaits': 'alle {n} Köder',
   'bait.baitSize': 'Ködergröße',
 
-  // ------------------------------------------------------------- Köderseite
+  // -------------------------------------------------------------- Bait page
   'bait.intro':
     'Jedes Köder-Prefab im Spiel führt eine Liste, wie stark sich welche Art für ihn interessiert – ein Wert zwischen 0 und 100 %. Diese Tabellen stehen hier unverändert. Sie sagen nichts über Hakengröße und Führung; das bleiben Erfahrungswerte.',
   'bait.searchPlaceholder': 'Köder oder Fisch suchen …',
@@ -647,7 +657,7 @@ export const de = {
   'bait.depthText':
     'sie entscheidet nicht darüber, ob ein Fisch beißt, sondern nur darüber, ob der Köder dort ankommt, wo der Schwarm steht. Tiefenangaben in Guides sind also Beobachtungen über den Standort der Fische, keine Vorliebe.',
 
-  // Teile eines Rutensets, wie der Spielstand sie führt
+  // Parts of a rod set, as the save file lists them
   'slot.rod': 'Rute',
   'slot.iceRod': 'Eisrute',
   'slot.reel': 'Rolle',
@@ -660,7 +670,7 @@ export const de = {
   'slot.rodStand': 'Ständer',
   'slot.biteIndicator': 'Bissanzeiger',
 
-  // Follower
+  // Follows
   'follows.followYou': 'Folgen dir',
   'follows.followThem': 'Folgen {name}',
   'follows.youFollow': 'Du folgst',
@@ -672,8 +682,8 @@ export const de = {
   'follows.species': '{n} Arten',
   'follows.catches': '{n} Fänge',
 
-  // Glossar: Überschriften der Ködergruppen. Die Einträge selbst kommen aus den
-  // Spieldateien, die Gruppen benennt der Guide.
+  // Glossary: headings for the bait groups. The entries themselves come from the
+  // game files; the guide names the groups.
   'gloss.natural.title': 'Naturköder',
   'gloss.natural.note': 'Werden am Haken angeboten, mehrere Stücke vergrößern den Anziehungsradius.',
   'gloss.boilie.title': 'Boilies',
@@ -690,7 +700,7 @@ export const de = {
   'gear.depth': 'Tiefe',
   'gear.shot': 'Schrot',
 
-  // Ausrüstungsklassen aus dem Spielstand
+  // Equipment classes from the save file
   'cat.ROD': 'Ruten',
   'cat.ICE_ROD': 'Eisruten',
   'cat.ROD_STAND': 'Ständer',

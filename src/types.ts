@@ -1,49 +1,49 @@
 /**
- * Die Form der beiden Datenquellen. Beide entstehen außerhalb des Programms:
- * `guide.json` aus der Community-Recherche, `gamedata.json` aus den
- * Spieldateien über `tools/extract.ps1`. Was hier steht, ist also eine
- * Beschreibung dessen, was dort schon liegt – kein Wunschzettel.
+ * The shape of the two data sources. Both are produced outside the program:
+ * `guide.json` from the community research, `gamedata.json` from the game
+ * files via `tools/extract.ps1`. What is described here reflects what those
+ * files already hold – it is not a wish list.
  */
 
-// ------------------------------------------------------------- Spieldaten
+// ------------------------------------------------------------- Game data
 
-/** Ein Punkt der Beißzeitkurve: [Stunde 0–24, Bereitschaft 0–1]. */
+/** A point on the bite curve: [hour 0–24, readiness 0–1]. */
 export type CurvePoint = [number, number]
 
 export interface Species {
   en?: string
   de?: string
   info?: string
-  /** Gewicht in kg, Länge in cm. */
+  /** Weight in kg, length in cm. */
   wMin?: number
   wMax?: number
   lMin?: number
   lMax?: number
-  /** Beißbereitschaft über 24 Stunden. */
+  /** Readiness to bite across 24 hours. */
   act?: CurvePoint[]
-  /** Beste Ködervorliebe je Angelart: Fliege, Kunstköder, Naturköder, Boilie. */
+  /** Best bait preference per method: fly, lure, natural bait, boilie. */
   m?: [number, number, number, number]
-  /** Faktor je Führung beim Spinnfischen, ohne den Eintrag „keine“. */
+  /** Factor per retrieve when spin fishing, excluding the "none" entry. */
   spin?: number[]
-  /** Wetterkurven, nur die bespielten. */
+  /** Weather curves, only the ones the game actually uses. */
   bite?: Partial<Record<'wind' | 'cloudiness' | 'rain', CurvePoint[]>>
 }
 
 export interface SpotEntry {
-  /** Artenschlüssel. */
+  /** Species key. */
   s: string
-  /** Fische an diesem Spot. */
+  /** Fish at this spot. */
   f: number
-  /** Entfernung in Metern. */
+  /** Distance in metres. */
   d: number
 }
 
 export interface Spot {
   n: number
-  /** Lage auf dem Kartenbild, 0–1. Fehlt bei Offshore-Revieren. */
+  /** Position on the map image, 0–1. Missing for offshore fisheries. */
   u?: number
   v?: number
-  /** Lage in der Spielwelt. */
+  /** Position in the game world. */
   wx?: number
   wz?: number
   fish: SpotEntry[]
@@ -54,21 +54,21 @@ export interface FisherySpecies {
   points: number
   fish: number
   spots: number[]
-  /** Arten aus dem New-Fish-Species-DLC haben keine festen Spawnpunkte. */
+  /** Species from the New Fish Species DLC have no fixed spawn points. */
   dlc?: boolean
 }
 
-/** Ein Schwarmpunkt auf der Karte: [Artenschlüssel, u, v]. */
+/** A shoal marker on the map: [species key, u, v]. */
 export type Dot = [string, number, number]
 
 export interface Fishery {
   level: number
-  /** Bild des Kartenbretts. Offshore-Reviere zeigen keins. */
+  /** Image of the map board. Offshore fisheries show none. */
   map: string | null
   mapW: number
   mapH: number
   save: string
-  /** Ließ sich die Spielwelt auf das Kartenbild abbilden? */
+  /** Could the game world be mapped onto the map image? */
   fitOk: boolean
   spots: Spot[]
   species: FisherySpecies[]
@@ -79,23 +79,23 @@ export interface Bait {
   en: string
   de: string
   kind: BaitKind
-  /** „Index:Prozent“ über die Liste `baitSpecies`. */
+  /** "index:percent" into the `baitSpecies` list. */
   i: string
 }
 
 export type BaitKind = 'natural' | 'boilie' | 'fly' | 'lure'
 
-/** Vector2 aus den Spieldaten: [von, bis]. */
+/** Vector2 from the game data: [from, to]. */
 export type Range = [number, number]
 
 export interface Hooks {
   steps: number
   label: string[]
-  /** Spaltbreite in Metern. */
+  /** Gap width in metres. */
   gap: number[]
-  /** Ködergröße gegen Fischlänge in Metern. */
+  /** Bait size relative to fish length, in metres. */
   baitLength: Range[]
-  /** Fischgewicht in kg je Stufe. */
+  /** Fish weight in kg per step. */
   hook: Range[]
   lure: Range[]
   fly: Range[]
@@ -121,6 +121,19 @@ export interface Glossary {
   categories: GlossaryCategory[]
 }
 
+/**
+ * A skill of the tree, named the way the game names it. How many steps it has
+ * is not in here: the localisation names only the first step of several of
+ * them, so the save file is what the count comes from.
+ */
+export interface SkillInfo {
+  key: string
+  en: string
+  de: string
+  descEn: string
+  descDe: string
+}
+
 export interface GameData {
   generated: string
   source: string
@@ -130,9 +143,10 @@ export interface GameData {
   baitSpecies: string[]
   baits: Record<string, Bait>
   hooks: Hooks | null
+  skills: SkillInfo[]
 }
 
-// ----------------------------------------------------------- Guide-Daten
+// ----------------------------------------------------------- Guide data
 
 export interface GuideMap {
   id: string
@@ -169,9 +183,9 @@ export interface GuideFish {
 }
 
 /**
- * Eine Quelle der Recherche. Titel und Adresse stehen so, wie die Seite selbst
- * heißt. Die Notiz gibt es zweisprachig, die Kategorie als Wörterbuchschlüssel –
- * beides wird im Guide gepflegt, nicht im Programm.
+ * One source behind the research. Title and address are given exactly as the
+ * page itself states them. The note comes in both languages, the category as a
+ * dictionary key – both are maintained in the guide, not in the program.
  */
 export interface SourceEntry {
   title: string
@@ -190,7 +204,7 @@ export interface GuideData {
   scope: string
 }
 
-// ------------------------------------------------- Eigener Stand im Browser
+// --------------------------------------------- Your own state in the browser
 
 export interface BestCatch {
   count: number
@@ -204,13 +218,13 @@ export interface LocalState {
   caught: Record<string, boolean>
   bests: Record<string, BestCatch>
   stats: SaveStats | null
-  /** Zeitpunkt der letzten eigenen Änderung, für den Abgleich mit dem Server. */
+  /** When you last changed something; used when comparing against the server. */
   updatedAt: string | null
 }
 
 /**
- * Was ein Spielstand-Import im Browser hinterlässt. Die Formen kommen
- * unverändert aus dem Parser; die Statistikseite liest sie so, wie sie sind.
+ * What a save-file import leaves behind in the browser. The shapes come
+ * straight from the parser; the statistics page reads them as they are.
  */
 export interface SaveStats {
   player: import('./lib/savegame').PlayerInfo | null

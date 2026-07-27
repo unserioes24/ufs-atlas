@@ -13,6 +13,8 @@ import { categoryLabel } from '../../lib/gear'
 import { fisheryStats } from '../../lib/profile'
 import type { ProfileResponse, PublicProfile } from '../../lib/profile'
 import { Bar, Stat } from '../primitives'
+import { RodSets } from './RodSets'
+import { Skills } from '../stats/Skills'
 import { Toggle } from '../ui'
 
 type Sort = 'sum' | 'best' | 'length' | 'count' | 'name'
@@ -160,6 +162,13 @@ export function ProfileDetails({ p, data, tab = 'uebersicht' }: ProfileDetailsPr
               </div>
             </div>
           ) : null}
+          {p.sets?.length ? (
+            <div className="ufs-spotcard" style={{ marginBottom: '.9rem' }}>
+              <h3>{t('stats.tabSets')}</h3>
+              <RodSets sets={p.sets} />
+            </div>
+          ) : null}
+          <Skills skills={p.skills ?? []} points={p.skillPoints ?? 0} />
         </>
       ) : null}
 

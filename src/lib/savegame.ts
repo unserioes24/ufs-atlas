@@ -94,6 +94,17 @@ export interface RodSet {
   hookSize?: number | string | boolean
 }
 
+/**
+ * A skill from the tree. The game unlocks it step by step and the save file
+ * records one flag per step, so `steps` is how many the game offers and `level`
+ * how far this player has taken it.
+ */
+export interface SkillState {
+  key: string
+  level: number
+  steps: number
+}
+
 export interface PlayerInfo {
   sets: RodSet[]
   owned: Record<string, number>
@@ -104,6 +115,9 @@ export interface PlayerInfo {
   exp: number
   luck: number
   strength: number
+  /** Skill points not spent yet. */
+  skillPoints: number
+  skills: SkillState[]
   version: string | null
 }
 
@@ -234,6 +248,19 @@ export function profileToCatches(raw: RawProfile): SaveSummary {
   const num = (v: unknown): number => (typeof v === 'number' ? v : 0)
   const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : null)
 
+  // The skill tree: one flag per step, e.g. skill_unlocked_MORE_EXP_2. How many
+  // steps a skill has is counted from the keys the save file carries - the
+  // game's own localisation names only the first step of several of them.
+  const steps: Record<string, number[]> = {}
+  for (const [k, v] of Object.entries(raw)) {
+    const m = /^skill_unlocked_(.+)_(\d+)$/.exec(k)
+    if (!m?.[1] || !m[2]) continue
+    ;(steps[m[1]] ??= []).push(v === true ? Number(m[2]) : 0)
+  }
+  const skills: SkillState[] = Object.entries(steps)
+    .map(([key, list]) => ({ key, level: Math.max(0, ...list), steps: list.length }))
+    .sort((a, b) => b.level - a.level || a.key.localeCompare(b.key))
+
   return {
     caught,
     bests,
@@ -248,6 +275,8 @@ export function profileToCatches(raw: RawProfile): SaveSummary {
       exp: num(raw.playersExperience),
       luck: num(raw.playersLuck),
       strength: num(raw.playersStrength),
+      skillPoints: num(raw.skillPoints),
+      skills,
       version: str(raw.gameVersion),
     },
     total: Object.keys(caught).length,

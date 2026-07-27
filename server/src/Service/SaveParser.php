@@ -222,6 +222,22 @@ final class SaveParser
             $owned[$cat] = ($owned[$cat] ?? 0) + 1;
         }
 
+        // The skill tree: one flag per step, e.g. skill_unlocked_MORE_EXP_2.
+        // How many steps a skill has is counted from the keys the save file
+        // carries - the game names only the first step of several of them.
+        $steps = [];
+        foreach ($raw as $k => $v) {
+            if (!preg_match('/^skill_unlocked_(.+)_(\d+)$/', $k, $m)) {
+                continue;
+            }
+            $steps[$m[1]][] = $v === true ? (int) $m[2] : 0;
+        }
+        $skills = [];
+        foreach ($steps as $key => $list) {
+            $skills[] = ['key' => $key, 'level' => max($list), 'steps' => \count($list)];
+        }
+        usort($skills, static fn (array $a, array $b) => [$b['level'], $a['key']] <=> [$a['level'], $b['key']]);
+
         return [
             'name' => \is_string($raw['playerName'] ?? null) ? $raw['playerName'] : '',
             'level' => (int) ($raw['playersLevel'] ?? 0),
@@ -230,6 +246,8 @@ final class SaveParser
             'exp' => (int) ($raw['playersExperience'] ?? 0),
             'luck' => (float) ($raw['playersLuck'] ?? 0),
             'strength' => (float) ($raw['playersStrength'] ?? 0),
+            'skillPoints' => (int) ($raw['skillPoints'] ?? 0),
+            'skills' => $skills,
             'version' => \is_string($raw['gameVersion'] ?? null) ? $raw['gameVersion'] : null,
             'sets' => $sets,
             'owned' => $owned,
