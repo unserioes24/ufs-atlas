@@ -37,14 +37,53 @@ class GroupController extends AbstractController
         }
         $out = [];
         foreach ($me->getMemberships() as $m) {
-            $g = $m->getGroup();
-            $out[] = [
-                'id' => $g->getId(),
-                'name' => $g->getName(),
-                'code' => $g->getJoinCode(),
-                'members' => \count($g->getMembers()),
-                'owner' => $g->getOwner()->getId() === $me->getId(),
-            ];
+            $out[] = self::groupPayload($m->getGroup(), $me);
+        }
+
+        return $this->json(['groups' => $out]);
+    }
+
+    /**
+     * Grunddaten einer Gruppe. Der Beitrittscode geht nur an Mitglieder – bei
+     * einer offenen Gruppe braucht ihn ohnehin niemand.
+     */
+    public static function groupPayload(FishGroup $g, ?User $me, bool $member = true): array
+    {
+        return [
+            'id' => $g->getId(),
+            'name' => $g->getName(),
+            'code' => $member ? $g->getJoinCode() : null,
+            'visibility' => $g->getVisibility(),
+            'members' => \count($g->getMembers()),
+            'owner' => $me !== null && $g->getOwner()->getId() === $me->getId(),
+            'ownerName' => $g->getOwner()->getName(),
+            'member' => $member,
+        ];
+    }
+
+    /** Verzeichnis der öffentlichen Gruppen, auch ohne Anmeldung lesbar. */
+    #[Route('/public', methods: ['GET'])]
+    public function directory(Request $request): JsonResponse
+    {
+        $me = $this->auth->user();
+        $q = trim((string) $request->query->get('q', ''));
+        $qb = $this->em->getRepository(FishGroup::class)->createQueryBuilder('g')
+            ->where('g.visibility = :v')->setParameter('v', 'public')
+            ->orderBy('g.createdAt', 'DESC')
+            ->setMaxResults(50);
+        if ($q !== '') {
+            $qb->andWhere('g.name LIKE :q')->setParameter('q', '%' . $q . '%');
+        }
+
+        $mine = [];
+        if ($me !== null) {
+            foreach ($me->getMemberships() as $m) {
+                $mine[$m->getGroup()->getId()] = true;
+            }
+        }
+        $out = [];
+        foreach ($qb->getQuery()->getResult() as $g) {
+            $out[] = self::groupPayload($g, $me, isset($mine[$g->getId()]));
         }
 
         return $this->json(['groups' => $out]);
@@ -63,7 +102,84 @@ class GroupController extends AbstractController
             return $this->json(['error' => 'Gruppenname muss zwischen 1 und 60 Zeichen lang sein.'], 400);
         }
 
-        // Kurzer, gut vorlesbarer Code ohne leicht verwechselbare Zeichen
+        $code = $this->freeCode();
+        $group = new FishGroup($name, $code, $me);
+        $group->setVisibility((string) ($data['visibility'] ?? 'private'));
+        $this->em->persist($group);
+        $member = new GroupMember($group, $me);
+        $this->em->persist($member);
+        $this->em->flush();
+
+        return $this->json(['ok' => true, 'group' => self::groupPayload($group, $me)]);
+    }
+
+    /** Name, Sichtbarkeit und Beitrittscode ändern – nur der Besitzer darf das. */
+    #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function edit(int $id, Request $request): JsonResponse
+    {
+        $me = $this->requireUser();
+        if ($me === null) {
+            return $this->json(['error' => 'Nicht angemeldet.'], 401);
+        }
+        $group = $this->em->getRepository(FishGroup::class)->find($id);
+        if ($group === null) {
+            return $this->json(['error' => 'Gruppe nicht gefunden.'], 404);
+        }
+        if ($group->getOwner()->getId() !== $me->getId()) {
+            return $this->json(['error' => 'Nur wer die Gruppe angelegt hat, darf sie ändern.'], 403);
+        }
+
+        $data = json_decode($request->getContent() ?: '{}', true) ?: [];
+        if (isset($data['name'])) {
+            $name = trim((string) $data['name']);
+            if ($name === '' || mb_strlen($name) > 60) {
+                return $this->json(['error' => 'Gruppenname muss zwischen 1 und 60 Zeichen lang sein.'], 400);
+            }
+            $group->setName($name);
+        }
+        if (isset($data['visibility'])) {
+            $group->setVisibility((string) $data['visibility']);
+        }
+        if (!empty($data['newCode'])) {
+            $group->regenerateJoinCode($this->freeCode());
+        }
+        $this->em->flush();
+
+        return $this->json(['ok' => true, 'group' => self::groupPayload($group, $me)]);
+    }
+
+    /** Ein Mitglied entfernen; der Besitzer kann sich selbst nicht werfen. */
+    #[Route('/{id}/kick/{userId}', methods: ['POST'], requirements: ['id' => '\d+', 'userId' => '\d+'])]
+    public function kick(int $id, int $userId): JsonResponse
+    {
+        $me = $this->requireUser();
+        if ($me === null) {
+            return $this->json(['error' => 'Nicht angemeldet.'], 401);
+        }
+        $group = $this->em->getRepository(FishGroup::class)->find($id);
+        if ($group === null) {
+            return $this->json(['error' => 'Gruppe nicht gefunden.'], 404);
+        }
+        if ($group->getOwner()->getId() !== $me->getId()) {
+            return $this->json(['error' => 'Nur wer die Gruppe angelegt hat, darf Mitglieder entfernen.'], 403);
+        }
+        if ($group->getOwner()->getId() === $userId) {
+            return $this->json(['error' => 'Die Gruppe braucht ihren Besitzer.'], 400);
+        }
+        $other = $this->em->getRepository(User::class)->find($userId);
+        $member = $other ? $this->em->getRepository(GroupMember::class)
+            ->findOneBy(['group' => $group, 'user' => $other]) : null;
+        if ($member !== null) {
+            $this->em->remove($member);
+            $this->em->flush();
+        }
+
+        return $this->json(['ok' => true]);
+    }
+
+    /** Kurzer, gut vorlesbarer Code ohne leicht verwechselbare Zeichen. */
+    private function freeCode(): string
+    {
         $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         do {
             $code = '';
@@ -73,13 +189,7 @@ class GroupController extends AbstractController
             $taken = $this->em->getRepository(FishGroup::class)->findOneBy(['joinCode' => $code]);
         } while ($taken !== null);
 
-        $group = new FishGroup($name, $code, $me);
-        $this->em->persist($group);
-        $member = new GroupMember($group, $me);
-        $this->em->persist($member);
-        $this->em->flush();
-
-        return $this->json(['ok' => true, 'group' => ['id' => $group->getId(), 'name' => $name, 'code' => $code]]);
+        return $code;
     }
 
     #[Route('/join', methods: ['POST'])]
@@ -91,7 +201,18 @@ class GroupController extends AbstractController
         }
         $data = json_decode($request->getContent() ?: '{}', true) ?: [];
         $code = strtoupper(trim((string) ($data['code'] ?? '')));
-        $group = $this->em->getRepository(FishGroup::class)->findOneBy(['joinCode' => $code]);
+        $id = (int) ($data['id'] ?? 0);
+
+        // Beitritt entweder über den Code oder – bei offenen Gruppen – direkt
+        // über die Gruppennummer aus dem Verzeichnis oder einem Link.
+        $repo = $this->em->getRepository(FishGroup::class);
+        $group = $code !== '' ? $repo->findOneBy(['joinCode' => $code]) : null;
+        if ($group === null && $id > 0) {
+            $found = $repo->find($id);
+            if ($found !== null && $found->isOpen()) {
+                $group = $found;
+            }
+        }
         if ($group === null) {
             return $this->json(['error' => 'Zu diesem Code gibt es keine Gruppe.'], 404);
         }
@@ -101,7 +222,7 @@ class GroupController extends AbstractController
             $this->em->flush();
         }
 
-        return $this->json(['ok' => true, 'group' => ['id' => $group->getId(), 'name' => $group->getName()]]);
+        return $this->json(['ok' => true, 'group' => self::groupPayload($group, $me)]);
     }
 
     #[Route('/{id}/leave', methods: ['POST'], requirements: ['id' => '\d+'])]
@@ -133,9 +254,10 @@ class GroupController extends AbstractController
         if ($group === null) {
             return $this->json(['error' => 'Gruppe nicht gefunden.'], 404);
         }
+        // Offene Gruppen darf jeder ansehen, private nur ihre Mitglieder.
         $mine = $this->em->getRepository(GroupMember::class)->findOneBy(['group' => $group, 'user' => $me]);
-        if ($mine === null) {
-            return $this->json(['error' => 'Du bist kein Mitglied dieser Gruppe.'], 403);
+        if ($mine === null && !$group->isOpen()) {
+            return $this->json(['error' => 'Diese Gruppe ist privat.'], 403);
         }
 
         $members = [];
@@ -177,12 +299,7 @@ class GroupController extends AbstractController
         ];
 
         return $this->json([
-            'group' => [
-                'id' => $group->getId(),
-                'name' => $group->getName(),
-                'code' => $group->getJoinCode(),
-                'owner' => $group->getOwner()->getId() === $me->getId(),
-            ],
+            'group' => self::groupPayload($group, $me, $mine !== null),
             'members' => $members,
             'boards' => $boards,
             'meta' => [

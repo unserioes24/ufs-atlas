@@ -404,28 +404,47 @@ function BaitSpeciesKey($k) {
     return $res
 }
 
+# Der Ködertyp kommt aus dem Baustein Bait, nicht aus der Namensgebung:
+# baittypes.ps1 liest ihn je Prefab aus. Prefabs ohne diesen Baustein sind
+# Naturköder – sie werden als Köderstücke an einen Haken gesteckt.
+$baitKindOf = @{}
+$typeFile = Join-Path $sp 'baittypes.json'
+if (Test-Path $typeFile) {
+    $bt = Get-Content $typeFile -Raw | ConvertFrom-Json
+    foreach ($p in $bt.PSObject.Properties) {
+        $baitKindOf[$p.Name] = if ($p.Value.type -eq 'FLY') { 'fly' } else { 'lure' }
+    }
+}
+function BaitKind($prefab) {
+    if ($baitKindOf.ContainsKey($prefab)) { return $baitKindOf[$prefab] }
+    if ($prefab -like 'Boilie*') { return 'boilie' }
+    return 'natural'
+}
+
 $baits = [ordered]@{}
 $baitSpecies = @()
 $baitSpeciesIdx = @{}
 $baitDropped = @{}
+$baitBest = @{}          # je Art und Angelart das höchste Interesse
 $baitFile = Join-Path $sp 'baits.json'
 if (Test-Path $baitFile) {
     $raw = Get-Content $baitFile -Raw | ConvertFrom-Json
     foreach ($p in $raw.PSObject.Properties) {
         $base = $p.Name -replace '^(Bait_|Boilie_)', '' -replace '_\d+$', ''
+        $kind = BaitKind $p.Name
         if ($baits.Contains($base)) { continue }
 
         $n = BaitNorm $base
         if ($BAIT_ALIAS.ContainsKey($base)) { $n = $BAIT_ALIAS[$base] }
         elseif ($BAIT_ALIAS.ContainsKey($n)) { $n = $BAIT_ALIAS[$n] }
         $t = $baitTerm[$n]
-        if ($t) { $en = $t.en; $de = $t.de; $kind = $t.kind }
-        elseif ($FLY_NAMES.ContainsKey($base)) { $en = $FLY_NAMES[$base][0]; $de = $FLY_NAMES[$base][1]; $kind = 'fly' }
+        if ($t) { $en = $t.en; $de = $t.de }
+        elseif ($FLY_NAMES.ContainsKey($base)) { $en = $FLY_NAMES[$base][0]; $de = $FLY_NAMES[$base][1] }
         else {
             # Produktname: CamelCase auftrennen, Unterstriche zu Leerzeichen
             $en = ($base -replace '_', ' ')
             $en = [Regex]::Replace($en, '(?<=[a-z0-9])(?=[A-Z])', ' ')
-            $de = $en; $kind = 'lure'
+            $de = $en
         }
 
         # Varianten derselben Art zusammenfassen, der höhere Wert gewinnt
@@ -452,6 +471,38 @@ if (Test-Path $baitFile) {
     if ($baitDropped.Count) {
         Write-Host ("  ohne Entsprechung in der Artenliste: " + (($baitDropped.Keys | Sort-Object) -join ', '))
     }
+
+    # Beste erreichbare Ködervorliebe je Art und Angelart. Hier zählt jedes
+    # Prefab, auch die Varianten, die oben zu einem Eintrag verschmolzen wurden.
+    foreach ($p in $raw.PSObject.Properties) {
+        $kind = BaitKind $p.Name
+        foreach ($f in $p.Value.fish.PSObject.Properties) {
+            $v = [double]$f.Value
+            if ($v -le 0) { continue }
+            $sk = BaitSpeciesKey $f.Name
+            if (-not $sk) { continue }
+            if (-not $baitBest.ContainsKey($sk)) { $baitBest[$sk] = @{} }
+            if (-not $baitBest[$sk].ContainsKey($kind) -or $baitBest[$sk][$kind] -lt $v) {
+                $baitBest[$sk][$kind] = $v
+            }
+        }
+    }
+
+    # Als vier Prozentwerte an die Art hängen: Fliege, Kunstköder,
+    # Naturköder, Boilie. Der Naturköder gilt für ein einzelnes Stück;
+    # Bait.CheckTaste rechnet bei mehreren "bestes + 0,2 je weiteres".
+    $withMethods = 0
+    foreach ($sk in $baitBest.Keys) {
+        if (-not $species.Contains($sk)) { continue }
+        $b = $baitBest[$sk]
+        $vals = @()
+        foreach ($kd in 'fly', 'lure', 'natural', 'boilie') {
+            $vals += [int][Math]::Round(($(if ($b.ContainsKey($kd)) { $b[$kd] } else { 0 })) * 100)
+        }
+        $species[$sk].m = $vals
+        $withMethods++
+    }
+    Write-Host "Angelarten je Fisch bewertet: $withMethods"
 }
 
 # Nur die drei Kurven, die je Art überhaupt gefüllt sind.

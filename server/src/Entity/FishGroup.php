@@ -21,6 +21,18 @@ class FishGroup
     #[ORM\Column(name: 'join_code', length: 12)]
     private string $joinCode;
 
+    /**
+     * Wer die Gruppe sehen und ihr beitreten darf:
+     *
+     *   public   im Verzeichnis sichtbar, Beitritt für jeden
+     *   unlisted nicht im Verzeichnis, aber über Link oder Code offen
+     *   private  nur Mitglieder sehen sie, Beitritt nur über den Code
+     */
+    public const VISIBILITIES = ['public', 'unlisted', 'private'];
+
+    #[ORM\Column(length: 10, options: ['default' => 'private'])]
+    private string $visibility = 'private';
+
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private User $owner;
@@ -45,6 +57,15 @@ class FishGroup
     public function getName(): string { return $this->name; }
     public function setName(string $v): void { $this->name = $v; }
     public function getJoinCode(): string { return $this->joinCode; }
+    public function regenerateJoinCode(string $code): void { $this->joinCode = $code; }
+
+    public function getVisibility(): string { return $this->visibility; }
+    public function setVisibility(string $v): void
+    {
+        $this->visibility = \in_array($v, self::VISIBILITIES, true) ? $v : 'private';
+    }
+    /** Öffentlich und nicht gelistet stehen jedem offen, privat nur über den Code. */
+    public function isOpen(): bool { return $this->visibility !== 'private'; }
     public function getOwner(): User { return $this->owner; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
 

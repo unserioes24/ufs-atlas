@@ -130,11 +130,28 @@ class UserController extends AbstractController
                 ->findOneBy(['follower' => $me, 'followed' => $user]);
         }
 
+        $repo = $this->em->getRepository(Follow::class);
+
+        // Im fremden Profil stehen nur die öffentlichen Gruppen; im eigenen
+        // alle, denn dort wird die Mitgliedschaft auch verwaltet.
+        $self = $me !== null && $me->getId() === $user->getId();
+        $groups = [];
+        foreach ($user->getMemberships() as $m) {
+            $g = $m->getGroup();
+            if (!$self && $g->getVisibility() !== 'public') {
+                continue;
+            }
+            $groups[] = GroupController::groupPayload($g, $me, $self);
+        }
+
         return $this->json([
+            'groups' => $groups,
             'user' => self::userPayload($user),
             'profile' => self::profilePayload($user->getProfile()),
             'following' => $follows,
-            'self' => $me !== null && $me->getId() === $user->getId(),
+            'followers' => $repo->count(['followed' => $user]),
+            'follows' => $repo->count(['follower' => $user]),
+            'self' => $self,
             'me' => $me === null ? null : [
                 'user' => self::userPayload($me),
                 'profile' => self::profilePayload($me->getProfile()),

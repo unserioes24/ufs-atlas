@@ -77,6 +77,45 @@ Bespielt sind davon nur vier: Uhrzeit, Wind, Bewölkung und Regen. Hunger,
 entscheidet also nicht über die Bissbereitschaft – sie entscheidet nur darüber,
 ob der Köder überhaupt dort ankommt, wo der Schwarm steht.
 
+## Angelart: Fliege, Kunstköder, Pose, Grund
+
+Welche Angelart bei einer Art etwas bringt, entscheidet sich in `Fish.LikesBait`:
+
+```
+eval  = Mittelwert(Zeit, Wind, Bewölkung, Regen)     FishBaitEvaluator.Evaluate
+eval *= Bait.CheckTaste(fish)                        Ködervorliebe 0…1
+   mit Schwimmer (Pose/Grund):
+        + Boilie.GetFishInterest(art) × 0,2          nur Grundmontage mit Feeder
+   ohne Schwimmer (Spinnfischen, Fliege):
+        × spinningMethodFactor[Führung]              0 bei „keine Führung"
+        × 0,8 zusätzlich, wenn die Rollenstufe nicht zur Fischgröße passt
+eval *= Mathf.Lerp(0,6, 1, 1 − FishingLine.scareFactor)
+Biss, wenn eval ≥ 0,4   (im Casual-Modus ≥ 0,29)
+```
+
+Drei Dinge folgen daraus:
+
+- **Pose und Grund haben keinen eigenen Faktor.** `floatMethodFactor` steht bei
+  allen Arten auf 1 und wird außerhalb des Konstruktors nirgends gelesen.
+- **Die Schwelle ist hart.** Eine Vorliebe von 0,4 verlangt einen Wetterwert von
+  1,0 – praktisch unerreichbar. Der Unterschied zwischen zwei Angelarten ist
+  deshalb oft nicht „seltener", sondern „nie".
+- **Naturköder lassen sich stapeln.** `CheckTaste` rechnet bei mehreren
+  Köderstücken am Haken `bestes Stück + 0,2 × jedes weitere`, mit drei Stücken
+  also das 1,4-fache.
+
+Den Ködertyp liest `tools/baittypes.ps1` aus dem Baustein `Bait` der Prefabs
+(`_work/baittypes.json`): `BaitType` ist das erste Feld hinter `m_Name`.
+Naturköder tragen diesen Baustein nicht – sie sind `baitParts` an einem Haken,
+und der Haken ist das Bait-Objekt. Ein Prefab mit Fischtabelle, aber ohne
+`Bait`, ist damit ein Naturköder. Von 171 Prefabs sind 16 Fliegen, 123
+Kunstköder (Spinner, Blinker, Wobbler, Gummi), 22 Naturköder und 10 Boilies.
+
+`build2.ps1` legt daraus je Art vier Prozentwerte in `species.m` ab: die beste
+erreichbare Vorliebe mit Fliege, Kunstköder, Naturköder und Boilie. Über alle
+153 Arten liegt der Median der Spanne zwischen bester und schwächster Angelart
+bei 0,50; bei 51 Arten beträgt sie 0,8 oder mehr.
+
 ## Größenstufen
 
 Haken- und Ködergröße rechnet das Spiel über 18 Stufen ab. Im Hauptmenü (`level2`)

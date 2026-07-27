@@ -8,7 +8,7 @@
  * lesbare Quelle. h() ist React.createElement.
  */
 
-const { useEffect, useMemo, useRef, useState } = React;
+const { useCallback, useEffect, useMemo, useRef, useState } = React;
 const h = React.createElement;
 
 const D = window.UFS_DATA;
@@ -442,6 +442,87 @@ function BaitTop(props) {
             : null);
 }
 
+/* ------------------------------------------------------------- Angelarten
+
+   species.m trägt vier Prozentwerte: die beste erreichbare Ködervorliebe mit
+   Fliege, Kunstköder, Naturköder und Boilie. Was daraus folgt, steht in
+   Fish.LikesBait:
+
+     eval = Mittel(Zeit, Wind, Bewölkung, Regen) × Ködervorliebe
+     Pose/Grund : + Boilie-Anfütterung × 0,2     (Grundmontage mit Feeder)
+     Spinn/Fliege: × Führungsfaktor              (0 ohne Führung)
+     eval × Schnurfaktor (0,6 … 1) ≥ 0,4  →  Biss     (Casual: ≥ 0,29)
+
+   Die Schwelle ist hart: eine schwache Vorliebe heißt nicht „seltener",
+   sondern ab einem gewissen Punkt „nie". */
+
+const METHODS = [
+    { k: 'fly', de: 'Fliege', note: 'Fliegenrute' },
+    { k: 'lure', de: 'Kunstköder', note: 'Spinnrute' },
+    { k: 'natural', de: 'Naturköder', note: 'Pose / Grund' },
+    { k: 'boilie', de: 'Boilie', note: 'Grundmontage' }
+];
+
+/** Nötiger Wetter-/Zeitwert, damit es mit dieser Vorliebe überhaupt reicht. */
+function needBase(pct) {
+    if (!pct) return null;
+    const need = 0.4 / (pct / 100);
+    return need > 1 ? null : need;
+}
+
+/** Die vier Angelarten einer Art, absteigend, mit Bewertung. */
+function methodList(m) {
+    if (!m || !m.length) return [];
+    return METHODS.map(function (x, i) {
+        const pct = m[i] || 0;
+        return { k: x.k, de: x.de, note: x.note, pct: pct, need: needBase(pct) };
+    }).sort(function (a, b) { return b.pct - a.pct; });
+}
+
+function methodTop(m) {
+    const list = methodList(m).filter(function (x) { return x.pct > 0; });
+    if (!list.length) return null;
+    const best = list[0].pct;
+
+    return { names: list.filter(function (x) { return x.pct === best; }), value: best };
+}
+
+/** Alle vier Angelarten mit Balken; Naturköder zusätzlich zu dritt. */
+function MethodList(props) {
+    const rows = methodList(props.m);
+    if (!rows.length) return null;
+
+    return h('div', null,
+        h('div', { className: 'ufs-baitlist' },
+            rows.map(function (r) {
+                // Drei Köderstücke am Haken: bestes Stück + 0,2 je weiteres
+                const three = r.k === 'natural' && r.pct ? Math.min(140, Math.round(r.pct * 1.4)) : 0;
+                return h('div', { key: r.k, className: 'row' },
+                    h('span', { className: cn('nm', !r.pct && 'off') }, r.de),
+                    h('span', { className: cn('kd', r.k) }, r.note),
+                    h('span', { className: 'bar' },
+                        three ? h('span', {
+                            className: 'ghost', title: 'mit drei Köderstücken',
+                            style: { width: Math.min(100, three) + '%' }
+                        }) : null,
+                        h('span', { style: { width: Math.min(100, r.pct) + '%' } })),
+                    h('span', { className: 'vl' }, r.pct ? r.pct + ' %' : '–'));
+            })),
+        h('p', { className: 'ufs-muted', style: { fontSize: '11px', lineHeight: 1.6, marginTop: '.5rem' } },
+            'Das Spiel verlangt Wetter × Vorliebe × Schnur ≥ 0,4 für einen Biss (Casual 0,29). ',
+            rows[0].need
+                ? 'Mit ' + rows[0].de + ' reicht ein Wetterwert ab ' + Math.round(rows[0].need * 100) + ' %.'
+                : 'Keine Angelart kommt hier ohne perfekte Bedingungen über die Schwelle.',
+            rows.filter(function (r) { return r.pct && !r.need; }).length
+                ? ' Ohne Aussicht: ' + rows.filter(function (r) { return r.pct && !r.need; })
+                    .map(function (r) { return r.de; }).join(', ') + '.'
+                : '',
+            props.m && props.m[2]
+                ? ' Drei Köderstücke am Haken heben den Naturköder auf bis zu '
+                    + Math.round(props.m[2] * 1.4) + ' %.'
+                : ''));
+}
+
 /* Führung beim Spinnfischen. Die Reihenfolge folgt dem Enum SpinningMethod,
    ohne dessen ersten Eintrag NONE. */
 const SPIN_NAMES = ['Straight langsam', 'Straight', 'Straight schnell', 'Lift & Drop', 'Stop & Go', 'Twitching'];
@@ -753,6 +834,7 @@ function FishCard(props) {
     const hookText = hookIdx.length ? stepRange(hookIdx) + '  ' + gapRange(hookIdx) : null;
     const hours = sp && sp.act ? bestHours(sp.act) : null;
     const top = sp && sp.spin ? spinTop(sp.spin) : null;
+    const mTop = sp && sp.m ? methodTop(sp.m) : null;
 
     return h('article', { id: f.id, className: 'print-card group overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/[.055] to-white/[.022] shadow-xl transition hover:border-cyan-300/25' },
         h('div', { className: 'flex flex-wrap items-start gap-4 border-b border-white/10 p-5 lg:p-6' },
@@ -797,6 +879,11 @@ function FishCard(props) {
             }),
             h(Fact, { icon: 'hook', label: 'Haken', value: hookText || f.hook }),
             h(Fact, { icon: 'star', label: 'Beste Zeit', value: hours || f.time }),
+            mTop ? h(Fact, {
+                icon: 'bait', label: 'Beste Angelart',
+                value: h('span', null, mTop.names.map(function (x) { return x.de; }).join(' / '),
+                    h('span', { className: 'ufs-muted', style: { fontWeight: 400 } }, '  ' + mTop.value + ' %'))
+            }) : null,
             h(Fact, {
                 icon: 'method', label: 'Beste Führung',
                 value: top
@@ -851,6 +938,11 @@ function FishCard(props) {
                     ? h('div', { style: { marginTop: '.7rem' } },
                         h('div', { className: 'hd' }, 'Passende Größenstufen'),
                         h(SizeFit, { sp: sp }))
+                    : null,
+                sp.m
+                    ? h('div', { style: { marginTop: '.7rem' } },
+                        h('div', { className: 'hd' }, 'Angelart'),
+                        h(MethodList, { m: sp.m }))
                     : null,
                 key && (BAITS_FOR[key] || []).length
                     ? h('div', { style: { marginTop: '.7rem' } },
@@ -1785,6 +1877,11 @@ function SpeciesPage(props) {
                             h('span', { style: { color: '#64748b' } }, 'Größen'),
                             h(SizeFit, { sp: s }))
                         : null,
+                    s.m
+                        ? h('div', { style: { display: 'block', marginTop: '.5rem' } },
+                            h('span', { style: { color: '#64748b' } }, 'Angelart'),
+                            h(MethodList, { m: s.m }))
+                        : null,
                     s.spin
                         ? h('div', { style: { display: 'block', marginTop: '.5rem' } },
                             h('span', { style: { color: '#64748b' } }, 'Führung'),
@@ -2176,14 +2273,22 @@ function ProfilePage(props) {
     const [copied, setCopied] = useState(false);
     const [filter, setFilter] = useState('diff');
     const [busy, setBusy] = useState(false);
+    // Der Reiter steht in der Adresse, damit sich auch ein einzelner
+    // Abschnitt verlinken lässt: #angler/<Name>/gruppen
+    const tab = props.tab || 'uebersicht';
+    const setTab = props.onTab;
 
-    useEffect(function () {
-        setData(null); setErr(null);
-        if (!props.name) return;
-        api('/users/name/' + encodeURIComponent(props.name))
+    const name = props.name;
+    const load = useCallback(function () {
+        if (!name) return;
+        api('/users/name/' + encodeURIComponent(name))
             .then(setData)
             .catch(function (e) { setErr(e.message); });
-    }, [props.name, props.me && props.me.id]);
+    }, [name]);
+    useEffect(function () {
+        setData(null); setErr(null);
+        load();
+    }, [load, props.me && props.me.id]);
 
     const p = data && data.profile;
     const mine = data && data.me && data.me.profile;
@@ -2236,17 +2341,58 @@ function ProfilePage(props) {
             'Profile brauchen den Server. Öffne den Guide über ', h('code', null, 'https://fish.tobee94.de'), '.');
     }
 
-    return h('div', null,
-        h('div', { className: 'ufs-row no-print', style: { marginBottom: '.9rem' } },
-            h('button', { className: 'ufs-btn', onClick: props.onBack }, '← Zurück'),
-            h('button', { className: 'ufs-btn', onClick: copy }, copied ? '✓ Kopiert' : 'Link kopieren'),
-            props.me && data && !data.self
-                ? h('button', { className: cn('ufs-btn', data.following && 'primary'), disabled: busy, onClick: toggleFollow },
-                    data.following ? '✓ Du folgst' : 'Folgen')
-                : null),
-        err ? h('div', { className: 'ufs-note' }, err) : null,
-        !data && !err ? h('p', { className: 'ufs-muted' }, 'Wird geladen …') : null,
-        !data ? null : h('div', null,
+    // Menüpunkte: was es beim fremden Profil nicht zu sehen gibt, fällt weg.
+    const self = !!(data && data.self);
+    const items = [
+        { k: 'uebersicht', t: 'Übersicht', s: p ? fmtNum(p.speciesCount) + ' Arten' : 'ohne Spielstand' },
+        p ? { k: 'reviere', t: 'Reviere', s: fmtNum(p.fisheriesComplete) + ' komplett' } : null,
+        p ? { k: 'arten', t: 'Arten', s: fmtNum(Object.keys(p.species).length) + ' Rekorde' } : null,
+        p ? { k: 'offen', t: 'Was noch fehlt', s: (data.meta.totalSpecies - p.speciesCount) + ' Arten' } : null,
+        duel ? { k: 'vergleich', t: 'Vergleich mit dir', s: rows.length + ' Arten' } : null,
+        { k: 'gruppen', t: 'Gruppen', s: (data && data.groups ? data.groups.length : 0) + ' Stück' },
+        self ? { k: 'konto', t: 'Einstellungen', s: 'Name, Token, Abmelden' } : null
+    ].filter(Boolean);
+    const active = items.some(function (x) { return x.k === tab; }) ? tab : 'uebersicht';
+
+    if (!data) {
+        return h('div', null,
+            h('div', { className: 'ufs-row no-print', style: { marginBottom: '.9rem' } },
+                h('button', { className: 'ufs-btn', onClick: props.onBack }, '← Zurück')),
+            err ? h('div', { className: 'ufs-note' }, err) : h('p', { className: 'ufs-muted' }, 'Wird geladen …'));
+    }
+
+    // Dieselbe Spaltenaufteilung wie die Revieransicht; die Klasse steht so im
+    // vorgefertigten Tailwind-Stylesheet und darf nicht abgewandelt werden.
+    return h('div', { className: 'grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]' },
+        // Seitenmenü im Stil der Revierliste
+        h('aside', { className: 'no-print self-start lg:sticky lg:top-24' },
+            h('div', { className: 'glass scrollbar max-h-[calc(100vh-7rem)] overflow-y-auto rounded-3xl border border-white/10 p-3 shadow-2xl' },
+                h('div', { className: 'px-3 pb-2 pt-2 text-xs font-bold uppercase tracking-[.18em] text-slate-500' },
+                    self ? 'Dein Profil' : 'Profil'),
+                h('div', { className: 'space-y-1' }, items.map(function (it) {
+                    return h('button', {
+                        key: it.k, onClick: function () { setTab(it.k); },
+                        className: cn('group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition',
+                            active === it.k ? 'border border-cyan-300/20 bg-cyan-400/10' : 'border border-transparent hover:bg-white/[.045]')
+                    },
+                        h('span', { className: cn('h-2.5 w-2.5 rounded-full', active === it.k ? 'bg-cyan-300/70' : 'bg-slate-600') }),
+                        h('span', { className: 'min-w-0 flex-1' },
+                            h('span', { className: 'block truncate text-sm font-semibold text-slate-200' }, it.t),
+                            h('span', { className: 'block truncate text-[10px] text-slate-500' }, it.s)));
+                })),
+                h('div', { className: 'mt-3 space-y-2 border-t border-white/10 px-1 pt-3' },
+                    h('button', { className: 'ufs-btn', style: { width: '100%' }, onClick: copy },
+                        copied ? '✓ Kopiert' : 'Link kopieren'),
+                    props.me && !self
+                        ? h('button', {
+                            className: cn('ufs-btn', data.following && 'primary'), style: { width: '100%' },
+                            disabled: busy, onClick: toggleFollow
+                        }, data.following ? '✓ Du folgst' : 'Folgen')
+                        : null,
+                    h('button', { className: 'ufs-btn', style: { width: '100%' }, onClick: props.onBack }, '← Zurück')))),
+
+        h('div', { className: 'min-w-0' },
+            err ? h('div', { className: 'ufs-note', style: { marginBottom: '.9rem' } }, err) : null,
             h('div', { className: 'ufs-profhead' },
                 h('div', null,
                     h('h1', { className: 'text-2xl font-black tracking-tight text-white', style: { margin: 0 } }, data.user.name),
@@ -2254,22 +2400,220 @@ function ProfilePage(props) {
                         p ? 'Angler ' + (p.anglerName || data.user.name)
                             + (p.version ? ' · Spielstand ' + p.version : '')
                             : 'Noch kein Spielstand hochgeladen.')),
-                p ? h('div', { className: 'ufs-stand' },
-                    h('span', { className: 'lbl' }, 'Stand des Spielstands'),
-                    h('span', { className: 'val' }, fmtWhen(p.updatedAt)),
-                    h('span', { className: 'sub' }, fmtAgo(p.updatedAt))) : null),
+                h('div', { className: 'ufs-row', style: { gap: '.5rem' } },
+                    h('span', { className: 'ufs-chip', title: 'Angler, die diesem Profil folgen' },
+                        'Follower ', h('b', null, fmtNum(data.followers || 0))),
+                    h('span', { className: 'ufs-chip', title: 'Profile, denen dieses Konto folgt' },
+                        'Folgt ', h('b', null, fmtNum(data.follows || 0))),
+                    p ? h('span', { className: 'ufs-stand' },
+                        h('span', { className: 'lbl' }, 'Stand des Spielstands'),
+                        h('span', { className: 'val' }, fmtWhen(p.updatedAt)),
+                        h('span', { className: 'sub' }, fmtAgo(p.updatedAt))) : null)),
 
-            !p ? null : h(ProfileDetails, { p: p, data: data, lang: props.lang }),
+            active === 'gruppen'
+                ? h(ProfileGroups, {
+                    data: data, self: self, me: props.me,
+                    onChange: function () { load(); }, onOpenUser: props.onOpenUser
+                })
+                : active === 'konto' && props.me
+                ? h(AccountPanel, {
+                    me: props.me, local: props.local, onMe: props.onMe,
+                    onLogout: props.onLogout, onOpenUser: props.onOpenUser
+                })
+                : active === 'vergleich' && duel
+                ? h(ProfileDuel, {
+                    data: data, p: p, mine: mine, lang: props.lang,
+                    rows: shown, all: rows, filter: filter, onFilter: setFilter
+                })
+                : !p
+                ? h('div', { className: 'ufs-note' }, 'Dieser Angler hat noch keinen Spielstand hochgeladen.')
+                : h(ProfileDetails, { p: p, data: data, lang: props.lang, tab: active }),
 
-            !props.me && p ? h('div', { className: 'ufs-note no-print', style: { marginTop: '.9rem' } },
-                'Melde dich an, dann wird dein Profil hier Wert für Wert gegen ' + data.user.name + ' gestellt.') : null,
-            props.me && p && !mine && !data.self ? h('div', { className: 'ufs-note', style: { marginTop: '.9rem' } },
-                'Für den Vergleich fehlt dein eigener Spielstand. Lade ihn unter „Gruppen & Vergleich → Konto“ hoch.') : null,
+            active === 'uebersicht' && !props.me
+                ? h('div', { className: 'ufs-note no-print', style: { marginTop: '.9rem' } },
+                    'Melde dich an, dann wird dein Profil hier Wert für Wert gegen ' + data.user.name + ' gestellt.')
+                : null,
+            active === 'uebersicht' && props.me && p && !mine && !self
+                ? h('div', { className: 'ufs-note', style: { marginTop: '.9rem' } },
+                    'Für den Vergleich fehlt dein eigener Spielstand. Lade ihn unter „Einstellungen“ hoch.')
+                : null));
+}
 
-            duel ? h(ProfileDuel, {
-                data: data, p: p, mine: mine, lang: props.lang,
-                rows: shown, all: rows, filter: filter, onFilter: setFilter
-            }) : null));
+/* --------------------------------------------------------- Gruppen im Profil */
+
+const VIS = {
+    'public': { t: 'Öffentlich', s: 'steht im Verzeichnis, jeder darf beitreten' },
+    'unlisted': { t: 'Nicht gelistet', s: 'nur über Link oder Code zu finden, Beitritt frei' },
+    'private': { t: 'Privat', s: 'nur Mitglieder sehen sie, Beitritt nur mit Code' }
+};
+
+/** Gruppen eines Profils; im eigenen Profil zugleich die Verwaltung. */
+function ProfileGroups(props) {
+    const self = props.self;
+    const groups = props.data.groups || [];
+    const [msg, setMsg] = useState(null);
+    const [err, setErr] = useState(null);
+    const [busy, setBusy] = useState(false);
+    const [name, setName] = useState('');
+    const [vis, setVis] = useState('private');
+    const [code, setCode] = useState('');
+    const [dir, setDir] = useState(null);
+    const [q, setQ] = useState('');
+    const [edit, setEdit] = useState(null);
+
+    function run(p) {
+        setBusy(true); setErr(null);
+        return p.then(function (d) { props.onChange(); return d; })
+            .catch(function (e) { setErr(e.message); })
+            .then(function (d) { setBusy(false); return d; });
+    }
+    function loadDir() {
+        api('/groups/public' + (q ? '?q=' + encodeURIComponent(q) : ''))
+            .then(function (d) { setDir(d.groups); })
+            .catch(function (e) { setErr(e.message); });
+    }
+    useEffect(function () { if (self) loadDir(); }, [self]);
+
+    function create() {
+        if (!name.trim()) return;
+        run(api('/groups', { method: 'POST', json: { name: name.trim(), visibility: vis } }))
+            .then(function () { setName(''); setMsg('Gruppe angelegt.'); loadDir(); });
+    }
+    function join() {
+        if (!code.trim()) return;
+        run(api('/groups/join', { method: 'POST', json: { code: code.trim() } }))
+            .then(function () { setCode(''); setMsg('Beigetreten.'); });
+    }
+    function joinOpen(id) {
+        run(api('/groups/join', { method: 'POST', json: { id: id } })).then(function () { loadDir(); });
+    }
+    function save(g, patch) {
+        run(api('/groups/' + g.id, { method: 'POST', json: patch })).then(function () { setEdit(null); loadDir(); });
+    }
+    function leave(g) {
+        if (!confirm('Die Gruppe „' + g.name + '“ wirklich verlassen?')) return;
+        run(api('/groups/' + g.id + '/leave', { method: 'POST' })).then(function () { loadDir(); });
+    }
+
+    return h('div', null,
+        err ? h('div', { className: 'ufs-note', style: { marginBottom: '.8rem' } }, err) : null,
+        msg ? h('div', { className: 'ufs-note ok', style: { marginBottom: '.8rem' } }, msg) : null,
+
+        h('div', { className: 'ufs-spotcard' },
+            h('h3', null, self ? 'Deine Gruppen' : 'Gruppen'),
+            !groups.length
+                ? h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', margin: 0 } },
+                    self ? 'Du bist noch in keiner Gruppe.' : 'Dieser Angler ist in keiner öffentlichen Gruppe.')
+                : h('div', { className: 'ufs-splist' }, groups.map(function (g) {
+                    const v = VIS[g.visibility] || VIS['private'];
+                    return h('div', { key: g.id, className: 'ufs-grouprow' },
+                        h('div', { className: 'main' },
+                            h('span', { className: 'nm' }, g.name),
+                            h('span', { className: 'sub' },
+                                v.t + ' · ' + g.members + ' Mitglieder'
+                                + (g.owner ? ' · von dir angelegt' : ' · von ' + g.ownerName)
+                                + (g.code ? ' · Code ' + g.code : ''))),
+                        self ? h('div', { className: 'ufs-row no-print', style: { gap: '.35rem' } },
+                            g.owner ? h('button', {
+                                className: 'ufs-btn', disabled: busy,
+                                onClick: function () { setEdit(edit === g.id ? null : g.id); }
+                            }, edit === g.id ? 'Fertig' : 'Bearbeiten') : null,
+                            h('button', { className: 'ufs-btn', disabled: busy, onClick: function () { leave(g); } }, 'Verlassen'))
+                            : null,
+                        self && edit === g.id
+                            ? h(GroupEdit, { g: g, busy: busy, onSave: save })
+                            : null);
+                }))),
+
+        !self ? null : h('div', { className: 'ufs-spotcard', style: { marginTop: '.9rem' } },
+            h('h3', null, 'Neue Gruppe'),
+            h('div', { className: 'ufs-row' },
+                h('input', {
+                    value: name, maxLength: 60, placeholder: 'Name der Gruppe',
+                    onChange: function (e) { setName(e.target.value); },
+                    onKeyDown: function (e) { if (e.key === 'Enter') create(); },
+                    className: 'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50',
+                    style: { minWidth: '220px' }
+                }),
+                h(Select, {
+                    value: vis, onChange: setVis,
+                    options: ['private', 'unlisted', 'public'],
+                    labels: { 'private': 'Privat', 'unlisted': 'Nicht gelistet', 'public': 'Öffentlich' }
+                }),
+                h('button', { className: 'ufs-btn primary', disabled: busy || !name.trim(), onClick: create }, 'Anlegen')),
+            h('p', { className: 'ufs-muted', style: { fontSize: '11.5px', lineHeight: 1.6, marginTop: '.5rem' } },
+                VIS[vis].t + ': ' + VIS[vis].s + '.')),
+
+        !self ? null : h('div', { className: 'ufs-spotcard', style: { marginTop: '.9rem' } },
+            h('h3', null, 'Mit Code beitreten'),
+            h('div', { className: 'ufs-row' },
+                h('input', {
+                    value: code, maxLength: 6, placeholder: 'ABC123',
+                    onChange: function (e) { setCode(e.target.value.toUpperCase()); },
+                    onKeyDown: function (e) { if (e.key === 'Enter') join(); },
+                    className: 'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50',
+                    style: { width: '150px', letterSpacing: '.2em' }
+                }),
+                h('button', { className: 'ufs-btn', disabled: busy || !code.trim(), onClick: join }, 'Beitreten'))),
+
+        !self ? null : h('div', { className: 'ufs-spotcard', style: { marginTop: '.9rem' } },
+            h('div', { className: 'ufs-row', style: { justifyContent: 'space-between', marginBottom: '.6rem' } },
+                h('h3', { style: { margin: 0 } }, 'Öffentliche Gruppen'),
+                h('div', { className: 'ufs-row' },
+                    h('input', {
+                        value: q, placeholder: 'suchen …',
+                        onChange: function (e) { setQ(e.target.value); },
+                        onKeyDown: function (e) { if (e.key === 'Enter') loadDir(); },
+                        className: 'rounded-2xl border border-white/10 bg-white/[.045] py-1.5 px-3 text-sm outline-none focus:border-cyan-400/50',
+                        style: { width: '170px' }
+                    }),
+                    h('button', { className: 'ufs-btn', onClick: loadDir }, 'Suchen'))),
+            !dir ? h('p', { className: 'ufs-muted', style: { fontSize: '12px' } }, 'Wird geladen …')
+                : !dir.length ? h('p', { className: 'ufs-muted', style: { fontSize: '12px' } }, 'Keine öffentliche Gruppe gefunden.')
+                : h('div', { className: 'ufs-splist' }, dir.map(function (g) {
+                    return h('div', { key: g.id, className: 'ufs-grouprow' },
+                        h('div', { className: 'main' },
+                            h('span', { className: 'nm' }, g.name),
+                            h('span', { className: 'sub' }, g.members + ' Mitglieder · von ' + g.ownerName)),
+                        g.member
+                            ? h('span', { className: 'ufs-chip' }, '✓ dabei')
+                            : h('button', {
+                                className: 'ufs-btn', disabled: busy,
+                                onClick: function () { joinOpen(g.id); }
+                            }, 'Beitreten'));
+                }))));
+}
+
+/** Zeile zum Ändern von Name, Sichtbarkeit und Beitrittscode. */
+function GroupEdit(props) {
+    const g = props.g;
+    const [name, setName] = useState(g.name);
+    const [vis, setVis] = useState(g.visibility);
+
+    return h('div', { className: 'edit' },
+        h('div', { className: 'ufs-row' },
+            h('input', {
+                value: name, maxLength: 60,
+                onChange: function (e) { setName(e.target.value); },
+                className: 'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50',
+                style: { minWidth: '200px' }
+            }),
+            h(Select, {
+                value: vis, onChange: setVis,
+                options: ['private', 'unlisted', 'public'],
+                labels: { 'private': 'Privat', 'unlisted': 'Nicht gelistet', 'public': 'Öffentlich' }
+            }),
+            h('button', {
+                className: 'ufs-btn primary', disabled: props.busy,
+                onClick: function () { props.onSave(g, { name: name, visibility: vis }); }
+            }, 'Speichern'),
+            h('button', {
+                className: 'ufs-btn', disabled: props.busy,
+                title: 'Der alte Code gilt danach nicht mehr',
+                onClick: function () { props.onSave(g, { newCode: true }); }
+            }, 'Neuer Code')),
+        h('p', { className: 'ufs-muted', style: { fontSize: '11.5px', lineHeight: 1.6, margin: '.4rem 0 0' } },
+            VIS[vis].t + ': ' + VIS[vis].s + '.'));
 }
 
 const OWNED_LABEL = {
@@ -2285,7 +2629,7 @@ const OWNED_LABEL = {
  */
 function ProfileDetails(props) {
     const p = props.p, lang = props.lang;
-    const [tab, setTab] = useState('reviere');
+    const tab = props.tab || 'uebersicht';
     const [sort, setSort] = useState('sum');
 
     const keys = Object.keys(p.species);
@@ -2321,7 +2665,7 @@ function ProfileDetails(props) {
     const SORTS = [['sum', 'Masse gesamt'], ['best', 'Bestmasse'], ['length', 'Länge'], ['count', 'Stück'], ['name', 'Name']];
 
     return h('div', null,
-        h('div', { className: 'ufs-statgrid' },
+        tab !== 'uebersicht' ? null : h('div', { className: 'ufs-statgrid' },
             h(Stat, { label: 'Level', value: fmtNum(p.level), sub: fmtNum(p.score) + ' Punkte' }),
             h(Stat, {
                 label: 'Arten', value: fmtNum(p.speciesCount) + ' / ' + props.data.meta.totalSpecies,
@@ -2353,20 +2697,17 @@ function ProfileDetails(props) {
                 sub: 'Stärke ' + fmtNum(p.strength, 1)
             }) : null),
 
-        h('div', { style: { margin: '1rem 0' } },
+        tab !== 'uebersicht' ? null : h('div', { style: { margin: '1rem 0' } },
             h(Bar, { value: p.speciesCount, total: props.data.meta.totalSpecies })),
 
-        owned.length ? h('div', { className: 'ufs-spotcard', style: { marginBottom: '.9rem' } },
-            h('h3', null, 'Gekaufte Ausrüstung'),
-            h('div', { className: 'ufs-row', style: { gap: '.35rem', flexWrap: 'wrap' } },
-                owned.map(function (c) {
-                    return h('span', { key: c, className: 'ufs-chip' }, (OWNED_LABEL[c] || c) + ': ' + p.owned[c]);
-                }))) : null,
-
-        h('div', { className: 'ufs-row no-print', style: { marginBottom: '.7rem' } },
-            h(Toggle, { active: tab === 'reviere', onClick: function () { setTab('reviere'); } }, 'Reviere'),
-            h(Toggle, { active: tab === 'arten', onClick: function () { setTab('arten'); } }, 'Arten (' + keys.length + ')'),
-            h(Toggle, { active: tab === 'offen', onClick: function () { setTab('offen'); } }, 'Was noch fehlt')),
+        tab === 'uebersicht' && owned.length
+            ? h('div', { className: 'ufs-spotcard', style: { marginBottom: '.9rem' } },
+                h('h3', null, 'Gekaufte Ausrüstung'),
+                h('div', { className: 'ufs-row', style: { gap: '.35rem', flexWrap: 'wrap' } },
+                    owned.map(function (c) {
+                        return h('span', { key: c, className: 'ufs-chip' }, (OWNED_LABEL[c] || c) + ': ' + p.owned[c]);
+                    })))
+            : null,
 
         tab === 'reviere' ? h('div', { className: 'ufs-spotcard' },
             h('h3', null, 'Fortschritt je Revier'),
@@ -2963,6 +3304,7 @@ function App() {
     const [statsTab, setStatsTab] = useState('reviere');
     const [me, setMe] = useState(null);
     const [angler, setAngler] = useState(null);
+    const [anglerTab, setAnglerTab] = useState('uebersicht');
 
     const [syncNote, setSyncNote] = useState(null);
 
@@ -3034,7 +3376,12 @@ function App() {
             const parts = decodeURIComponent((location.hash || '').replace(/^#/, '')).split('/');
             const head = (parts[0] || '').toLowerCase();
             if (head === 'koeder') { setView('bait'); return; }
-            if (head === 'angler' && parts[1]) { setAngler(parts.slice(1).join('/')); setView('angler'); return; }
+            if (head === 'angler' && parts[1]) {
+                setAngler(parts[1]);
+                setAnglerTab(parts[2] || 'uebersicht');
+                setView('angler');
+                return;
+            }
             if (head === 'gruppen' || head === 'community') { setView('community'); return; }
             if (head === 'statistik') { setView('stats'); setStatsTab(parts[1] || 'reviere'); return; }
             if (head === 'arten') { setView('arten'); setOpenSpecies(parts[1] ? parts[1].toUpperCase() : null); return; }
@@ -3062,12 +3409,15 @@ function App() {
             ? '#gesamt'
             : '#revier/' + selectedMap + (selectedSpot ? '/spot' + selectedSpot : '');
         if (view === 'bait') hash = '#koeder';
-        else if (view === 'angler' && angler) hash = '#angler/' + encodeURIComponent(angler);
+        else if (view === 'angler' && angler) {
+            hash = '#angler/' + encodeURIComponent(angler)
+                + (anglerTab && anglerTab !== 'uebersicht' ? '/' + anglerTab : '');
+        }
         else if (view === 'community') hash = '#gruppen';
         else if (view === 'stats') hash = '#statistik';
         else if (view === 'arten') hash = '#arten' + (openSpecies ? '/' + openSpecies : '');
         if (location.hash !== hash) history.replaceState(null, '', hash);
-    }, [view, selectedMap, selectedSpot, openSpecies, angler]);
+    }, [view, selectedMap, selectedSpot, openSpecies, angler, anglerTab]);
 
     const isGlobal = selectedMap === '__all__';
     const map = D.maps.filter(function (m) { return m.id === selectedMap; })[0] || playable[0];
@@ -3305,8 +3655,12 @@ function App() {
                         : view === 'stats' ? 'Statistik'
                         : 'Gesamtübersicht'),
                 view === 'angler' ? h(ProfilePage, {
-                    name: angler, me: me, lang: lang,
-                    onBack: function () { setView('community'); }
+                    name: angler, me: me, lang: lang, local: local,
+                    tab: anglerTab, onTab: setAnglerTab,
+                    onBack: function () { setView('community'); },
+                    onMe: function (u) { setMe(u); },
+                    onLogout: function () { api('/auth/logout', { method: 'POST' }).then(function () { setMe(null); }); },
+                    onOpenUser: function (n) { setAngler(n); setAnglerTab('uebersicht'); setView('angler'); }
                 })
                 : view === 'bait' ? h(BaitPage, { lang: lang })
                 : view === 'community' ? h(CommunityPage, {

@@ -296,10 +296,13 @@
 .ufs-baitlist .bar, .ufs-bite .bar {
   height: 5px; border-radius: 999px; background: rgba(255, 255, 255, .07); overflow: hidden;
 }
+.ufs-baitlist .bar { position: relative; }
 .ufs-baitlist .bar > span {
-  display: block; height: 100%; border-radius: 999px;
+  position: absolute; left: 0; top: 0; height: 100%; border-radius: 999px;
   background: linear-gradient(90deg, #22d3ee, #34d399);
 }
+/* Was drei Köderstücke am Haken zusätzlich brächten */
+.ufs-baitlist .bar > span.ghost { background: rgba(52, 211, 153, .3); }
 .ufs-bite .bar > span { display: block; height: 100%; border-radius: 999px; background: #f59e0b; }
 .ufs-bite .bar > span.up { background: #34d399; }
 
@@ -442,6 +445,17 @@
   .ufs-duelvs { display: none; }
   .ufs-two { grid-template-columns: 1fr; }
 }
+
+/* Gruppenzeile im Profil: Name links, Knöpfe rechts, Bearbeiten darunter */
+.ufs-grouprow {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, .06); padding: .55rem 0;
+}
+.ufs-grouprow:last-child { border-bottom: 0; }
+.ufs-grouprow .main { flex: 1 1 220px; min-width: 0; }
+.ufs-grouprow .nm { display: block; font-size: 13px; font-weight: 700; color: #e2e8f0; }
+.ufs-grouprow .sub { display: block; font-size: 11px; color: #94a3b8; }
+.ufs-grouprow .edit { flex: 1 1 100%; padding-top: .3rem; }
 
 /* Angemeldet bleiben und Ähnliches: Kästchen mit Beschriftung in einer Zeile */
 .ufs-check {

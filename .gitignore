@@ -12,3 +12,6 @@ server/.env.local
 .idea/
 Thumbs.db
 desktop.ini
+
+# Prüfseite für den lokalen Rendertest
+_check.html
