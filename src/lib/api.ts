@@ -48,7 +48,7 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
     const msg =
       typeof data === 'object' && data !== null && 'error' in data
         ? String((data as { error: unknown }).error)
-        : `Serverfehler ${res.status}`
+        : `Server error ${res.status}`
     throw new ApiError(msg, res.status)
   }
 

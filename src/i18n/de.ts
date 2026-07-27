@@ -223,6 +223,13 @@ export const de = {
   'auth.stayLoggedIn': 'Angemeldet bleiben',
   'auth.stayHint': '(90 Tage, nur auf diesem Gerät)',
   'auth.logout': 'Abmelden',
+  'auth.codePlaceholder': '123456',
+  'auth.altchaOk': 'Kein Bot – geprüft',
+  'auth.altchaWork': 'Prüfung läuft … {pct} %',
+  'auth.altchaPrepare': 'Prüfung wird vorbereitet …',
+  'auth.altchaBy': 'ALTCHA · eigener Server',
+  'auth.altchaNoCrypto': 'Dieser Browser stellt keine Kryptofunktionen bereit.',
+  'auth.altchaFailed': 'Die Bot-Prüfung ging nicht auf. Bitte die Seite neu laden.',
 
   // ---------------------------------------------------------------- Profil
   'profile.yours': 'Dein Profil',

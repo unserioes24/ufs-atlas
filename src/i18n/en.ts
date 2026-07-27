@@ -220,6 +220,13 @@ export const en: Partial<Dict> = {
   'auth.stayLoggedIn': 'Stay signed in',
   'auth.stayHint': '(90 days, on this device only)',
   'auth.logout': 'Sign out',
+  'auth.codePlaceholder': '123456',
+  'auth.altchaOk': 'Not a bot – checked',
+  'auth.altchaWork': 'Checking … {pct} %',
+  'auth.altchaPrepare': 'Preparing the check …',
+  'auth.altchaBy': 'ALTCHA · own server',
+  'auth.altchaNoCrypto': 'This browser offers no cryptography functions.',
+  'auth.altchaFailed': 'The bot check did not work out. Please reload the page.',
 
   // --------------------------------------------------------------- Profile
   'profile.yours': 'Your profile',
