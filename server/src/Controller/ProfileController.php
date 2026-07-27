@@ -42,21 +42,21 @@ class ProfileController extends AbstractController
     }
 
     /**
-     * Spielstand hochladen. Der Rumpf ist die PROFILE_x-Datei selbst –
-     * entweder als multipart-Feld "file" oder direkt als Rohdaten.
+     * Upload a save file. The body is the PROFILE_x file itself – either as
+     * the multipart field "file" or as raw bytes.
      *
-     * Anmeldung über die Sitzung oder den Header X-Api-Token, damit sich der
-     * Upload auch per Aufgabenplanung erledigen lässt:
+     * Authenticated by session or by the X-Api-Token header, so the upload can
+     * also run from a scheduled task:
      *
      *   curl -H "X-Api-Token: ..." --data-binary "@PROFILE_0" \
      *        https://ufs-atlas.de/api/profile/upload
      */
     /**
-     * Der vollständige Stand in der Form, die der Browser lokal hält.
+     * The full state in the shape the browser keeps locally.
      *
-     * Wird ein Spielstand über die Schnittstelle hochgeladen, weiß der Browser
-     * nichts davon. Beim nächsten Laden holt er sich hier den Stand und
-     * übernimmt ihn, falls er neuer ist als der eigene.
+     * When a save file is uploaded through the API the browser knows nothing
+     * about it. On the next load it fetches the state here and adopts it if it
+     * is newer than its own.
      */
     #[Route('/state', methods: ['GET'])]
     public function state(): JsonResponse
@@ -142,9 +142,9 @@ class ProfileController extends AbstractController
     }
 
     /**
-     * Den Stand aus dem Browser übernehmen: abgehakte Arten plus die Werte des
-     * zuletzt lokal geladenen Spielstands. Ersetzt das Profil genauso
-     * vollständig wie ein Upload.
+     * Take the state from the browser: ticked species plus the values of the
+     * save file loaded locally last. Replaces the profile just as completely
+     * as an upload does.
      */
     #[Route('/import', methods: ['POST'])]
     public function import(Request $request): JsonResponse
@@ -173,7 +173,7 @@ class ProfileController extends AbstractController
         ]);
     }
 
-    /** Der Benutzername ist eindeutig – er ist die Adresse des Profils. */
+    /** The user name is unique – it is the address of the profile. */
     #[Route('/name', methods: ['POST'])]
     public function rename(Request $request): JsonResponse
     {

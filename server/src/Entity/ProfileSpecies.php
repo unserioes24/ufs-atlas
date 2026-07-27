@@ -4,7 +4,7 @@ namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 
-/** Eine Zeile je gefangener Art – Grundlage aller Arten-Ranglisten. */
+/** One row per species caught – the basis of every species board. */
 #[ORM\Entity]
 #[ORM\Table(name: 'profile_species')]
 #[ORM\Index(name: 'idx_species', columns: ['species_key'])]

@@ -44,8 +44,8 @@ class GroupController extends AbstractController
     }
 
     /**
-     * Grunddaten einer Gruppe. Der Beitrittscode geht nur an Mitglieder – bei
-     * einer offenen Gruppe braucht ihn ohnehin niemand.
+     * Basic group data. The join code only goes to members – an open group
+     * does not need one anyway.
      */
     public static function groupPayload(FishGroup $g, ?User $me, bool $member = true): array
     {
@@ -62,7 +62,7 @@ class GroupController extends AbstractController
         ];
     }
 
-    /** Verzeichnis der öffentlichen Gruppen, auch ohne Anmeldung lesbar. */
+    /** Directory of public groups, readable without an account. */
     #[Route('/public', methods: ['GET'])]
     public function directory(Request $request): JsonResponse
     {
@@ -114,7 +114,7 @@ class GroupController extends AbstractController
         return $this->json(['ok' => true, 'group' => self::groupPayload($group, $me)]);
     }
 
-    /** Name, Sichtbarkeit und Beitrittscode ändern – nur der Besitzer darf das. */
+    /** Change name, visibility and join code – owner only. */
     #[Route('/{id}', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function edit(int $id, Request $request): JsonResponse
     {
@@ -149,7 +149,7 @@ class GroupController extends AbstractController
         return $this->json(['ok' => true, 'group' => self::groupPayload($group, $me)]);
     }
 
-    /** Ein Mitglied entfernen; der Besitzer kann sich selbst nicht werfen. */
+    /** Remove a member; the owner cannot throw themselves out. */
     #[Route('/{id}/kick/{userId}', methods: ['POST'], requirements: ['id' => '\d+', 'userId' => '\d+'])]
     public function kick(int $id, int $userId): JsonResponse
     {
@@ -178,7 +178,7 @@ class GroupController extends AbstractController
         return $this->json(['ok' => true]);
     }
 
-    /** Kurzer, gut vorlesbarer Code ohne leicht verwechselbare Zeichen. */
+    /** A short code that reads aloud well, without look-alike characters. */
     private function freeCode(): string
     {
         $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -204,8 +204,8 @@ class GroupController extends AbstractController
         $code = strtoupper(trim((string) ($data['code'] ?? '')));
         $id = (int) ($data['id'] ?? 0);
 
-        // Beitritt entweder über den Code oder – bei offenen Gruppen – direkt
-        // über die Gruppennummer aus dem Verzeichnis oder einem Link.
+        // Join either by code or – for open groups – straight by the group
+        // number from the directory or a link.
         $repo = $this->em->getRepository(FishGroup::class);
         $group = $code !== '' ? $repo->findOneBy(['joinCode' => $code]) : null;
         if ($group === null && $id > 0) {
@@ -227,8 +227,8 @@ class GroupController extends AbstractController
     }
 
     /**
-     * Austreten. Wer die Gruppe angelegt hat, nimmt sie mit: ohne Besitzer
-     * gäbe es niemanden mehr, der sie verwalten kann.
+     * Leaving. Whoever created the group takes it with them: without an owner
+     * nobody could manage it any more.
      */
     #[Route('/{id}/leave', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function leave(int $id): JsonResponse
@@ -257,7 +257,7 @@ class GroupController extends AbstractController
         return $this->json(['ok' => true, 'deleted' => false]);
     }
 
-    /** Gruppe auflösen. Nur der Besitzer darf das, und es ist endgültig. */
+    /** Dissolve the group. Owner only, and it is final. */
     #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     public function delete(int $id): JsonResponse
     {
@@ -278,7 +278,7 @@ class GroupController extends AbstractController
         return $this->json(['ok' => true]);
     }
 
-    /** Gruppe mit allen Ranglisten. */
+    /** A group with all its boards. */
     #[Route('/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function show(int $id): JsonResponse
     {
@@ -290,7 +290,7 @@ class GroupController extends AbstractController
         if ($group === null) {
             return $this->json(['error' => 'Gruppe nicht gefunden.'], 404);
         }
-        // Offene Gruppen darf jeder ansehen, private nur ihre Mitglieder.
+        // Open groups are visible to anyone, private ones only to members.
         $mine = $this->em->getRepository(GroupMember::class)->findOneBy(['group' => $group, 'user' => $me]);
         if ($mine === null && !$group->isOpen()) {
             return $this->json(['error' => 'Diese Gruppe ist privat.'], 403);
@@ -362,7 +362,7 @@ class GroupController extends AbstractController
         ], \array_slice($rows, 0, 20));
     }
 
-    /** Nur die Arten, die in den Ranglisten vorkommen – hält die Antwort klein. */
+    /** Only the species that appear in the boards – keeps the answer small. */
     private function speciesNamesFor(array $members): array
     {
         $keys = [];

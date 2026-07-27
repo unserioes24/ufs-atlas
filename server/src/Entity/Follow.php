@@ -4,7 +4,7 @@ namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 
-/** Ein Konto folgt einem anderen; Grundlage für den direkten Vergleich. */
+/** One account follows another; the basis of the direct comparison. */
 #[ORM\Entity]
 #[ORM\Table(name: 'follow')]
 #[ORM\UniqueConstraint(name: 'uniq_follow', columns: ['follower_id', 'followed_id'])]

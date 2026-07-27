@@ -6,7 +6,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
-/** Gruppe von Anglern; Beitritt über einen kurzen Code. */
+/** A group of anglers; joined with a short code. */
 #[ORM\Entity]
 #[ORM\Table(name: 'fish_group')]
 #[ORM\UniqueConstraint(name: 'uniq_join_code', columns: ['join_code'])]
@@ -22,11 +22,11 @@ class FishGroup
     private string $joinCode;
 
     /**
-     * Wer die Gruppe sehen und ihr beitreten darf:
+     * Who may see the group and join it:
      *
-     *   public   im Verzeichnis sichtbar, Beitritt für jeden
-     *   unlisted nicht im Verzeichnis, aber über Link oder Code offen
-     *   private  nur Mitglieder sehen sie, Beitritt nur über den Code
+     *   public   listed in the directory, anyone may join
+     *   unlisted not listed, but open by link or code
+     *   private  only members see it, joining needs the code
      */
     public const VISIBILITIES = ['public', 'unlisted', 'private'];
 
@@ -64,7 +64,7 @@ class FishGroup
     {
         $this->visibility = \in_array($v, self::VISIBILITIES, true) ? $v : 'private';
     }
-    /** Öffentlich und nicht gelistet stehen jedem offen, privat nur über den Code. */
+    /** Public and unlisted are open to anyone, private needs the code. */
     public function isOpen(): bool { return $this->visibility !== 'private'; }
     public function getOwner(): User { return $this->owner; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }

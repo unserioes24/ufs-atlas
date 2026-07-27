@@ -18,19 +18,19 @@ class User
     #[ORM\Column(length: 180)]
     private string $email;
 
-    /** Eindeutiger Anzeigename; wird beim Spielstand-Import vorbelegt. */
+    /** Unique display name; filled in from the save file on import. */
     #[ORM\Column(length: 60)]
     private string $name;
 
     /**
-     * Hat sich das Konto den Namen selbst ausgesucht? Solange nicht, darf ein
-     * Spielstand-Import den zufällig vergebenen Namen durch den Anglernamen
-     * aus dem Spiel ersetzen.
+     * Did the account pick its name itself? Until it did, a save-file import
+     * may replace the randomly assigned name with the angler name from the
+     * game.
      */
     #[ORM\Column(options: ['default' => false])]
     private bool $namePicked = false;
 
-    /** Für den Upload per curl/Aufgabenplanung, ohne Sitzung. */
+    /** For uploads by curl or a scheduled task, without a session. */
     #[ORM\Column(length: 64, unique: true)]
     private string $apiToken;
 
@@ -41,8 +41,8 @@ class User
     private ?\DateTimeImmutable $lastLoginAt = null;
 
     /**
-     * „Angemeldet bleiben“: nur der Hash des Kekswerts wird gespeichert, und
-     * bei jedem Einsatz durch einen neuen ersetzt.
+     * "Stay signed in": only the hash of the cookie value is stored, and it is
+     * replaced by a new one every time it is used.
      */
     #[ORM\Column(length: 64, nullable: true)]
     private ?string $rememberHash = null;

@@ -41,18 +41,18 @@ class Profile
     #[ORM\Column(type: 'float')] private float $biggestLength = 0;
     #[ORM\Column(length: 60, nullable: true)] private ?string $biggestLengthSpecies = null;
 
-    /** Schwerste Gesamtmasse einer einzelnen Art. */
+    /** Heaviest total weight of a single species. */
     #[ORM\Column(type: 'float')] private float $topSpeciesWeight = 0;
     #[ORM\Column(length: 60, nullable: true)] private ?string $topSpeciesKey = null;
 
-    /** Rohdaten des Imports, für spätere Auswertungen. */
+    /** Raw import data, for later evaluation. */
     #[ORM\Column(type: 'json')] private array $fisheries = [];
     #[ORM\Column(type: 'json')] private array $caught = [];
 
     /**
-     * Alles zum Angler, was über Name, Stufe und Punkte hinausgeht: Geld,
-     * Erfahrung, Glück, Kraft, die fünf Rutensets und die gekaufte Ausrüstung.
-     * Damit lässt sich der Stand im Browser vollständig wiederherstellen.
+     * Everything about the angler beyond name, level and score: money,
+     * experience, luck, strength, the five rod sets and the gear bought.
+     * With it the browser state can be restored completely.
      */
     #[ORM\Column(type: 'json')] private array $details = [];
 

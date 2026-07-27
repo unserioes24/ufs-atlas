@@ -30,9 +30,9 @@ class AuthController extends AbstractController
     }
 
     /**
-     * Rechenaufgabe für die Bot-Prüfung. Der Browser löst sie, bevor er einen
-     * Anmeldecode anfordert; die Sitzung merkt sich die zuletzt ausgegebene,
-     * damit dieselbe Lösung nicht mehrfach zählt.
+     * The proof-of-work for the bot check. The browser solves it before asking
+     * for a login code; the session remembers the one it handed out last so
+     * that the same solution cannot be spent twice.
      */
     #[Route('/challenge', methods: ['GET'])]
     public function challenge(Request $request): JsonResponse
@@ -43,7 +43,7 @@ class AuthController extends AbstractController
         return $this->json($challenge);
     }
 
-    /** Schickt einen Einmalcode. Antwortet immer gleich, damit sich keine Konten abfragen lassen. */
+    /** Sends a one-time code. The answer never varies, so accounts cannot be probed. */
     #[Route('/request', methods: ['POST'])]
     public function request(Request $request, MailerInterface $mailer, LoggerInterface $logger): JsonResponse
     {
@@ -53,8 +53,8 @@ class AuthController extends AbstractController
             return $this->json(['error' => 'Bitte eine gültige E-Mail-Adresse angeben.'], 400);
         }
 
-        // Bot-Prüfung vor allem anderen: sie kostet Rechenzeit, das Verschicken
-        // von Post an fremde Adressen soll nicht umsonst zu haben sein.
+        // Bot check before anything else: it costs the caller time, and sending
+        // mail to someone else's address should not be free.
         $session = $request->getSession();
         $problem = $this->altcha->verify((string) ($data['altcha'] ?? ''), $session->get('altcha'));
         if ($problem !== null) {
@@ -62,7 +62,7 @@ class AuthController extends AbstractController
         }
         $session->remove('altcha');
 
-        // Abgelaufene Codes derselben Adresse aufräumen und Missbrauch bremsen
+        // Clean up expired codes for this address and slow down abuse
         $repo = $this->em->getRepository(LoginCode::class);
         $recent = $repo->createQueryBuilder('c')
             ->where('c.email = :e')->setParameter('e', $email)
@@ -89,8 +89,8 @@ class AuthController extends AbstractController
                 . "Er ist 15 Minuten gültig.\n"
                 . "Wenn du dich nicht anmelden wolltest, ignoriere diese Nachricht einfach.\n");
 
-        // Ein fehlender oder falscher MAILER_DSN ist ein Betriebsfehler, kein
-        // Programmfehler: verständlich antworten statt eine 500-Seite zeigen.
+        // A missing or wrong MAILER_DSN is an operations problem, not a
+        // programming error: answer plainly instead of showing a 500 page.
         try {
             $mailer->send($mail);
         } catch (MailerException $e) {
@@ -136,12 +136,12 @@ class AuthController extends AbstractController
         $entry->markUsed();
         $user = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
         if ($user === null) {
-            // Neue Konten bekommen einen zufälligen Namen. Ein Spielstand-Import
-            // überschreibt ihn später durch den Anglernamen aus dem Spiel.
-            // Namen sind eindeutig. Der Zufallsname wird vorher geprüft; greifen
-            // zwei Anmeldungen im selben Augenblick zum gleichen, entscheidet
-            // der Index in der Datenbank. Dann ist der Code noch unverbraucht
-            // und ein zweiter Versuch führt sofort zum Ziel.
+            // New accounts get a random name. A save-file import replaces it
+            // later with the angler name from the game.
+            // Names are unique. The random name is checked beforehand; if two
+            // sign-ups reach for the same one at the same moment, the index in
+            // the database decides. The code is then still unused and a second
+            // attempt goes through right away.
             $user = new User($email, $this->names->random());
             try {
                 $this->em->persist($user);
@@ -177,7 +177,7 @@ class AuthController extends AbstractController
         return $response;
     }
 
-    /** Aktueller Anmeldezustand, wird beim Laden der Seite abgefragt. */
+    /** Current sign-in state, asked for when the page loads. */
     #[Route('/me', methods: ['GET'])]
     public function me(): JsonResponse
     {
@@ -186,7 +186,7 @@ class AuthController extends AbstractController
             return $this->json(['user' => null]);
         }
 
-        // Kam die Anmeldung aus dem Keks, wurde dessen Wert gerade erneuert.
+        // If the session came from the cookie, its value was just rotated.
         $response = $this->json(['user' => UserController::userPayload($user, true)]);
         $cookie = $this->auth->pendingCookie();
         if ($cookie !== null) {

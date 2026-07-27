@@ -23,7 +23,7 @@ class UserController extends AbstractController
     ) {
     }
 
-    /** Grunddaten eines Kontos; mit $self zusätzlich die privaten Felder. */
+    /** Basic account data; with $self it also carries the private fields. */
     public static function userPayload(User $user, bool $self = false): array
     {
         $p = $user->getProfile();
@@ -57,8 +57,8 @@ class UserController extends AbstractController
             ];
         }
 
-        // Aus den Anglerdaten nur, was den Fortschritt zeigt – die Rutensets
-        // bleiben dem eigenen Konto vorbehalten.
+        // From the angler data only what shows progress – the rod sets stay
+        // with the account they belong to.
         $d = $p->getDetails();
 
         return [
@@ -92,7 +92,7 @@ class UserController extends AbstractController
         ];
     }
 
-    /** Öffentliches Profil eines Anglers. */
+    /** An angler's public profile. */
     #[Route('/users/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function show(int $id): JsonResponse
     {
@@ -100,9 +100,9 @@ class UserController extends AbstractController
     }
 
     /**
-     * Dasselbe Profil über den Anglernamen. Der Name ist eindeutig und steht in
-     * der Adressleiste – damit lässt sich ein Profil weitergeben, ohne dass
-     * jemand eine Nummer im Kopf behalten muss.
+     * The same profile by name. The name is unique and sits in the address
+     * bar, so a profile can be passed on without anyone having to remember a
+     * number.
      */
     #[Route('/users/name/{name}', methods: ['GET'], requirements: ['name' => '.+'])]
     public function showByName(string $name): JsonResponse
@@ -115,8 +115,8 @@ class UserController extends AbstractController
     }
 
     /**
-     * Ist jemand angemeldet, liegt das eigene Profil gleich mit in der Antwort:
-     * der Vergleich braucht beide Seiten und soll nicht zwei Anfragen kosten.
+     * When someone is signed in their own profile comes with the answer: the
+     * comparison needs both sides and should not cost two requests.
      */
     private function publicProfile(?User $user): JsonResponse
     {
@@ -132,8 +132,8 @@ class UserController extends AbstractController
 
         $repo = $this->em->getRepository(Follow::class);
 
-        // Im fremden Profil stehen nur die öffentlichen Gruppen; im eigenen
-        // alle, denn dort wird die Mitgliedschaft auch verwaltet.
+        // Someone else's profile only lists public groups; your own lists all,
+        // because that is where membership is managed.
         $self = $me !== null && $me->getId() === $user->getId();
         $groups = [];
         foreach ($user->getMemberships() as $m) {
@@ -164,8 +164,8 @@ class UserController extends AbstractController
     }
 
     /**
-     * Wer folgt diesem Profil, und wem folgt es? Beide Listen sind öffentlich –
-     * sie stehen so auch im Profil selbst.
+     * Who follows this profile, and whom does it follow? Both lists are public
+     * – they are shown in the profile itself.
      */
     #[Route('/users/{id}/follows', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function follows(int $id): JsonResponse
@@ -200,7 +200,7 @@ class UserController extends AbstractController
         return $this->json(['followers' => $followers, 'following' => $following]);
     }
 
-    /** Angler suchen, um ihnen zu folgen. */
+    /** Search anglers in order to follow them. */
     #[Route('/users', methods: ['GET'])]
     public function search(Request $request): JsonResponse
     {
@@ -266,7 +266,7 @@ class UserController extends AbstractController
         return $this->json(['ok' => true]);
     }
 
-    /** Eigenes Profil plus alle, denen man folgt – die Datenbasis des Vergleichs. */
+    /** Your profile plus everyone you follow – the data behind the comparison. */
     #[Route('/following', methods: ['GET'])]
     public function following(): JsonResponse
     {
