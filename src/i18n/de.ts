@@ -156,6 +156,17 @@ export const de = {
   'stats.colTotal': 'Gesamt',
   'stats.colRecordFishery': 'Rekordrevier',
 
+  // ------------------------------------------------------- Gesamtübersicht
+  'overview.caught': 'Arten gefangen',
+  'overview.caughtSub': '{pct} % der Artenliste',
+  'overview.completeSub': 'alle Arten des Reviers gefangen',
+  'overview.left': 'Noch offen',
+  'overview.leftSub': 'Arten ohne Haken',
+  'overview.perFishery': 'Fortschritt je Revier',
+  'overview.colCaught': 'Gefangen',
+  'overview.colProgress': 'Fortschritt',
+  'overview.colOpen': 'Offen',
+
   // ----------------------------------------------------------------- Konto
   'auth.title': 'Anmelden',
   'auth.intro':

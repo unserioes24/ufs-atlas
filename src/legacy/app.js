@@ -26,6 +26,7 @@ import { FishCard } from '../components/species/FishCard'
 
 import StatsPage from '../components/stats/StatsPage'
 import { Stat } from '../components/primitives'
+import GlobalOverview from '../components/stats/GlobalOverview'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
@@ -496,51 +497,6 @@ function fmtWhen(iso) {
 
 
 
-/* ---------------------------------------------------- Gesamtübersicht */
-
-/** Fortschritt über alle Reviere: Arten insgesamt und je Revier. */
-function GlobalOverview(props) {
-    const caught = props.caught;
-    const all = props.allKeys;
-    const done = all.filter(function (k) { return caught[k]; }).length;
-
-    const rows = Object.keys(FISHERIES).map(function (id) {
-        const m = D.maps.filter(function (x) { return x.id === id; })[0];
-        const keys = FISHERIES[id].species.map(function (g) { return g.s; });
-        const dn = keys.filter(function (k) { return caught[k]; }).length;
-        return { id: id, name: m ? m.name : id, total: keys.length, done: dn };
-    }).sort(function (a, b) { return (b.done / (b.total || 1)) - (a.done / (a.total || 1)); });
-
-    const complete = rows.filter(function (r) { return r.total && r.done === r.total; }).length;
-
-    return h('div', null,
-        h('div', { className: 'ufs-statgrid', style: { marginBottom: '1rem' } },
-            h(Stat, { label: 'Arten gefangen', value: done + ' / ' + all.length, sub: Math.round(done / (all.length || 1) * 100) + ' % der Artenliste' }),
-            h(Stat, { label: 'Reviere komplett', value: complete + ' / ' + rows.length, sub: 'alle Arten des Reviers gefangen' }),
-            h(Stat, { label: 'Noch offen', value: (all.length - done), sub: 'Arten ohne Haken' })),
-        h('div', { style: { marginBottom: '1.2rem' } }, h(Bar, { value: done, total: all.length })),
-        h('div', { className: 'ufs-spotcard' },
-            h('h3', null, 'Fortschritt je Revier'),
-            h('table', { className: 'ufs-rec' },
-                h('thead', null, h('tr', null,
-                    h('th', null, 'Revier'), h('th', null, 'Gefangen'), h('th', null, 'Fortschritt'), h('th', null, 'Offen'))),
-                h('tbody', null, rows.map(function (r) {
-                    const open = FISHERIES[r.id].species
-                        .filter(function (g) { return !caught[g.s]; })
-                        .map(function (g) { return speciesName(g.s, props.lang); });
-                    return h('tr', {
-                        key: r.id, style: { cursor: 'pointer' },
-                        onClick: function () { props.onOpenMap(r.id); }
-                    },
-                        h('td', { className: cn('n', r.total && r.done === r.total && 'done') },
-                            (r.total && r.done === r.total ? '✓ ' : '') + r.name),
-                        h('td', { className: 'num' }, r.done + ' / ' + r.total),
-                        h('td', null, h('div', { className: 'ufs-recbar' },
-                            h('span', { style: { width: (r.total ? r.done / r.total * 100 : 0) + '%' } }))),
-                        h('td', { className: 'sub' },
-                            open.length ? open.slice(0, 4).join(', ') + (open.length > 4 ? ' +' + (open.length - 4) : '') : '–'));
-                })))));
-}
 
 /* ------------------------------------------------------------- API-Zugriff */
 
@@ -1963,7 +1919,7 @@ function App() {
                     initialOpen: openSpecies, onOpen: setOpenSpecies
                 })
                 : isGlobal ? h(GlobalOverview, {
-                    caught: caught, allKeys: allKeys, lang: lang,
+                    caught: caught, allKeys: allKeys,
                     onOpenMap: function (id) { setSelectedMap(id); }
                 })
                 : h(React.Fragment, null,

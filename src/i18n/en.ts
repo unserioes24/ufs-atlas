@@ -154,6 +154,17 @@ export const en: Partial<Dict> = {
   'stats.colTotal': 'Sum',
   'stats.colRecordFishery': 'Record fishery',
 
+  // ----------------------------------------------------------- All fisheries
+  'overview.caught': 'Species caught',
+  'overview.caughtSub': '{pct} % of the species list',
+  'overview.completeSub': 'every species of the fishery caught',
+  'overview.left': 'Still open',
+  'overview.leftSub': 'species without a tick',
+  'overview.perFishery': 'Progress per fishery',
+  'overview.colCaught': 'Caught',
+  'overview.colProgress': 'Progress',
+  'overview.colOpen': 'Open',
+
   // -------------------------------------------------------------- Account
   'auth.title': 'Sign in',
   'auth.intro':
