@@ -3,7 +3,7 @@ import { BAITS, HOOKS, baitName, speciesName } from '../../data'
 import type { BaitEntry } from '../../data'
 import { useI18n } from '../../i18n'
 import type { Key } from '../../i18n'
-import { cn, fmtNum } from '../../lib/format'
+import { fmtNum } from '../../lib/format'
 import { hookLabel } from '../../lib/hooks'
 import type { BaitKind } from '../../types'
 import { Card, Note, Toggle } from '../ui'
@@ -21,9 +21,14 @@ const GROUPS: Array<{ kind: BaitKind; title: Key; note: Key }> = [
   { kind: 'lure', title: 'method.lure', note: 'bait.lureNote' },
 ]
 
-export function BaitPage({ openSpecies }: { openSpecies?: string | null }) {
+export function BaitPage({
+  openSpecies,
+  onOpen,
+}: {
+  openSpecies?: string | null
+  onOpen: (key: string) => void
+}) {
   const { t, lang } = useI18n()
-  const [open, setOpen] = useState<string | null>(null)
   const [q, setQ] = useState('')
   const [onlySpecies, setOnlySpecies] = useState<string | null>(openSpecies ?? null)
 
@@ -83,12 +88,7 @@ export function BaitPage({ openSpecies }: { openSpecies?: string | null }) {
             </p>
             <div className="ufs-baitgrid">
               {items.map((b) => (
-                <BaitCard
-                  key={b.key}
-                  bait={b}
-                  open={open === b.key}
-                  onToggle={() => setOpen(open === b.key ? null : b.key)}
-                />
+                <BaitCard key={b.key} bait={b} onOpen={() => onOpen(b.key)} />
               ))}
             </div>
           </section>
@@ -107,15 +107,7 @@ export function BaitPage({ openSpecies }: { openSpecies?: string | null }) {
   )
 }
 
-function BaitCard({
-  bait,
-  open,
-  onToggle,
-}: {
-  bait: BaitEntry
-  open: boolean
-  onToggle: () => void
-}) {
+function BaitCard({ bait, onOpen }: { bait: BaitEntry; onOpen: () => void }) {
   const { t, lang } = useI18n()
   const entries = Object.entries(bait.fish)
     .map(([s, v]) => ({ s, v }))
@@ -126,29 +118,14 @@ function BaitCard({
     .join(', ')
 
   return (
-    <div className={cn('ufs-baitcard has', open && 'open')} onClick={onToggle}>
+    <button type="button" className="ufs-baitcard has" onClick={onOpen}>
       <div className="de">{baitName(bait, lang)}</div>
       <div className="en">{lang === 'en' ? bait.de : bait.en}</div>
       <div className="cnt">
         {t('bait.speciesCount', { n: entries.length })}
-        {top ? ` · ${t('bait.strongest', { list: top })}` : ''}
+        {top ? ' · ' + t('bait.strongest', { list: top }) : ''}
       </div>
-      {open ? (
-        <div className="list" style={{ gridTemplateColumns: '1fr' }}>
-          <div className="ufs-baitlist">
-            {entries.map((e) => (
-              <div key={e.s} className="row">
-                <span className="nm">{speciesName(e.s, lang)}</span>
-                <span className="bar">
-                  <span style={{ width: `${Math.round(e.v * 100)}%` }} />
-                </span>
-                <span className="vl">{Math.round(e.v * 100)} %</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </div>
+    </button>
   )
 }
 

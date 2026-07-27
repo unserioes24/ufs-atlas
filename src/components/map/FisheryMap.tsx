@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { SPECIES, speciesName } from '../../data'
 import { useI18n } from '../../i18n'
 import { cn } from '../../lib/format'
+import { assetUrl } from '../../lib/route'
 import type { Fishery, Spot } from '../../types'
 
 export interface FisheryMapProps {
@@ -48,7 +49,7 @@ export function FisheryMap({
   return (
     <div>
       <div className="ufs-map-wrap">
-        <img src={fishery.map} alt={t('map.alt')} loading="lazy" />
+        <img src={assetUrl(fishery.map)} alt={t('map.alt')} loading="lazy" />
         <div className="ufs-map-layer">
           {showDots && fishery.dots
             ? fishery.dots.map((d, i) => (

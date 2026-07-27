@@ -22,7 +22,7 @@
  * you expect. Writing happens whenever the view changes: the first write only
  * replaces, otherwise opening the page would already leave a second entry.
  */
-import { GUIDE, SPECIES } from '../data'
+import { BAITS, GUIDE, SPECIES } from '../data'
 
 export type View =
   | 'start'
@@ -40,6 +40,7 @@ export interface Route {
   map?: string
   spot?: number | null
   species?: string | null
+  bait?: string | null
   angler?: string
   anglerTab?: string
   groupId?: number | null
@@ -93,6 +94,19 @@ export function speciesSlug(key: string): string {
 }
 const SLUG_TO_KEY = new Map(Object.keys(SPECIES).map((k) => [speciesSlug(k), k]))
 
+/** Bait keys carry mixed case and odd characters, so the slug is sanitised. */
+export function baitSlug(key: string): string {
+  return key
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+const BAIT_SLUGS = new Map(Object.keys(BAITS).map((k) => [baitSlug(k), k]))
+
+function baitFromSlug(slug: string): string | null {
+  return BAIT_SLUGS.get(slug.toLowerCase()) ?? (BAITS[slug] ? slug : null)
+}
+
 function keyFromSlug(slug: string): string | null {
   const s = slug.toLowerCase()
   return SLUG_TO_KEY.get(s) ?? SLUG_TO_KEY.get(s.replace(/_/g, '-')) ?? null
@@ -108,7 +122,10 @@ export function parseSegments(parts: string[], apiAvailable: boolean): Route {
   const view = HEADS[head]
 
   if (view === 'start') return apiAvailable ? { view: 'start' } : { view: 'map' }
-  if (view === 'bait') return { view: 'bait' }
+  if (view === 'bait') {
+    const raw = parts[1]
+    return { view: 'bait', bait: raw ? (baitFromSlug(raw) ?? null) : null }
+  }
   if (view === 'anmelden') return { view: 'anmelden' }
   if (view === 'privacy') return { view: 'privacy' }
   if (view === 'stats') return { view: 'stats', statsTab: parts[1] || 'reviere' }
@@ -159,7 +176,7 @@ export function routeSegments(r: Route): string[] {
     case 'start':
       return []
     case 'bait':
-      return ['baits']
+      return ['baits'].concat(r.bait ? [baitSlug(r.bait)] : [])
     case 'angler': {
       if (!r.angler) return ['anglers']
       const tab = PROFILE_TAB_PATHS[r.anglerTab ?? 'uebersicht']
@@ -197,4 +214,17 @@ export function isCurrent(address: string): boolean {
   const here = location.pathname.replace(/\/+$/, '') || '/'
   const there = address.replace(/\/+$/, '') || '/'
   return here === there && !location.hash
+}
+
+/**
+ * Address of a file that ships with the site, such as a map image.
+ *
+ * The data carries them relative (maps/moraine.jpg). Served under a path like
+ * /fisheries/moraine the browser would look for /fisheries/maps/moraine.jpg, so
+ * they need a leading slash there. Opened from disk they have to stay relative.
+ */
+export function assetUrl(path: string): string {
+  if (!path) return path
+  if (/^[a-z]+:|^\//i.test(path)) return path
+  return USE_PATHS ? '/' + path : path
 }

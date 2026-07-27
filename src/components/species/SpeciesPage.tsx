@@ -1,64 +1,23 @@
-import { useMemo, useState } from 'react'
-import { BAITS_FOR, FISHERIES, GUIDE, HOOKS, SPECIES, speciesKey, speciesName } from '../../data'
-import { useI18n } from '../../i18n'
-import { translateTerms } from '../../i18n/terms'
-import { cn, fmtNum } from '../../lib/format'
-import type { BestCatch } from '../../types'
-import { Toggle } from '../ui'
-import { Activity, BaitTop, BiteFactors, MethodList, RetrieveList, SizeFit } from './facts'
-
 /**
- * Every species in one list. The card shows the size range; opening it adds
- * everything the game files and the guide hold about it.
+ * Every species in one list, searchable. A card carries the name, the size
+ * range and where the fish stands; everything else lives on the species' own
+ * page, which the card links to.
  */
-
-interface GuideFacts {
-  baits: Record<string, number>
-  methods: Record<string, number>
-  hooks: Record<string, number>
-  retrieves: Record<string, number>
-  maps: Record<string, boolean>
-}
-
-/** Guide entries collected per species across all fisheries. */
-const SPECIES_GUIDE: Record<string, GuideFacts> = (() => {
-  const out: Record<string, GuideFacts> = {}
-  for (const f of GUIDE.fish) {
-    const k = speciesKey(f.name, f.de, f.mapId)
-    if (!k) continue
-    const e = (out[k] ??= { baits: {}, methods: {}, hooks: {}, retrieves: {}, maps: {} })
-    for (const raw of String(f.bait ?? '').split(/[,;/]| oder /)) {
-      const b = raw.trim()
-      if (b && b !== '—') e.baits[b] = (e.baits[b] ?? 0) + 1
-    }
-    if (f.method) e.methods[f.method] = (e.methods[f.method] ?? 0) + 1
-    if (f.hook) e.hooks[f.hook] = (e.hooks[f.hook] ?? 0) + 1
-    if (f.retrieve && f.retrieve !== '—') e.retrieves[f.retrieve] = (e.retrieves[f.retrieve] ?? 0) + 1
-    e.maps[f.mapId] = true
-  }
-  return out
-})()
-
-function topKeys(obj: Record<string, number> | undefined, n = 6): string[] {
-  return Object.keys(obj ?? {})
-    .sort((a, b) => (obj?.[b] ?? 0) - (obj?.[a] ?? 0))
-    .slice(0, n)
-}
+import { useMemo, useState } from 'react'
+import { FISHERIES, GUIDE, SPECIES, speciesName } from '../../data'
+import { useI18n } from '../../i18n'
+import { cn, fmtNum } from '../../lib/format'
+import { Toggle } from '../ui'
+import { SPECIES_GUIDE } from './guideFacts'
 
 interface Props {
   caught: Record<string, boolean>
-  bests: Record<string, BestCatch>
-  initialOpen: string | null
-  onOpen: (key: string | null) => void
+  onOpen: (key: string) => void
 }
 
-export function SpeciesPage({ caught, bests, initialOpen, onOpen }: Props) {
+export function SpeciesPage({ caught, onOpen }: Props) {
   const { t, lang } = useI18n()
-  // Direct link to a species: prefill the search so its card sits on top.
-  const [q, setQ] = useState(() =>
-    initialOpen && SPECIES[initialOpen] ? speciesName(initialOpen, lang) : '',
-  )
-  const [open, setOpen] = useState<string | null>(initialOpen)
+  const [q, setQ] = useState('')
   const [onlyMissing, setOnlyMissing] = useState(false)
 
   const mapName = useMemo(() => {
@@ -108,19 +67,12 @@ export function SpeciesPage({ caught, bests, initialOpen, onOpen }: Props) {
       <div className="ufs-baitgrid">
         {rows.map((r) => {
           const s = r.sp
-          const g = r.guide
-          const isOpen = open === r.key
-          const best = bests[r.key]
-
           return (
-            <div
+            <button
               key={r.key}
-              className={cn('ufs-baitcard has', isOpen && 'open')}
-              onClick={() => {
-                const next = isOpen ? null : r.key
-                setOpen(next)
-                onOpen(next)
-              }}
+              type="button"
+              className={cn('ufs-baitcard has', caught[r.key] && 'done')}
+              onClick={() => onOpen(r.key)}
             >
               <div className="de">
                 {caught[r.key] ? '✓ ' : ''}
@@ -131,107 +83,18 @@ export function SpeciesPage({ caught, bests, initialOpen, onOpen }: Props) {
                 {s.wMax ? `${fmtNum(s.wMin, 1)}–${fmtNum(s.wMax, 1)} kg` : t('species.noSize')}
                 {s.lMax ? ` · ${fmtNum(s.lMin)}–${fmtNum(s.lMax)} cm` : ''}
               </div>
-
-              {isOpen ? (
-                <div className="list" style={{ gridTemplateColumns: '1fr' }}>
-                  <Line label={t('species.fisheries')}>
-                    {r.where.length
-                      ? r.where.map((w) => mapName[w] ?? w).join(', ')
-                      : t('species.noSpawns')}
-                  </Line>
-                  {g && Object.keys(g.baits).length ? (
-                    <Line label={t('fish.baits')}>
-                      {topKeys(g.baits, 6)
-                        .map((b) => translateTerms(b, lang))
-                        .join(', ')}
-                    </Line>
-                  ) : null}
-                  {g && Object.keys(g.methods).length ? (
-                    <Line label={t('species.method')}>{topKeys(g.methods, 3).join(' · ')}</Line>
-                  ) : null}
-                  {g && Object.keys(g.hooks).length ? (
-                    <Line label={t('fish.hook')}>{topKeys(g.hooks, 3).join(' · ')}</Line>
-                  ) : null}
-                  {g && Object.keys(g.retrieves).length ? (
-                    <Line label={t('species.retrieve')}>
-                      {topKeys(g.retrieves, 2)
-                        .map((b) => translateTerms(b, lang))
-                        .join(' · ')}
-                    </Line>
-                  ) : null}
-                  {best?.weight ? (
-                    <Line label={t('fish.yourRecord')}>
-                      {best.weight.toFixed(2)} kg
-                      {best.length ? ` · ${Math.round(best.length * 100)} cm` : ''}
-                    </Line>
-                  ) : null}
-
-                  {s.act ? (
-                    <Block>
-                      <Activity act={s.act} />
-                    </Block>
-                  ) : null}
-                  {HOOKS && s.wMax ? (
-                    <Block label={t('fish.sizes')}>
-                      <SizeFit sp={s} />
-                    </Block>
-                  ) : null}
-                  {s.m ? (
-                    <Block label={t('fish.bestMethod')}>
-                      <MethodList m={s.m} />
-                    </Block>
-                  ) : null}
-                  {s.spin ? (
-                    <Block label={t('species.retrieve')}>
-                      <RetrieveList spin={s.spin} />
-                    </Block>
-                  ) : null}
-                  {(BAITS_FOR[r.key] ?? []).length ? (
-                    <Block label={t('fish.baits')}>
-                      <BaitTop speciesKey={r.key} limit={6} />
-                    </Block>
-                  ) : null}
-                  {s.bite ? (
-                    <Block label={t('fish.weather')}>
-                      <BiteFactors bite={s.bite} />
-                    </Block>
-                  ) : null}
-                  {s.info ? (
-                    <div
-                      style={{
-                        display: 'block',
-                        marginTop: '.4rem',
-                        color: '#94a3b8',
-                        lineHeight: 1.55,
-                      }}
-                    >
-                      {s.info}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
+              <div className="where">
+                {r.where.length
+                  ? r.where
+                      .slice(0, 3)
+                      .map((w) => mapName[w] ?? w)
+                      .join(', ') + (r.where.length > 3 ? ` +${r.where.length - 3}` : '')
+                  : t('species.noSpawns')}
+              </div>
+            </button>
           )
         })}
       </div>
-    </div>
-  )
-}
-
-function Line({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <span>{label}</span>
-      <em>{children}</em>
-    </div>
-  )
-}
-
-function Block({ label, children }: { label?: string; children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'block', marginTop: '.5rem' }}>
-      {label ? <span style={{ color: '#64748b' }}>{label}</span> : null}
-      {children}
     </div>
   )
 }

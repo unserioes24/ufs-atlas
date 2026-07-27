@@ -14,6 +14,8 @@ import type { SaveSummary } from './lib/savegame'
 import Header from './components/Header'
 import StartPage from './components/start/StartPage'
 import BaitPage from './components/bait/BaitPage'
+import BaitDetail from './components/bait/BaitDetail'
+import SpeciesDetail from './components/species/SpeciesDetail'
 import SpeciesPage from './components/species/SpeciesPage'
 import StatsPage from './components/stats/StatsPage'
 import GlobalOverview from './components/stats/GlobalOverview'
@@ -64,6 +66,7 @@ export default function App() {
   const [selectedSpot, setSelectedSpot] = useState<number | null>(first.spot ?? null)
   const [query, setQuery] = useState('')
   const [openSpecies, setOpenSpecies] = useState<string | null>(first.species ?? null)
+  const [openBait, setOpenBait] = useState<string | null>(first.bait ?? null)
   const [statsTab, setStatsTab] = useState(first.statsTab ?? 'reviere')
   const [angler, setAngler] = useState<string | null>(first.angler ?? null)
   const [anglerTab, setAnglerTab] = useState(first.anglerTab ?? 'uebersicht')
@@ -137,6 +140,7 @@ export default function App() {
       if (r.view === 'gruppen') setGroupId(r.groupId ?? null)
       if (r.view === 'stats') setStatsTab(r.statsTab ?? 'reviere')
       if (r.view === 'arten') setOpenSpecies(r.species ?? null)
+      if (r.view === 'bait') setOpenBait(r.bait ?? null)
       // The spot only after the map has changed: that resets it itself.
       if (r.view === 'map' && r.map) setTimeout(() => setSelectedSpot(r.spot ?? null), 0)
     }
@@ -155,6 +159,7 @@ export default function App() {
       map: selectedMap,
       spot: selectedSpot,
       species: openSpecies,
+      bait: openBait,
       angler: angler ?? undefined,
       anglerTab,
       groupId,
@@ -168,7 +173,7 @@ export default function App() {
       history.replaceState(null, '', address)
       histReady.current = true
     }
-  }, [view, selectedMap, selectedSpot, openSpecies, angler, anglerTab, groupId])
+  }, [view, selectedMap, selectedSpot, openSpecies, openBait, angler, anglerTab, groupId])
 
   const isGlobal = selectedMap === '__all__'
   const map = GUIDE.maps.find((m) => m.id === selectedMap) ?? playable[0]!
@@ -323,7 +328,18 @@ export default function App() {
           ) : view === 'privacy' ? (
             <Privacy />
           ) : view === 'bait' ? (
-            <BaitPage />
+            openBait ? (
+              <BaitDetail
+                baitKey={openBait}
+                onBack={() => setOpenBait(null)}
+                onOpenSpecies={(k) => {
+                  setOpenSpecies(k)
+                  setView('arten')
+                }}
+              />
+            ) : (
+              <BaitPage onOpen={setOpenBait} />
+            )
           ) : view === 'gruppen' ? (
             <GroupsPage
               me={me}
@@ -363,12 +379,21 @@ export default function App() {
               }}
             />
           ) : view === 'arten' ? (
-            <SpeciesPage
-              caught={caught}
-              bests={bests}
-              initialOpen={openSpecies}
-              onOpen={setOpenSpecies}
-            />
+            openSpecies ? (
+              <SpeciesDetail
+                speciesKey={openSpecies}
+                caught={caught}
+                bests={bests}
+                onBack={() => setOpenSpecies(null)}
+                onToggleCatch={toggleCatch}
+                onOpenMap={(id) => {
+                  setSelectedMap(id)
+                  setView('map')
+                }}
+              />
+            ) : (
+              <SpeciesPage caught={caught} onOpen={setOpenSpecies} />
+            )
           ) : isGlobal ? (
             <GlobalOverview caught={caught} allKeys={ALL_KEYS} onOpenMap={setSelectedMap} />
           ) : (
