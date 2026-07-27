@@ -42,23 +42,13 @@ import ProfilePage from '../components/profile/ProfilePage'
 import { storedStamp, useLocalState } from '../lib/localState'
 import { buildHash, parseHash } from '../lib/route'
 import Header from '../components/Header'
+import MapList from '../components/map/MapList'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
 
 const D = GUIDE
 const G = GAME
-
-
-/**
- * Überschriften der Kartengruppen. Der Guide führt sie unter deutschen Namen,
- * die Anzeige nimmt den Wörterbucheintrag – unbekannte Gruppen bleiben stehen.
- */
-const MAP_GROUPS = {
-    'Basis': 'map.groupBase', 'Variante': 'map.groupVariant',
-    'DLC': 'map.groupDlc', 'Angekündigt': 'map.groupAnnounced'
-};
-function groupLabel(g, t) { return MAP_GROUPS[g] ? t(MAP_GROUPS[g]) : g; }
 
 const accent = {
     cyan: 'from-cyan-400/20 via-blue-500/10 to-transparent', sky: 'from-sky-400/20 via-cyan-500/10 to-transparent',
@@ -294,7 +284,6 @@ function App() {
         setSyncNote(null);
     }
 
-    const grouped = D.maps.reduce(function (a, m) { (a[m.group] = a[m.group] || []).push(m); return a; }, {});
     const spotObj = fishery && selectedSpot
         ? fishery.spots.filter(function (s) { return s.n === selectedSpot; })[0] : null;
 
@@ -333,55 +322,16 @@ function App() {
             },
             onSources: function () { setSourceOpen(true); }
         }),
-
         h('div', {
             className: cn('relative mx-auto grid max-w-[1700px] grid-cols-1 gap-6 px-4 py-6 lg:px-7',
                 view === 'map' && 'lg:grid-cols-[300px_minmax(0,1fr)]')
         },
             // Kartenliste nur in der Revieransicht
-            view !== 'map' ? null : h('aside', { className: 'no-print hidden self-start lg:sticky lg:top-24 lg:block' },
-                h('div', { className: 'glass scrollbar max-h-[calc(100vh-7rem)] overflow-y-auto rounded-3xl border border-white/10 p-3 shadow-2xl' },
-                    h('div', { className: 'px-3 pb-2 pt-2 text-xs font-bold uppercase tracking-[.18em] text-slate-500' }, t('map.maps')),
-                    h('button', {
-                        onClick: function () { setSelectedMap('__all__'); },
-                        className: cn('group mb-3 flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition',
-                            selectedMap === '__all__' ? 'border border-cyan-300/20 bg-cyan-400/10' : 'border border-transparent hover:bg-white/[.045]')
-                    },
-                        h('span', { className: 'h-2.5 w-2.5 rounded-full bg-cyan-300/70' }),
-                        h('span', { className: 'min-w-0 flex-1' },
-                            h('span', { className: 'block truncate text-sm font-semibold text-slate-200' }, t('map.overview')),
-                            h('span', { style: { display: 'block', marginTop: '3px' } },
-                                h(Bar, { value: allDone, total: allKeys.length, thin: true }))),
-                        h('span', { className: 'text-[10px] tabular-nums text-slate-600' }, allDone + '/' + allKeys.length)),
-                    Object.keys(grouped).map(function (group) {
-                        return h('div', { key: group, className: 'mb-4' },
-                            h('div', { className: 'px-3 py-2 text-[10px] font-bold uppercase tracking-[.18em] text-slate-600' }, groupLabel(group, t)),
-                            h('div', { className: 'space-y-1' }, grouped[group].map(function (m) {
-                                const fy = FISHERIES[m.id];
-                                const keys = {};
-                                if (fy) fy.species.forEach(function (g) { keys[g.s] = true; });
-                                D.fish.forEach(function (f) {
-                                    if (f.mapId !== m.id) return;
-                                    const k = speciesKey(f.name, f.de, f.mapId);
-                                    if (k) keys[k] = true;
-                                });
-                                const ks = Object.keys(keys);
-                                const dn = ks.filter(function (k) { return caught[k]; }).length;
-                                return h('button', {
-                                    key: m.id,
-                                    onClick: function () { setSelectedMap(m.id); setQuery(''); setMethod('Alle'); },
-                                    className: cn('group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition',
-                                        selectedMap === m.id ? 'border border-cyan-300/20 bg-cyan-400/10' : 'border border-transparent hover:bg-white/[.045]')
-                                },
-                                    h('span', { className: cn('h-2.5 w-2.5 rounded-full', m.status === 'announced' ? 'bg-slate-600' : 'bg-cyan-300/70') }),
-                                    h('span', { className: 'min-w-0 flex-1' },
-                                        h('span', { className: 'block truncate text-sm font-semibold text-slate-200' }, m.name),
-                                        ks.length
-                                            ? h('span', { style: { display: 'block', marginTop: '3px' } }, h(Bar, { value: dn, total: ks.length, thin: true }))
-                                            : h('span', { className: 'block truncate text-[10px] text-slate-500' }, m.water)),
-                                    h('span', { className: 'text-[10px] tabular-nums text-slate-600' }, ks.length ? dn + '/' + ks.length : '–'));
-                            })));
-                    }))),
+            view !== 'map' ? null : h(MapList, {
+                selected: selectedMap, caught: caught, allKeys: allKeys,
+                onSelect: function (id) { setSelectedMap(id); setQuery(''); setMethod('Alle'); }
+            }),
+
 
             h('main', { className: 'min-w-0' },
                 syncNote ? h('div', { className: 'ufs-note ok no-print', style: { marginBottom: '.9rem' } },
