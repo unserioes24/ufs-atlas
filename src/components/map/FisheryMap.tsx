@@ -36,7 +36,11 @@ export function FisheryMap({
   const spots = fishery.spots.filter((s): s is Spot & { u: number; v: number } =>
     typeof s.u === 'number' && typeof s.v === 'number',
   )
-  if (!spots.length) return <div className="ufs-note">{t('map.boatOnly')}</div>
+  // No board, no coordinates: the offshore fisheries are fished from the boat
+  // and the game shows no map there either.
+  if (!fishery.map || !spots.length) {
+    return <div className="ufs-note">{t('map.boatOnly')}</div>
+  }
 
   const tip = hover !== null ? spots.find((s) => s.n === hover) : null
   const hasSpecies = (s: Spot) => (highlight ? s.fish.some((f) => f.s === highlight) : false)

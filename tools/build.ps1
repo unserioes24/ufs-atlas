@@ -7,10 +7,14 @@ $sp = $Work
 $proj = $Proj
 Add-Type -AssemblyName System.Drawing
 
-# ---------------------------------------------------------------- fisheries
+# ----------------------------------------------------------------- fisheries
+# map: the texture the scene shows. The two offshore fisheries have none of
+# their own - Pinas Bay Ocean and Greenland Sea are fished from the boat, and
+# the game shows no map board there. They used to borrow the mainland image,
+# which put their travel points on a coastline they have nothing to do with.
 $FISH = @(
  @{k='pinas';         lvl=4;  map='pinas';          mw=1024; mh=579},
- @{k='pinas-ocean';   lvl=5;  map='pinas';          mw=1024; mh=579},
+ @{k='pinas-ocean';   lvl=5;  map=$null;           mw=1024; mh=579},
  @{k='powell';        lvl=6;  map='powell';         mw=1024; mh=579},
  @{k='baikal';        lvl=7;  map='baikal';         mw=1024; mh=579},
  @{k='baikal-winter'; lvl=7;  map='baikal-winter';  mw=1024; mh=579},
@@ -23,7 +27,7 @@ $FISH = @(
  @{k='moraine-winter';lvl=14; map='moraine-winter'; mw=1024; mh=579},
  @{k='kariba';        lvl=15; map='kariba';         mw=1024; mh=579},
  @{k='greenland';     lvl=16; map='greenland';      mw=1024; mh=576},
- @{k='greenland-sea'; lvl=17; map='greenland';      mw=1024; mh=576},
+ @{k='greenland-sea'; lvl=17; map=$null;           mw=1024; mh=576},
  @{k='amazon';        lvl=18; map='amazon';         mw=1284; mh=901},
  @{k='japan';         lvl=19; map='japan';          mw=1024; mh=576},
  @{k='thailand';      lvl=20; map='thailand';       mw=875;  mh=901},
@@ -162,10 +166,12 @@ foreach ($fy in $FISH) {
     $imgH = $mi.h * $mi.scale
 
     # --- spots -> uv
+    # Without a map image the uv values would point at nothing, so a fishery
+    # that shows no board keeps its spot numbers and drops the coordinates.
     $spots = @()
     foreach ($s in $panel.spots) {
         $e = [ordered]@{ n = $s.n }
-        if ($imgW -gt 0 -and $imgH -gt 0 -and $null -ne $s.ax) {
+        if ($fy.map -and $imgW -gt 0 -and $imgH -gt 0 -and $null -ne $s.ax) {
             $e.u = 0.5 + ($s.ax - $panel.mapImage.ax) / $imgW
             $e.v = 0.5 - ($s.ay - $panel.mapImage.ay) / $imgH
         }
@@ -296,7 +302,7 @@ foreach ($fy in $FISH) {
         dlcSpecies = @($dlcNames)
         dlcAmount  = $dlcAmount
         level    = $fy.lvl
-        map      = "maps/$($fy.map).jpg"
+        map      = if ($fy.map) { "maps/$($fy.map).jpg" } else { $null }
         mapW     = $fy.mw
         mapH     = $fy.mh
         fitOk    = [bool]($best -ne $null -and $pairs.Count -ge 3 -and $bestErr -lt 0.09)

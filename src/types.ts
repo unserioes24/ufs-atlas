@@ -63,7 +63,8 @@ export type Dot = [string, number, number]
 
 export interface Fishery {
   level: number
-  map: string
+  /** Bild des Kartenbretts. Offshore-Reviere zeigen keins. */
+  map: string | null
   mapW: number
   mapH: number
   save: string
