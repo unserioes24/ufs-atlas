@@ -57,8 +57,6 @@ export const en: Partial<Dict> = {
     'Fish move. On an empty spot: use Hunter Vision or the fish finder, go down a hook size, or reload the map.',
   'map.guideOnlyNote':
     '“guide only” means: the game’s scene holds no spawn points for this species. That mostly affects the species of the New Fish Species DLC, which the game adds at runtime. The spot then comes from community research.',
-  'map.termsDe': 'Bait & retrieve: German',
-  'map.termsEn': 'Bait & retrieve: English',
   'map.announcedTitle': 'No solid guide data yet',
   'map.announcedText':
     'The Italy DLC is announced on Steam, but without a published date and without playable spot data.',
@@ -243,6 +241,12 @@ export const en: Partial<Dict> = {
   // ---------------------------------------------------------------- Sources
   'sources.eyebrow': 'What this is built on',
   'sources.title': 'Sources & data quality',
+  'source.official': 'Official',
+  'source.wiki': 'Community wiki',
+  'source.test': 'Community test',
+  'source.guide': 'Community guide',
+  'source.secondary': 'Secondary source',
+  'source.observation': 'Community observation',
   'sources.note':
     'Spots, species lists, weight and length ranges, bite curves and the bait interests come straight from the installed game files (Unity scenes, fish and bait prefabs, localisation table). Hook and retrieve recommendations stay community experience; anything rated low is marked as a starting point on purpose.',
 

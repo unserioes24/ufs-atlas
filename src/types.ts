@@ -167,10 +167,24 @@ export interface GuideFish {
   tags: string[]
 }
 
+/**
+ * Eine Quelle der Recherche. Titel und Adresse stehen so, wie die Seite selbst
+ * heißt. Die Notiz gibt es zweisprachig, die Kategorie als Wörterbuchschlüssel –
+ * beides wird im Guide gepflegt, nicht im Programm.
+ */
+export interface SourceEntry {
+  title: string
+  url?: string
+  note?: string
+  noteEn?: string
+  type?: string
+  typeKey?: string
+}
+
 export interface GuideData {
   maps: GuideMap[]
   fish: GuideFish[]
-  sources: Record<string, { title: string; url?: string; note?: string; type?: string }>
+  sources: Record<string, SourceEntry>
   generated: string
   scope: string
 }

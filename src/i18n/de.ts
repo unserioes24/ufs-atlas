@@ -58,8 +58,6 @@ export const de = {
     'Fische bewegen sich. Bei leerem Spot: Hunter Vision bzw. Fischfinder nutzen, Hakengröße reduzieren oder die Karte neu laden.',
   'map.guideOnlyNote':
     '„nur Guide“ heißt: Die Szene des Spiels enthält für diese Art keine Spawnpunkte. Das betrifft vor allem die Arten aus dem New-Fish-Species-DLC, die das Spiel erst zur Laufzeit ergänzt. Spotangabe stammt dann aus der Community-Recherche.',
-  'map.termsDe': 'Köder & Führung: Deutsch',
-  'map.termsEn': 'Köder & Führung: Englisch',
   'map.announcedTitle': 'Noch keine belastbaren Guide-Daten',
   'map.announcedText':
     'Italy DLC ist auf Steam angekündigt, aber ohne veröffentlichten Termin und ohne spielbare Spotdaten.',
@@ -246,6 +244,12 @@ export const de = {
   // ---------------------------------------------------------------- Quellen
   'sources.eyebrow': 'Recherchebasis',
   'sources.title': 'Quellen & Datenqualität',
+  'source.official': 'Offiziell',
+  'source.wiki': 'Community-Wiki',
+  'source.test': 'Community-Test',
+  'source.guide': 'Community-Guide',
+  'source.secondary': 'Sekundärquelle',
+  'source.observation': 'Community-Beobachtung',
   'sources.note':
     'Spots, Artenlisten, Gewichts- und Längenspannen, Beißzeitkurven und die Köderinteressen stammen direkt aus den installierten Spieldateien (Unity-Szenen, Fisch- und Köder-Prefabs, Lokalisierungstabelle). Haken- und Führungsempfehlungen bleiben Community-Erfahrungswerte; niedrig bewertete Angaben sind bewusst als Startpunkt markiert.',
 

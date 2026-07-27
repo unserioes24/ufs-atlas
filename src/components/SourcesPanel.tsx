@@ -5,10 +5,11 @@
  */
 import { GUIDE } from '../data'
 import { useI18n } from '../i18n'
+import type { Key } from '../i18n'
 import { Icon } from './primitives'
 
 export function SourcesPanel({ onClose }: { onClose: () => void }) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   return (
     <div
       className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm"
@@ -37,6 +38,10 @@ export function SourcesPanel({ onClose }: { onClose: () => void }) {
         <div className="mt-6 space-y-3">
           {Object.keys(GUIDE.sources).map((id) => {
             const s = GUIDE.sources[id]!
+            // The category is a dictionary key, the note comes in both
+            // languages. Where either is missing, the German original shows.
+            const type = s.typeKey ? t(s.typeKey as Key) : s.type
+            const note = lang === 'en' ? s.noteEn || s.note : s.note
             return (
               <a
                 key={id}
@@ -48,11 +53,11 @@ export function SourcesPanel({ onClose }: { onClose: () => void }) {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="font-bold text-slate-100">{s.title}</div>
-                    <div className="mt-1 text-xs text-cyan-300">{s.type}</div>
+                    <div className="mt-1 text-xs text-cyan-300">{type}</div>
                   </div>
                   <Icon name="source" className="text-slate-500" />
                 </div>
-                <p className="mt-3 text-sm leading-6 text-slate-400">{s.note}</p>
+                <p className="mt-3 text-sm leading-6 text-slate-400">{note}</p>
               </a>
             )
           })}

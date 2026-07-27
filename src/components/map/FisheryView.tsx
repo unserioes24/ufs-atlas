@@ -86,7 +86,7 @@ export function FisheryView({
   selectedSpot,
   onSelectSpot,
 }: FisheryViewProps) {
-  const { t, lang, setLang } = useI18n()
+  const { t, lang } = useI18n()
   const [method, setMethod] = useState<string>(ALL)
   const [confidence, setConfidence] = useState<string>(ALL)
   const [catchFilter, setCatchFilter] = useState<string>(ALL)
@@ -392,9 +392,6 @@ export function FisheryView({
               gefangen: t('map.filterCaught'),
             }}
           />
-          <Toggle active={lang === 'de'} onClick={() => setLang(lang === 'de' ? 'en' : 'de')}>
-            {lang === 'de' ? t('map.termsDe') : t('map.termsEn')}
-          </Toggle>
           <Toggle active={showDlc} onClick={() => setShowDlc(!showDlc)}>
             {t('map.dlcToggle')}
           </Toggle>
