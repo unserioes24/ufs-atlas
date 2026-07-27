@@ -19,3 +19,4 @@ _check.html
 # Node und Build
 node_modules/
 dist/
+dist-offline/

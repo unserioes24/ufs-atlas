@@ -12,6 +12,10 @@ import react from '@vitejs/plugin-react'
  */
 export default defineConfig({
   plugins: [react()],
+  // Relative asset paths, so dist/index.html also opens straight from disk
+  // with file:// — without a server the guide still works, only accounts and
+  // groups are missing.
+  base: './',
   build: {
     outDir: 'dist',
     sourcemap: true,
