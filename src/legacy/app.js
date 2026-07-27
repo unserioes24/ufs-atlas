@@ -1,74 +1,36 @@
 /*
- * The original single-file app, now an ES module.
+ * What is left of the original single-file app: the shell that holds the state
+ * together and picks the view. Everything it renders now lives as a typed
+ * component under src/components.
  *
- * It still builds its views with React.createElement instead of JSX; that was
- * the price of running without a build step. Nothing here is meant to stay:
- * piece by piece these views move into typed components under src/components,
- * and this file shrinks until it disappears.
+ * It still uses React.createElement instead of JSX – the last remnant of
+ * running without a build step. This file is meant to disappear too.
  */
 import React from 'react'
-import {
-    BAITS, BAITS_FOR, FISHERIES, GAME, GUIDE, HOOKS, SPECIES,
-    baitName, norm, speciesKey, speciesName,
-} from '../data'
+import { FISHERIES, GUIDE, speciesKey } from '../data'
 import { API_AVAILABLE, api } from '../lib/api'
-import { DASH, cn, fmtAgo, fmtNum, fmtTime, fmtWhen, newerThan } from '../lib/format'
-import { Badge, Bar, Icon, Mini, Select } from '../components/primitives'
-import { Toggle } from '../components/ui'
-import GroupsPage from '../components/groups/GroupsPage'
-import { Follows } from '../components/profile/Follows'
-import StartPage from '../components/start/StartPage'
-import { LangSwitch } from '../components/LangSwitch'
+import { cn, fmtWhen, newerThan } from '../lib/format'
 import { useI18n } from '../i18n'
-import { fisheryLabel, parseProfile, profileToCatches } from '../lib/savegame'
-import { fitSteps, gapRange, stepRange } from '../lib/hooks'
-import BaitPage from '../components/bait/BaitPage'
-import {
-    Activity, BaitTop, BiteFactors, MethodList, RetrieveList, SizeFit,
-    bestHours, methodTop, spinTop
-} from '../components/species/facts'
-import SpeciesPage from '../components/species/SpeciesPage'
-import { FishCard } from '../components/species/FishCard'
-
-
-import StatsPage from '../components/stats/StatsPage'
-import { Stat } from '../components/primitives'
-import GlobalOverview from '../components/stats/GlobalOverview'
-import { FisheryMap, SpotPanel } from '../components/map/FisheryMap'
-import ImportDialog from '../components/save/ImportDialog'
-import SourcesPanel from '../components/SourcesPanel'
-import LoginPanel from '../components/auth/LoginPanel'
-import ProfilePage from '../components/profile/ProfilePage'
 import { storedStamp, useLocalState } from '../lib/localState'
 import { buildHash, parseHash } from '../lib/route'
 import Header from '../components/Header'
+import StartPage from '../components/start/StartPage'
+import BaitPage from '../components/bait/BaitPage'
+import SpeciesPage from '../components/species/SpeciesPage'
+import StatsPage from '../components/stats/StatsPage'
+import GlobalOverview from '../components/stats/GlobalOverview'
 import MapList from '../components/map/MapList'
+import FisheryView from '../components/map/FisheryView'
+import GroupsPage from '../components/groups/GroupsPage'
+import ProfilePage from '../components/profile/ProfilePage'
+import LoginPanel from '../components/auth/LoginPanel'
+import ImportDialog from '../components/save/ImportDialog'
+import SourcesPanel from '../components/SourcesPanel'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
 
 const D = GUIDE
-const G = GAME
-
-const accent = {
-    cyan: 'from-cyan-400/20 via-blue-500/10 to-transparent', sky: 'from-sky-400/20 via-cyan-500/10 to-transparent',
-    amber: 'from-amber-400/20 via-orange-500/10 to-transparent', emerald: 'from-emerald-400/20 via-teal-500/10 to-transparent',
-    blue: 'from-blue-400/20 via-indigo-500/10 to-transparent', indigo: 'from-indigo-400/20 via-violet-500/10 to-transparent',
-    lime: 'from-lime-400/20 via-emerald-500/10 to-transparent', teal: 'from-teal-400/20 via-cyan-500/10 to-transparent',
-    orange: 'from-orange-400/20 via-rose-500/10 to-transparent', rose: 'from-rose-400/20 via-pink-500/10 to-transparent',
-    violet: 'from-violet-400/20 via-fuchsia-500/10 to-transparent', fuchsia: 'from-fuchsia-400/20 via-violet-500/10 to-transparent',
-    yellow: 'from-yellow-400/20 via-amber-500/10 to-transparent', slate: 'from-slate-400/20 via-cyan-500/10 to-transparent',
-    zinc: 'from-zinc-400/20 via-blue-500/10 to-transparent', green: 'from-green-400/20 via-emerald-500/10 to-transparent',
-    pink: 'from-pink-400/20 via-rose-500/10 to-transparent', red: 'from-red-400/20 via-orange-500/10 to-transparent',
-    stone: 'from-stone-400/15 via-slate-500/10 to-transparent'
-};
-
-/* ------------------------------------------------------------ Köderdaten */
-
-
-
-
-
 
 
 /* ------------------------------------------------------------------- App */
@@ -77,15 +39,8 @@ function App() {
     const playable = D.maps.filter(function (m) { return m.status === 'playable'; });
     const [selectedMap, setSelectedMap] = useState(playable[0].id);
     const [query, setQuery] = useState('');
-    const [method, setMethod] = useState('Alle');
-    const [confidence, setConfidence] = useState('Alle');
-    const [catchFilter, setCatchFilter] = useState('Alle');
-    const [onlyFav, setOnlyFav] = useState(false);
-    const [showOverlay, setShowOverlay] = useState(true);
-    const [compact, setCompact] = useState(false);
     const [sourceOpen, setSourceOpen] = useState(false);
     const [importOpen, setImportOpen] = useState(false);
-    const [pinned, setPinned] = useState(null);
     const [view, setView] = useState('map');
     const [openSpecies, setOpenSpecies] = useState(null);
     const [statsTab, setStatsTab] = useState('reviere');
@@ -119,7 +74,6 @@ function App() {
         }).catch(function () { /* offline weiterarbeiten */ });
     }, []);
     const [selectedSpot, setSelectedSpot] = useState(null);
-    const [highlight, setHighlight] = useState(null);
     const i18n = useI18n();
     const lang = i18n.lang;
     const t = i18n.t;
@@ -143,7 +97,6 @@ function App() {
         window.addEventListener('keydown', fn);
         return function () { window.removeEventListener('keydown', fn); };
     }, []);
-    useEffect(function () { setSelectedSpot(null); setHighlight(null); setPinned(null); }, [selectedMap]);
 
     /* Adressleiste als Zustand; gelesen und geschrieben wird in src/lib/route.ts. */
     const routeReady = useRef(false);
@@ -185,75 +138,6 @@ function App() {
     const map = D.maps.filter(function (m) { return m.id === selectedMap; })[0] || playable[0];
     const fishery = isGlobal ? null : (FISHERIES[map.id] || null);
 
-    /* Guide-Einträge dieser Karte plus Arten, die nur in den Spieldateien stehen. */
-    const rows = useMemo(function () {
-        const guide = D.fish.filter(function (f) { return f.mapId === map.id; });
-        const gameByKey = {};
-        if (fishery) fishery.species.forEach(function (g) { gameByKey[g.s] = g; });
-
-        const used = {};
-        const list = guide.map(function (f) {
-            const key = speciesKey(f.name, f.de, f.mapId);
-            if (key) used[key] = true;
-            return { f: f, key: key, game: key ? gameByKey[key] : null, gameOnly: false };
-        });
-        if (fishery) {
-            fishery.species.forEach(function (g) {
-                if (used[g.s]) return;
-                const sp = SPECIES[g.s] || {};
-                list.push({
-                    key: g.s, game: g, gameOnly: true,
-                    f: {
-                        id: map.id + '-game-' + g.s.toLowerCase(), mapId: map.id,
-                        name: sp.en || g.s, de: sp.de || sp.en || g.s,
-                        spots: g.spots && g.spots.length ? t('gameOnly.spots', { list: g.spots.join(', ') }) : t('gameOnly.seeMap'),
-                        hook: t('gameOnly.hook'), bait: '—', groundbait: '—',
-                        depth: t('gameOnly.depth'), method: t('gameOnly.method'),
-                        retrieve: '—', time: 'Keine feste Zeit belegt',
-                        notes: t('gameOnly.notes'),
-                        confidence: 'hoch', sources: [], dlc: null, tags: []
-                    }
-                });
-            });
-        }
-        return list;
-    }, [map.id, fishery]);
-
-    const methods = useMemo(function () {
-        const set = {};
-        rows.forEach(function (r) { r.f.method.split(' / ').forEach(function (m) { set[m] = true; }); });
-        return ['Alle'].concat(Object.keys(set).sort());
-    }, [rows]);
-
-    const filtered = useMemo(function () {
-        return rows.filter(function (r) {
-            const f = r.f;
-            if (query) {
-                const hay = (Object.keys(f).map(function (k) { return f[k]; }).join(' ') + ' ' + (r.key || '') + ' ' + speciesName(r.key, 'de')).toLowerCase();
-                if (hay.indexOf(query.toLowerCase()) < 0) return false;
-            }
-            if (method !== 'Alle' && f.method.indexOf(method) < 0) return false;
-            if (confidence !== 'Alle' && f.confidence !== confidence) return false;
-            if (onlyFav && favorites.indexOf(f.id) < 0) return false;
-            if (!showOverlay && f.dlc === 'New Fish Species') return false;
-            if (catchFilter === 'offen' && r.key && caught[r.key]) return false;
-            if (catchFilter === 'gefangen' && !(r.key && caught[r.key])) return false;
-            if (pinned && r.key !== pinned) return false;
-            if (selectedSpot) {
-                if (!r.game || !r.game.spots || r.game.spots.indexOf(selectedSpot) < 0) return false;
-            }
-            return true;
-        });
-    }, [rows, query, method, confidence, onlyFav, favorites, showOverlay, catchFilter, caught, selectedSpot, pinned]);
-
-    /* Fortschritt */
-    const mapKeys = useMemo(function () {
-        const s = {};
-        rows.forEach(function (r) { if (r.key) s[r.key] = true; });
-        return Object.keys(s);
-    }, [rows]);
-    const mapDone = mapKeys.filter(function (k) { return caught[k]; }).length;
-
     const allKeys = useMemo(function () {
         const s = {};
         Object.keys(FISHERIES).forEach(function (id) {
@@ -284,25 +168,6 @@ function App() {
         setSyncNote(null);
     }
 
-    const spotObj = fishery && selectedSpot
-        ? fishery.spots.filter(function (s) { return s.n === selectedSpot; })[0] : null;
-
-    /* Artenliste neben der Karte: Szenenarten plus die nur im Guide belegten
-       (New-Fish-Species-DLC hinterlegt keine Spawnpunkte in der Szene). */
-    const panelList = useMemo(function () {
-        const out = [];
-        if (fishery) fishery.species.forEach(function (g) {
-            out.push({ s: g.s, fish: g.fish, spots: g.spots, guideOnly: false, dlc: !!g.dlc });
-        });
-        const seen = {};
-        out.forEach(function (o) { seen[o.s] = true; });
-        rows.forEach(function (r) {
-            if (!r.key || r.game || seen[r.key]) return;
-            seen[r.key] = true;
-            out.push({ s: r.key, fish: null, spots: [], guideOnly: true, hint: r.f.spots, dlc: r.f.dlc });
-        });
-        return out;
-    }, [fishery, rows]);
 
     return h('div', { className: 'min-h-screen water-grid' },
         h('div', { className: 'fixed inset-0 pointer-events-none overflow-hidden' },
@@ -385,142 +250,12 @@ function App() {
                     caught: caught, allKeys: allKeys,
                     onOpenMap: function (id) { setSelectedMap(id); }
                 })
-                : h(React.Fragment, null,
-                h('div', { className: 'no-print scrollbar mb-4 flex gap-2 overflow-x-auto pb-2 lg:hidden' },
-                    D.maps.map(function (m) {
-                        return h('button', {
-                            key: m.id, onClick: function () { setSelectedMap(m.id); },
-                            className: cn('shrink-0 rounded-full border px-3 py-2 text-xs font-semibold',
-                                selectedMap === m.id ? 'border-cyan-400/40 bg-cyan-400/15 text-cyan-100' : 'border-white/10 bg-white/[.04] text-slate-400')
-                        }, m.name);
-                    })),
-
-                h('section', { className: cn('noise relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br p-6 shadow-2xl lg:p-8', accent[map.accent]) },
-                    h('div', { className: 'absolute inset-0 bg-gradient-to-b from-white/[.03] to-[#061017]/55' }),
-                    h('div', { className: 'relative grid gap-7 xl:grid-cols-[1fr_370px]' },
-                        h('div', null,
-                            h('div', { className: 'mb-4 flex flex-wrap gap-2' },
-                                h(Badge, { tone: map.group === 'DLC' ? 'violet' : map.status === 'announced' ? 'slate' : 'cyan' }, map.group),
-                                h(Badge, null, map.region), h(Badge, null, map.water),
-                                map.variant ? h(Badge, { tone: 'amber' }, map.variant) : null),
-                            h('h1', { className: 'max-w-4xl text-3xl font-black tracking-tight text-white sm:text-5xl' }, map.name),
-                            h('p', { className: 'mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base' }, map.summary),
-                            h('div', { className: 'mt-6 grid gap-3 sm:grid-cols-3' },
-                                h(Mini, { label: t('map.style'), value: map.style }),
-                                h(Mini, { label: t('nav.species'), value: mapKeys.length ? t('map.caughtOf', { done: mapDone, total: mapKeys.length }) : t('map.entries', { n: rows.length }) }),
-                                h(Mini, { label: t('map.spotsFromFiles'), value: fishery && fishery.spots.length ? String(fishery.spots.length) : DASH })),
-                            mapKeys.length ? h('div', { style: { marginTop: '.9rem', maxWidth: '520px' } }, h(Bar, { value: mapDone, total: mapKeys.length })) : null),
-                        h('div', { className: 'rounded-3xl border border-white/10 bg-black/20 p-5 backdrop-blur-xl' },
-                            h('div', { className: 'flex items-center gap-2 text-sm font-bold text-cyan-100' }, h(Icon, { name: 'info' }), t('map.readHead')),
-                            h('p', { className: 'mt-3 text-sm leading-6 text-slate-400' },
-                                t('map.readNote')),
-                            h('div', { className: 'mt-4 rounded-2xl border border-amber-300/20 bg-amber-300/[.07] p-3 text-xs leading-5 text-amber-100/80' },
-                                t('map.emptySpotNote'))))),
-
-                fishery ? h('section', { className: 'no-print mt-5 ufs-maplayout' },
-                    h(FisheryMap, {
-                        fishery: fishery, selected: selectedSpot, onSelect: setSelectedSpot,
-                        caught: caught, highlight: pinned || highlight
-                    }),
-                    h('div', { className: 'ufs-col' },
-                        spotObj
-                            ? h(SpotPanel, { spot: spotObj, caught: caught })
-                            : h('div', { className: 'ufs-spotcard' },
-                                h('h3', null, t('map.speciesHere')),
-                                h('div', { className: 'ufs-splist' },
-                                    panelList.slice(0, 18).map(function (g) {
-                                        return h('div', {
-                                            key: g.s,
-                                            className: cn('ufs-spline', pinned === g.s && 'pin'),
-                                            style: { cursor: 'pointer' },
-                                            onMouseEnter: function () { if (!g.guideOnly) setHighlight(g.s); },
-                                            onMouseLeave: function () { setHighlight(null); },
-                                            onClick: function () { setPinned(pinned === g.s ? null : g.s); }
-                                        },
-                                            h('span', { className: cn('n', caught[g.s] && 'done') },
-                                                (caught[g.s] ? '✓ ' : '') + speciesName(g.s, lang)),
-                                            h('span', { className: 'q' },
-                                                g.guideOnly ? t('map.guideOnly') : (g.dlc ? t('map.dlcSpecies') : t('map.fishHere', { n: g.fish }))),
-                                            h('span', { className: 'd' },
-                                                g.guideOnly ? (g.hint || '–')
-                                                    : (g.spots.length ? t('map.spotList', { list: g.spots.slice(0, 4).join(', ') })
-                                                        : (g.dlc ? 'frei verteilt' : '–'))));
-                                    })),
-                                panelList.length > 18
-                                    ? h('div', { className: 'ufs-muted', style: { fontSize: '11px', marginTop: '.4rem' } },
-                                        '+ ' + (panelList.length - 18) + ' weitere Arten')
-                                    : null,
-                                panelList.some(function (g) { return g.guideOnly; })
-                                    ? h('div', { className: 'ufs-muted', style: { fontSize: '10.5px', marginTop: '.5rem', lineHeight: 1.5 } },
-                                        t('map.guideOnlyNote'))
-                                    : null),
-                        !fishery.fitOk
-                            ? h('div', { className: 'ufs-note', style: { fontSize: '11.5px' } },
-                                // Offshore-Reviere führen zu ihren Spots keine Weltkoordinaten:
-                                // dort gibt es keine Reisepunkte, man fährt selbst hinaus.
-                                fishery.spots.some(function (s) { return s.wx !== undefined && s.wx !== null; })
-                                    ? t('map.noProjection')
-                                    : t('map.boatOnly'))
-                            : null)) : null,
-
-                h('section', { className: 'no-print mt-5 rounded-3xl border border-white/10 bg-white/[.025] p-4' },
-                    h('div', { className: 'flex flex-wrap items-center gap-3' },
-                        h('div', { className: 'flex items-center gap-2 text-xs font-bold uppercase tracking-[.15em] text-slate-500' }, h(Icon, { name: 'filter' }), t('map.filter')),
-                        h(Select, { value: method, onChange: setMethod, options: methods, labels: { Alle: t('map.filterAll') } }),
-                        h(Select, {
-                            value: confidence, onChange: setConfidence, options: ['Alle', 'hoch', 'mittel', 'niedrig'],
-                            labels: {
-                                Alle: t('map.filterAll'), hoch: t('map.filterConfHigh'),
-                                mittel: t('map.filterConfMedium'), niedrig: t('map.filterConfLow')
-                            }
-                        }),
-                        h(Select, {
-                            value: catchFilter, onChange: setCatchFilter, options: ['Alle', 'offen', 'gefangen'],
-                            labels: {
-                                Alle: t('map.filterAllSpecies'), offen: t('map.filterOpen'),
-                                gefangen: t('map.filterCaught')
-                            }
-                        }),
-                        h(Toggle, { active: lang === 'de', onClick: function () { i18n.setLang(lang === 'de' ? 'en' : 'de'); } },
-                            lang === 'de' ? t('map.termsDe') : t('map.termsEn')),
-                        h(Toggle, { active: showOverlay, onClick: function () { setShowOverlay(!showOverlay); } }, 'New-Species-DLC'),
-                        h(Toggle, { active: onlyFav, onClick: function () { setOnlyFav(!onlyFav); } }, h(Icon, { name: 'star' }), t('map.favorites')),
-                        h(Toggle, { active: compact, onClick: function () { setCompact(!compact); } }, t('map.compact')),
-                        selectedSpot ? h(Toggle, { active: true, onClick: function () { setSelectedSpot(null); } }, t('map.onlySpot', { n: selectedSpot })) : null,
-                        pinned ? h(Toggle, { active: true, onClick: function () { setPinned(null); } }, t('map.onlySpecies', { name: speciesName(pinned, lang) })) : null,
-                        h('span', { className: 'ml-auto text-xs tabular-nums text-slate-500' }, t('map.filterCount', { shown: filtered.length, total: rows.length })))),
-
-                map.status === 'announced'
-                    ? h('div', { className: 'mt-6 rounded-3xl border border-white/10 bg-white/[.03] p-10 text-center text-slate-400' },
-                        h('div', { className: 'text-4xl' }, '◌'),
-                        h('h2', { className: 'mt-3 text-xl font-bold text-white' }, t('map.announcedTitle')),
-                        h('p', { className: 'mt-2' }, t('map.announcedText')))
-                    : h('section', { className: cn('mt-6 grid gap-4', compact ? 'xl:grid-cols-2' : 'grid-cols-1') },
-                        filtered.map(function (r) {
-                            return h(FishCard, {
-                                key: r.f.id, f: r.f, speciesKey: r.key, gameEntry: r.game, gameOnly: r.gameOnly,
-                                compact: compact, favorite: favorites.indexOf(r.f.id) >= 0,
-                                onFav: function () { toggleFav(r.f.id); },
-                                onSource: function () { setSourceOpen(true); },
-                                caught: caught, bests: bests, lang: lang,
-                                onToggleCatch: toggleCatch,
-                                selectedSpot: selectedSpot,
-                                onPickSpot: function (n) { setSelectedSpot(selectedSpot === n ? null : n); }
-                            });
-                        }),
-                        !filtered.length
-                            ? h('div', { className: 'rounded-3xl border border-dashed border-white/15 p-12 text-center text-slate-500' },
-                                t('map.noHits'))
-                            : null),
-
-                h('section', { className: 'mt-8 rounded-3xl border border-white/10 bg-white/[.025] p-6 text-sm leading-7 text-slate-400' },
-                    h('h2', { className: 'text-lg font-bold text-white' }, t('map.hookAdviceTitle')),
-                    h('p', { className: 'mt-2' },
-                        t('map.hookAdvice'))),
-
-                h('footer', { className: 'py-10 text-center text-xs text-slate-600' },
-                    'UFS Atlas · Guide-Stand ' + D.generated + ' · Spieldaten ' + (G.generated || '–') +
-                    ' · Fan-Projekt, nicht offiziell mit den Entwicklern verbunden.')))),
+                : h(FisheryView, {
+                    map: map, query: query, caught: caught, bests: bests,
+                    favorites: favorites, onToggleFav: toggleFav, onToggleCatch: toggleCatch,
+                    onSources: function () { setSourceOpen(true); },
+                    selectedSpot: selectedSpot, onSelectSpot: setSelectedSpot
+                }))),
 
         sourceOpen ? h(SourcesPanel, { onClose: function () { setSourceOpen(false); } }) : null,
         importOpen ? h(ImportDialog, {

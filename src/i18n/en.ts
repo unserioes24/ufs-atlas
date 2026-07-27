@@ -69,6 +69,11 @@ export const en: Partial<Dict> = {
   'map.filterCount': '{shown} of {total}',
   'map.onlySpecies': 'only {name}',
   'map.onlySpot': 'only spot {n}',
+  'map.spread': 'spread freely',
+  'map.morePanel': '+ {n} more species',
+  'map.dlcToggle': 'New-Species-DLC',
+  'map.footer':
+    'UFS Atlas · guide data {guide} · game data {game} · a fan project, not affiliated with the developers.',
   'map.filter': 'Filter',
   'map.readHead': 'How to read these figures',
   'map.filterAll': 'All',

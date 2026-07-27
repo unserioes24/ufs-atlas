@@ -70,6 +70,11 @@ export const de = {
   'map.filterCount': '{shown} von {total}',
   'map.onlySpecies': 'nur {name}',
   'map.onlySpot': 'nur Spot {n}',
+  'map.spread': 'frei verteilt',
+  'map.morePanel': '+ {n} weitere Arten',
+  'map.dlcToggle': 'New-Species-DLC',
+  'map.footer':
+    'UFS Atlas · Guide-Stand {guide} · Spieldaten {game} · Fan-Projekt, nicht offiziell mit den Entwicklern verbunden.',
   'map.filter': 'Filter',
   'map.readHead': 'So liest du die Angaben',
   'map.filterAll': 'Alle',
