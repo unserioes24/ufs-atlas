@@ -116,9 +116,15 @@
 }
 .ufs-spline:last-child { border-bottom: 0; }
 .ufs-spline:hover { background: rgba(255, 255, 255, .04); }
+/* Die hervorgehobene Zeile – der eigene Eintrag in einer Rangliste, die
+   angeheftete Art neben der Karte. Sie bekommt seitlich Luft und rückt dafür
+   um denselben Betrag nach außen: so klebt der Text nicht am farbigen Rand,
+   und die Spalten stehen weiter in einer Flucht mit den übrigen Zeilen. */
 .ufs-spline.pin {
   background: rgba(34, 211, 238, .12); border-radius: 8px;
   box-shadow: inset 0 0 0 1px rgba(103, 232, 249, .3);
+  padding-left: .55rem; padding-right: .55rem;
+  margin-left: -.45rem; margin-right: -.45rem;
 }
 .ufs-spline .n { color: #e2e8f0; font-weight: 600; }
 .ufs-spline .n.done { color: #6ee7b7; }
