@@ -21,6 +21,8 @@ export interface SpeciesDetailProps {
   onBack: () => void
   onToggleCatch: (key: string) => void
   onOpenMap: (id: string) => void
+  /** The overlay has a close button of its own and needs no second one. */
+  showBack?: boolean
 }
 
 export function SpeciesDetail({
@@ -30,6 +32,7 @@ export function SpeciesDetail({
   onBack,
   onToggleCatch,
   onOpenMap,
+  showBack = true,
 }: SpeciesDetailProps) {
   const { t, lang } = useI18n()
   const s = SPECIES[speciesKey]
@@ -61,9 +64,11 @@ export function SpeciesDetail({
   return (
     <div>
       <div className="ufs-row no-print" style={{ marginBottom: '.9rem' }}>
-        <button className="ufs-btn" onClick={onBack}>
-          {t('species.backToList')}
-        </button>
+        {showBack ? (
+          <button className="ufs-btn" onClick={onBack}>
+            {t('species.backToList')}
+          </button>
+        ) : null}
         <button
           className={cn('ufs-catch', done && 'on')}
           onClick={() => onToggleCatch(speciesKey)}

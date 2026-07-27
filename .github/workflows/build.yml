@@ -1,8 +1,8 @@
 name: Build
 
-# Der Guide hat keinen Server-Anteil im Build: aus TypeScript und den
-# Spieldaten entsteht ein Ordner mit fertigen Dateien. Der Auslieferungsschritt
-# liegt weiterhin bei GitLab, wo die Zugangsdaten stehen.
+# The guide has no server side in its build: TypeScript and the game data turn
+# into a folder of finished files. Deploying stays with GitLab, where the
+# credentials live.
 
 on:
   push:
@@ -26,24 +26,39 @@ jobs:
           node-version: '22'
           cache: npm
 
-      - name: Abhängigkeiten installieren
+      - name: Install dependencies
         run: npm ci
 
-      - name: Typen prüfen
+      - name: Check types
         run: npm run check
 
-      - name: Bauen
+      - name: Check the address table
+        run: node scripts/route-check.mjs
+
+      - name: Build for the server
         run: npm run build
 
-      - name: Ergebnis sichern
+      # The offline build is the one people download: one HTML file, one script,
+      # one stylesheet and the map images. It opens from disk without a server.
+      - name: Build the offline version
+        run: npm run build:offline
+
+      - name: Keep the server build
         uses: actions/upload-artifact@v4
         with:
           name: ufs-atlas-dist
           path: dist/
           retention-days: 14
 
-  # Ein Tag v1.2.3 hängt das gebaute Ergebnis als Archiv an die Veröffentlichung.
-  # Darin steckt nur, was der Browser braucht – keine Werkzeuge, kein Servercode.
+      - name: Keep the offline version
+        uses: actions/upload-artifact@v4
+        with:
+          name: ufs-atlas-offline
+          path: dist-offline/
+          retention-days: 14
+
+  # A tag v1.2.3 publishes the offline version. That is what someone downloading
+  # a release wants: unzip, open index.html, done. No tools, no server code.
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
@@ -53,13 +68,24 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: ufs-atlas-dist
-          path: dist
+          name: ufs-atlas-offline
+          path: offline
 
-      - name: Archiv packen
-        run: cd dist && zip -r ../ufs-atlas-${{ github.ref_name }}.zip .
+      # robots.txt and sitemap.xml belong to the hosted site, not to a copy on
+      # someone's disk.
+      - name: Pack the archive
+        run: |
+          rm -f offline/robots.txt offline/sitemap.xml
+          cd offline && zip -r ../ufs-atlas-offline-${{ github.ref_name }}.zip .
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: ufs-atlas-${{ github.ref_name }}.zip
+          files: ufs-atlas-offline-${{ github.ref_name }}.zip
           generate_release_notes: true
+          body: |
+            **Offline version** — unzip and open `index.html`. No server, no
+            installation; the whole guide runs in the browser.
+
+            Ticked species and a loaded save file stay in that browser. Accounts,
+            groups and comparing profiles need the hosted version at
+            https://ufs-atlas.de.

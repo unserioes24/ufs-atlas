@@ -122,9 +122,22 @@ export function FishCard({
           <div className="flex flex-wrap items-center gap-2">
             {/* The names from the game files come first: for a few species the
                 guide has no German name at all. */}
-            <h2 className="text-xl font-black text-white">
-              {lang === 'en' ? sp?.en || f.name : sp?.de || f.de || f.name}
-            </h2>
+            {/* The name is the way in: a heading that does nothing invites
+                nothing, and the species page is where the detail lives. */}
+            {speciesKey ? (
+              <button
+                type="button"
+                className="ufs-titlelink text-xl font-black text-white"
+                onClick={() => onOpenSpecies(speciesKey)}
+                title={t('fish.openSpecies')}
+              >
+                {lang === 'en' ? sp?.en || f.name : sp?.de || f.de || f.name}
+              </button>
+            ) : (
+              <h2 className="text-xl font-black text-white">
+                {lang === 'en' ? sp?.en || f.name : sp?.de || f.de || f.name}
+              </h2>
+            )}
             <span className="text-sm text-slate-500">
               {'· ' + (lang === 'en' ? sp?.de || f.de || f.name : sp?.en || f.name)}
             </span>
@@ -282,9 +295,10 @@ export function FishCard({
             {speciesKey ? (
               <button
                 type="button"
-                className="ufs-chip ufs-chip-btn no-print"
+                className="ufs-btn primary no-print"
                 onClick={() => onOpenSpecies(speciesKey)}
               >
+                <Icon name="fish" />
                 {t('fish.openSpecies')}
               </button>
             ) : null}

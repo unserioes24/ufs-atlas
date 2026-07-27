@@ -16,6 +16,7 @@ import StartPage from './components/start/StartPage'
 import BaitPage from './components/bait/BaitPage'
 import BaitDetail from './components/bait/BaitDetail'
 import SpeciesDetail from './components/species/SpeciesDetail'
+import SpeciesModal from './components/species/SpeciesModal'
 import SpeciesPage from './components/species/SpeciesPage'
 import StatsPage from './components/stats/StatsPage'
 import GlobalOverview from './components/stats/GlobalOverview'
@@ -67,6 +68,8 @@ export default function App() {
   const [query, setQuery] = useState('')
   const [openSpecies, setOpenSpecies] = useState<string | null>(first.species ?? null)
   const [openBait, setOpenBait] = useState<string | null>(first.bait ?? null)
+  // A species opened from a fishery comes over the page, not instead of it.
+  const [sheetSpecies, setSheetSpecies] = useState<string | null>(null)
   const [statsTab, setStatsTab] = useState(first.statsTab ?? 'reviere')
   const [angler, setAngler] = useState<string | null>(first.angler ?? null)
   const [anglerTab, setAnglerTab] = useState(first.anglerTab ?? 'uebersicht')
@@ -413,10 +416,7 @@ export default function App() {
               onSources={() => setSourceOpen(true)}
               selectedSpot={selectedSpot}
               onSelectSpot={setSelectedSpot}
-              onOpenSpecies={(k) => {
-                setOpenSpecies(k)
-                setView('arten')
-              }}
+              onOpenSpecies={setSheetSpecies}
               onPickMap={setSelectedMap}
             />
           )}
@@ -426,6 +426,19 @@ export default function App() {
 
       <SiteFooter onPrivacy={() => setView('privacy')} />
       <CookieNote onPrivacy={() => setView('privacy')} />
+      {sheetSpecies ? (
+        <SpeciesModal
+          speciesKey={sheetSpecies}
+          caught={caught}
+          bests={bests}
+          onClose={() => setSheetSpecies(null)}
+          onToggleCatch={toggleCatch}
+          onOpenMap={(id) => {
+            setSelectedMap(id)
+            setView('map')
+          }}
+        />
+      ) : null}
       {sourceOpen ? <SourcesPanel onClose={() => setSourceOpen(false)} /> : null}
       {importOpen ? (
         <ImportDialog

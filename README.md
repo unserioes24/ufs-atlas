@@ -1,65 +1,94 @@
-# UFS Atlas — a guide for Ultimate Fishing Simulator 1
+<div align="center">
 
-Web app for **Ultimate Fishing Simulator 1 (PC/Steam)**. It combines numbers read
-straight out of a local game installation with values researched by the community,
-and it always says which is which.
+# UFS Atlas
 
-Live at **[ufs-atlas.de](https://ufs-atlas.de)**. The interface is German today;
-English is being added.
+**Every number in this guide was read out of the game. Not guessed, not measured by hand — read.**
 
-## Running it
+A companion for *Ultimate Fishing Simulator 1* that opens the game's own Unity
+files and takes out what the wiki pages estimate: which species stands at which
+spot, how keenly it takes each of 79 baits, when it bites over 24 hours, and
+which hook size actually reaches it.
+
+[**ufs-atlas.de**](https://ufs-atlas.de) · [Download the offline version](https://github.com/unserioes24/ufs-atlas/releases/latest) · German and English
+
+</div>
+
+---
+
+## Why this exists
+
+Community guides say things like *"use a medium hook and a worm"*. The game
+knows better than that. Inside `sharedassets2.assets`, every fish prefab carries
+a `FishLikesParams` block: one entry per species, one interest value between 0
+and 1, per bait. `Fish.LikesBait` then decides a bite from nine weighted curves.
+
+That means a sentence like
+
+> Pike take a Rush Diver at 100 %, Straight and Twitching retrieves both work,
+> best around 12:00, and hooks #12 to #6 reach them.
+
+is not an opinion. It is four values out of the installed game, and you can
+reproduce every one of them from your own copy with the scripts in `tools/`.
+
+Where the game says nothing — hook sizes per fishery, depth advice, which spot
+farms best — the guide falls back on community research and **marks it as such**,
+with a confidence level. The two are never mixed silently.
+
+## What you get
+
+| | |
+| --- | --- |
+| **21 fisheries** | the game's own map image with its numbered travel points. Hover a point for the species within casting range; the shoal positions are projected from world coordinates onto the picture. |
+| **136 species** | weight and length range, the 24-hour bite curve, wind, cloud and rain curves, the encyclopedia text, and which of fly, lure, float or ground gets past the bite threshold. |
+| **79 baits** | interest per species in percent, straight from the prefabs, plus the bait type read from the `Bait` component. |
+| **18 size steps** | hooks from #12 to #12/0 with the weight each one catches, and the separate tables for lures and flies. |
+| **Your save file** | drop in `PROFILE_0` and the guide fills itself: catches per fishery, personal records, rod sets, the skill tree. The file is read in the browser and goes nowhere. |
+| **Profiles and groups** | a shareable page of your figures. Anyone signed in who opens it sees their own state beside yours — figure by figure, fishery by fishery, species by species, each with the date of both save files. Groups carry eight leaderboards. |
+
+## Run it
 
 ```bash
 npm install
-npm run dev        # development server on http://localhost:5173
-npm run build      # production build into dist/
+npm run dev          # http://localhost:5173, /api proxied to the live server
+npm run build        # server build into dist/
+npm run build:offline # single-file build into dist-offline/
 ```
 
-`npm run dev` proxies `/api` to the live server. Point it somewhere else with
-`UFS_API=http://localhost:8080 npm run dev`.
+Point the proxy elsewhere with `UFS_API=http://localhost:8080 npm run dev`.
 
-Without the API the guide still works: maps, species, baits, size steps and the
-save-file statistics all run in the browser. Accounts, profiles and groups need
-the server.
+**Without a server the guide still works.** Maps, species, baits, size steps and
+the save-file statistics all run in the browser — that is what the offline
+release is. Only accounts, profiles and groups need the backend.
 
-## What it does
+## Reading the game files
 
-- **Fishery maps from the game** — the original map of every fishery with its
-  numbered travel points. Hovering a point shows the species within casting
-  range, clicking filters the list to that spot. Shoal positions are projected
-  from the scene onto the map image.
-- **A catch list** — tick species off by hand or import your save file
-  (`PROFILE_0` / `PROFILE_1`), which also brings your personal records.
-- **Per species from the game files** — weight and length range, the 24-hour
-  bite curve, weather curves, encyclopedia text, and the best fishing method.
-- **Baits and methods** — how strongly each species wants each bait, in percent;
-  which of fly, lure, float or ground actually works; and the factor of every
-  retrieve when spin fishing.
-- **Size steps** — hooks from #12 to #12/0 with the fish weight each one catches,
-  plus the separate tables for lures and flies.
-- **Statistics** from your save file: progress per fishery and per species, your
-  record next to what the species can reach.
-- **Profiles** (`#angler/<name>`) — a shareable page with your numbers. Anyone
-  signed in who opens it sees their own state next to yours: figure by figure,
-  fishery by fishery, species by species, each with the date of both save files.
-- **Groups** — public, unlisted or private, with eight leaderboards.
-- **The address bar is the state**: `#revier/betty`, `#revier/moraine/spot3`,
-  `#arten/PIKE`, `#koeder`, `#statistik`, `#angler/Name/gruppen`.
+```powershell
+.\tools\extract.ps1    # Windows PowerShell 5.1, with the game installed
+```
 
-## Where the numbers come from
+Out comes `src/data/gamedata.json` and the map images. Nothing about the
+installation is changed; the scripts only read. The pipeline is a Unity
+`SerializedFile` parser in C# plus PowerShell around it — the builds carry no
+type trees, so classes are read at known byte offsets and every value is
+sanity-checked before it is kept.
 
-| From the game files | From community research |
-| --- | --- |
-| Spot numbers and their position on the map | Hook sizes per species and fishery |
-| Species per fishery and per spot, with fish counts | Depth hints and rig notes |
-| Weight and length range, bite curve, weather curves | Strategies per spot |
-| Bait preference per species, bait type, retrieve factors | |
-| Size steps for hooks, lures, flies and baits | |
-| Names and descriptions from the localisation table | |
+[`tools/README.md`](tools/README.md) documents where each figure comes from,
+down to the field in the prefab.
 
-The split is visible in the interface: game data sits in the blue block, community
-values carry a confidence level. See [`tools/README.md`](tools/README.md) for how
-the extraction works — every number can be reproduced from your own install.
+### A few things it had to work out
+
+- **Spot numbers.** The number the game draws on a map button is not the order
+  the buttons sit in the Unity hierarchy. At Saint Zeno the two run 1…8 against
+  8, 6, 3, 1, 4, 7, 2, 5. The real number lives in a `Text` under the button and
+  is only trusted where the labels form a complete run for the whole board.
+- **World → map.** Shoal coordinates are fitted onto the map image, first as a
+  similarity transform, and where that does not hold as an affine one. Florida
+  needs it: the picture is squeezed differently in width than in height, and the
+  mean error drops from 0.19 to 0.008.
+- **DLC species.** `fishPrefabsDLC` is empty in all 17 scenes. The New Fish
+  Species DLC has no fixed spawn points at all — the game hands those species a
+  share of the ordinary spawners at runtime, and the guide says so instead of
+  inventing spots.
 
 ## Layout
 
@@ -67,18 +96,28 @@ the extraction works — every number can be reproduced from your own install.
 | --- | --- |
 | `src/` | the app: TypeScript, React, Tailwind |
 | `src/data/` | `guide.json` (research) and `gamedata.json` (extracted) |
-| `src/i18n/` | interface texts, one file per language |
-| `maps/` | fishery maps from the game |
+| `src/i18n/` | interface text, one file per language |
 | `tools/` | the extraction pipeline, PowerShell and C# |
-| `server/` | Symfony backend; in production it also serves the guide |
+| `server/` | Symfony backend; in production it serves the guide too |
 | `deploy/`, `Dockerfile.web` | container and delivery |
 
-## A note on the data
+## Honest limits
 
-Shoals move in the game. Spot numbers and species per spot follow the spawn
-definitions of the scene; they are not a promise that a fish stands there right
-now. Community values for hooks and rigs are tested starting points, and low
-confidence is marked as such in the interface.
+Shoals move in the game. Spot numbers and the species per spot follow the spawn
+definitions of the scene — they are not a promise that a fish stands there right
+now. Hook and rig values from the community are tested starting points, and low
+confidence is labelled in the interface. Two offshore fisheries, Greenland Sea
+and Piñas Bay Ocean, have no map board in the game at all, so the guide shows
+none either.
 
-Fan project, not affiliated with the developers. Ultimate Fishing Simulator is a
-trademark of its owners; no game assets are redistributed here.
+The byte offsets of the map textures hold for the July 2026 build. After a game
+update they have to be found again.
+
+---
+
+<div align="center">
+
+A fan project, not affiliated with the developers. *Ultimate Fishing Simulator*
+is a trademark of its owners; no game assets are redistributed here.
+
+</div>
