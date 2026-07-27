@@ -12,10 +12,11 @@ import react from '@vitejs/plugin-react'
  */
 export default defineConfig({
   plugins: [react()],
-  // Relative asset paths, so dist/index.html also opens straight from disk
-  // with file:// — without a server the guide still works, only accounts and
-  // groups are missing.
-  base: './',
+  // Absolute asset paths. Every view is a path of its own (/fisheries/moraine),
+  // and a relative path would send the browser looking for the bundle inside
+  // that folder. The offline build in vite.config.offline.ts keeps them
+  // relative — there the page only ever sits at one level.
+  base: '/',
   build: {
     outDir: 'dist',
     sourcemap: true,

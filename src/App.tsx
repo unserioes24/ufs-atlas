@@ -8,7 +8,7 @@ import { API_AVAILABLE, api } from './lib/api'
 import { cn, fmtWhen, newerThan } from './lib/format'
 import { useI18n } from './i18n'
 import { storedStamp, useLocalState } from './lib/localState'
-import { buildHash, parseHash } from './lib/route'
+import { buildAddress, isCurrent, parseLocation } from './lib/route'
 import type { View } from './lib/route'
 import type { SaveSummary } from './lib/savegame'
 import Header from './components/Header'
@@ -49,15 +49,22 @@ export default function App() {
   const { t } = useI18n()
   const playable = GUIDE.maps.filter((m) => m.status === 'playable')
 
-  const [view, setView] = useState<View>('map')
-  const [selectedMap, setSelectedMap] = useState(playable[0]!.id)
-  const [selectedSpot, setSelectedSpot] = useState<number | null>(null)
+  // The first state comes from the address, not from defaults that a second
+  // pass then corrects: that would put a stray entry into the history and leave
+  // an old address standing instead of rewriting it.
+  const first = useRef(parseLocation(API_AVAILABLE)).current
+
+  const [view, setView] = useState<View>(first.view)
+  const [selectedMap, setSelectedMap] = useState(
+    first.map && first.map !== '__all__' ? first.map : first.map === '__all__' ? '__all__' : playable[0]!.id,
+  )
+  const [selectedSpot, setSelectedSpot] = useState<number | null>(first.spot ?? null)
   const [query, setQuery] = useState('')
-  const [openSpecies, setOpenSpecies] = useState<string | null>(null)
-  const [statsTab, setStatsTab] = useState('reviere')
-  const [angler, setAngler] = useState<string | null>(null)
-  const [anglerTab, setAnglerTab] = useState('uebersicht')
-  const [groupId, setGroupId] = useState<number | null>(null)
+  const [openSpecies, setOpenSpecies] = useState<string | null>(first.species ?? null)
+  const [statsTab, setStatsTab] = useState(first.statsTab ?? 'reviere')
+  const [angler, setAngler] = useState<string | null>(first.angler ?? null)
+  const [anglerTab, setAnglerTab] = useState(first.anglerTab ?? 'uebersicht')
+  const [groupId, setGroupId] = useState<number | null>(first.groupId ?? null)
   const [sourceOpen, setSourceOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [me, setMe] = useState<Account | null>(null)
@@ -114,11 +121,10 @@ export default function App() {
   }, [])
 
   /* The address bar as state; reading and writing live in src/lib/route.ts. */
-  const routeReady = useRef(false)
   const histReady = useRef(false)
   useEffect(() => {
     function apply() {
-      const r = parseHash(location.hash, API_AVAILABLE)
+      const r = parseLocation(API_AVAILABLE)
       setView(r.view)
       if (r.map) setSelectedMap(r.map)
       if (r.angler) {
@@ -131,15 +137,17 @@ export default function App() {
       // The spot only after the map has changed: that resets it itself.
       if (r.view === 'map' && r.map) setTimeout(() => setSelectedSpot(r.spot ?? null), 0)
     }
-    apply()
-    routeReady.current = true
+    // popstate for paths, hashchange for the file:// build.
+    window.addEventListener('popstate', apply)
     window.addEventListener('hashchange', apply)
-    return () => window.removeEventListener('hashchange', apply)
+    return () => {
+      window.removeEventListener('popstate', apply)
+      window.removeEventListener('hashchange', apply)
+    }
   }, [])
 
   useEffect(() => {
-    if (!routeReady.current) return
-    const hash = buildHash({
+    const address = buildAddress({
       view,
       map: selectedMap,
       spot: selectedSpot,
@@ -151,10 +159,10 @@ export default function App() {
     // Every switch is its own step in the history, so the browser's back button
     // does what you expect. The first call only replaces, otherwise opening the
     // page would already leave a second entry behind.
-    if (location.hash === hash) return
-    if (histReady.current) history.pushState(null, '', hash)
+    if (isCurrent(address)) return
+    if (histReady.current) history.pushState(null, '', address)
     else {
-      history.replaceState(null, '', hash)
+      history.replaceState(null, '', address)
       histReady.current = true
     }
   }, [view, selectedMap, selectedSpot, openSpecies, angler, anglerTab, groupId])
@@ -368,6 +376,7 @@ export default function App() {
               onSources={() => setSourceOpen(true)}
               selectedSpot={selectedSpot}
               onSelectSpot={setSelectedSpot}
+              onPickMap={setSelectedMap}
             />
           )}
         </main>

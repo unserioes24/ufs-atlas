@@ -11,7 +11,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && node scripts/sitemap.mjs && vite build",
     "build:offline": "vite build --config vite.config.offline.ts && node scripts/offline-html.mjs",
     "preview": "vite preview",
     "check": "tsc --noEmit"

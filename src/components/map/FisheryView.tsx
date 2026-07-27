@@ -72,6 +72,8 @@ export interface FisheryViewProps {
   onSources: () => void
   selectedSpot: number | null
   onSelectSpot: (n: number | null) => void
+  /** The strip of maps on narrow screens picks a fishery directly. */
+  onPickMap: (id: string) => void
 }
 
 export function FisheryView({
@@ -85,6 +87,7 @@ export function FisheryView({
   onSources,
   selectedSpot,
   onSelectSpot,
+  onPickMap,
 }: FisheryViewProps) {
   const { t, lang } = useI18n()
   const [method, setMethod] = useState<string>(ALL)
@@ -208,7 +211,7 @@ export function FisheryView({
         {GUIDE.maps.map((m) => (
           <button
             key={m.id}
-            onClick={() => (location.hash = '#revier/' + m.id)}
+            onClick={() => onPickMap(m.id)}
             className={cn(
               'shrink-0 rounded-full border px-3 py-2 text-xs font-semibold',
               map.id === m.id

@@ -1,2 +1,8 @@
 User-agent: *
-Disallow: /
+Allow: /
+
+# Nothing to crawl behind these: the API answers JSON, and a profile page only
+# means something to whoever the address belongs to.
+Disallow: /api/
+
+Sitemap: https://ufs-atlas.de/sitemap.xml
