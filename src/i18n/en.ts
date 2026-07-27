@@ -127,6 +127,79 @@ export const en: Partial<Dict> = {
   'profile.saveState': 'Save file from',
   'profile.noSave': 'No save file uploaded yet.',
 
+  // ------------------------------------------------------------ Start page
+  'start.eyebrow': 'Fan atlas · Ultimate Fishing Simulator 1',
+  'start.headline': 'The numbers come from the game files.',
+  'start.lead':
+    'Spots, species lists, bite times, bait preferences and size steps are read out, not guessed. Anything from community research says so.',
+  'start.ctaMaps': 'Open the fisheries',
+  'start.ctaSpecies': 'Browse species',
+  'start.ctaSave': 'Load a save file',
+  'start.wallTitle': 'Bite readiness over 24 hours, per species from the game',
+  'start.wallHint': 'dark = night · click to open',
+
+  'start.factFisheries': 'Fisheries',
+  'start.factSpecies': 'Species',
+  'start.factSpots': 'Spots',
+  'start.factShoals': 'Shoal points',
+  'start.factBaits': 'Baits',
+  'start.factCurves': 'Bite curves',
+
+  'start.featuresTitle': 'What the atlas does',
+  'start.mapsTitle': 'Fisheries and spots',
+  'start.mapsText':
+    '{maps} maps with the spot numbers from the game, the shoal points on the map image and the species per spot — including how many fish stand there.',
+  'start.mapsCta': 'Open the maps',
+  'start.speciesTitle': 'Species',
+  'start.speciesText':
+    '{species} species with weight and length range, bite curve, weather curves and the description from the game encyclopedia.',
+  'start.speciesCta': 'Species list',
+  'start.baitsTitle': 'Baits and methods',
+  'start.baitsText':
+    'For every species the bait preference in percent, the best method — fly, lure, float or ground — and the factor of every retrieve when spin fishing.',
+  'start.baitsCta': 'Bait page',
+  'start.sizesTitle': 'Size steps',
+  'start.sizesText':
+    'Hooks from #12 to #12/0 with the weight range they catch, plus the steps for lures and flies. {steps} steps, straight from the FishManager.',
+  'start.sizesCta': 'To the species',
+  'start.saveTitle': 'Your save file',
+  'start.saveText':
+    'Load the PROFILE file and see what is missing: per fishery, per species, your record next to what is possible. The file stays in the browser.',
+  'start.saveCta': 'Load a save file',
+  'start.profileTitle': 'Profile and comparison',
+  'start.profileText':
+    'An account gives you a shareable profile page. Anyone signed in who opens it sees their own state next to yours — figure by figure, fishery by fishery, species by species.',
+  'start.profileCta': 'Create an account',
+  'start.groupsTitle': 'Groups',
+  'start.groupsText':
+    'Public, unlisted or private. Eight boards: heaviest and longest fish, total weight, strongest species, species count, complete fisheries, catches, time fished.',
+  'start.groupsCta': 'See the groups',
+  'start.offlineTitle': 'Works without a server',
+  'start.offlineText':
+    'The guide is plain HTML and JavaScript. Offline everything but accounts and groups keeps working; ticked species live in the browser.',
+  'start.offlineCta': 'Try it',
+
+  'start.sourcesTitle': 'Where the numbers come from',
+  'start.fromGame': 'From the game files',
+  'start.fromGame1': 'Spot numbers and their place on the map image',
+  'start.fromGame2': 'Species per fishery and per spot, with fish counts',
+  'start.fromGame3': 'Weight and length range, bite curve, weather curves',
+  'start.fromGame4': 'Bait preference per species, bait type, retrieve factors',
+  'start.fromGame5': 'Size steps for hooks, lures, flies and baits',
+  'start.fromGame6': 'Names and descriptions from the localisation table',
+  'start.fromCommunity': 'From community research',
+  'start.fromCommunity1': 'Hook sizes as experience per species and fishery',
+  'start.fromCommunity2': 'Depth hints and rig notes',
+  'start.fromCommunity3': 'Strategies per spot and a confidence level per entry',
+  'start.communityNote':
+    'These values are marked as community data in the guide. Wherever the game files hold something more precise, it wins.',
+
+  'start.openTitle': 'Open and verifiable',
+  'start.openText':
+    'The source and the tools that read the game files are open. Anyone who doubts a number can reproduce it from their own installation.',
+  'start.openCta': 'View on GitHub',
+  'start.footer': 'Fan project, not affiliated with the developers. Guide data {guide}.',
+
   // ---------------------------------------------------------------- Groups
   'group.public': 'Public',
   'group.publicHint': 'listed in the directory, anyone may join',

@@ -10,6 +10,9 @@ import React from 'react'
 import { GAME, GUIDE } from '../data'
 import GroupsPage from '../components/groups/GroupsPage'
 import { Follows } from '../components/profile/Follows'
+import StartPage from '../components/start/StartPage'
+import { LangSwitch } from '../components/LangSwitch'
+import { useI18n } from '../i18n'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
@@ -653,196 +656,6 @@ function Activity(props) {
             h('span', null, 'Beste Beißzeit: ', h('b', null, peaks.join(', ')))) : null);
 }
 
-/* -------------------------------------------------------------- Startseite
-
-   Der Aufmacher ist keine Bildstrecke, sondern eine Wand aus Beißzeitkurven:
-   genau die Kurve, die das Spiel für jede Art mitbringt und die dieser Atlas
-   ausliest. Ein Klick darauf führt zur Art. Alles darunter ist bewusst ruhig. */
-
-/** Eine Beißzeitkurve als kleine Fläche, ohne Achsen und Beschriftung. */
-function MiniCurve(props) {
-    const pts = props.act;
-    if (!pts || pts.length < 2) return null;
-    const W = 100, H = 34;
-    const xy = pts.map(function (p) { return [p[0] / 24 * W, H - p[1] * (H - 4) - 2]; });
-    const line = xy.map(function (p, i) { return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
-
-    return h('svg', { className: 'crv', viewBox: '0 0 100 34', preserveAspectRatio: 'none', 'aria-hidden': true },
-        // Nachtstunden dunkler: die Kurve liest sich erst mit dem Tagesrhythmus
-        h('rect', { className: 'night', x: 0, y: 0, width: 6 / 24 * W, height: H }),
-        h('rect', { className: 'night', x: 20 / 24 * W, y: 0, width: 4 / 24 * W, height: H }),
-        h('path', { className: 'area', d: line + ' L' + W + ' ' + H + ' L0 ' + H + ' Z' }),
-        h('path', { className: 'line', d: line }));
-}
-
-/** Zwölf Arten, deren Kurven sich deutlich unterscheiden. */
-const START_SPECIES = [
-    'PIKE', 'MIRROR_CARP', 'RAINBOW_TROUT', 'WELS_CATFISH', 'ZANDER', 'PERCH',
-    'BREAM', 'TENCH', 'ATLANTIC_SALMON', 'BARBEL', 'ARAPAIMA', 'GREENLAND_SHARK'
-];
-
-function StartPage(props) {
-    const lang = props.lang;
-
-    const wall = useMemo(function () {
-        const seen = {};
-        const out = [];
-        START_SPECIES.forEach(function (k) {
-            const s = SPECIES[k];
-            if (s && s.act && !seen[k]) { seen[k] = true; out.push({ k: k, s: s }); }
-        });
-        Object.keys(SPECIES).forEach(function (k) {
-            if (out.length >= 12 || seen[k] || !SPECIES[k].act) return;
-            seen[k] = true;
-            out.push({ k: k, s: SPECIES[k] });
-        });
-
-        return out.slice(0, 12);
-    }, []);
-
-    const counts = useMemo(function () {
-        let withAct = 0, withM = 0;
-        Object.keys(SPECIES).forEach(function (k) {
-            if (SPECIES[k].act) withAct++;
-            if (SPECIES[k].m) withM++;
-        });
-        let spots = 0, dots = 0;
-        Object.keys(FISHERIES).forEach(function (id) {
-            spots += (FISHERIES[id].spots || []).length;
-            dots += (FISHERIES[id].dots || []).length;
-        });
-
-        return {
-            maps: D.maps.length, species: Object.keys(SPECIES).length, baits: Object.keys(BAITS).length,
-            act: withAct, m: withM, spots: spots, dots: dots,
-            steps: HOOKS ? HOOKS.steps : 18
-        };
-    }, []);
-
-    const FEATURES = [
-        {
-            t: 'Reviere und Spots', go: '#gesamt', go2: 'Karten öffnen',
-            d: counts.maps + ' Karten mit den Spotnummern aus dem Spiel, den Schwarmpunkten auf dem '
-                + 'Kartenbild und der Artenliste je Spot – mitsamt der Zahl der Fische, die dort stehen.'
-        },
-        {
-            t: 'Arten', go: '#arten', go2: 'Artenliste',
-            d: counts.species + ' Arten mit Gewichts- und Längenspanne, Beißzeitkurve, Wetterkurven und der '
-                + 'Beschreibung aus der Enzyklopädie des Spiels.'
-        },
-        {
-            t: 'Köder und Angelart', go: '#koeder', go2: 'Köderseite',
-            d: 'Für jede Art die Ködervorliebe in Prozent, dazu die beste Angelart – Fliege, Kunstköder, '
-                + 'Pose oder Grund – und der Faktor jeder Führung beim Spinnfischen.'
-        },
-        {
-            t: 'Größenstufen', go: '#arten', go2: 'Zu den Arten',
-            d: 'Haken von #12 bis #12/0 mit der Gewichtsspanne, die sie fangen, dazu die Stufen für '
-                + 'Kunstköder und Fliegen. ' + counts.steps + ' Stufen, direkt aus dem FishManager.'
-        },
-        {
-            t: 'Dein Spielstand', go: '#statistik', go2: 'Spielstand laden',
-            d: 'Die PROFILE-Datei laden und sehen, was fehlt: je Revier, je Art, mit deinem Rekord neben '
-                + 'dem möglichen Maximum. Die Datei bleibt im Browser.'
-        },
-        {
-            t: 'Profil und Vergleich', go: '#gruppen', go2: 'Konto anlegen',
-            d: 'Ein Konto gibt dir eine teilbare Profilseite. Wer sie öffnet und selbst angemeldet ist, '
-                + 'sieht seinen Stand daneben – Kennzahl für Kennzahl, Revier für Revier, Art für Art.'
-        },
-        {
-            t: 'Gruppen', go: '#gruppen', go2: 'Gruppen ansehen',
-            d: 'Öffentlich, nicht gelistet oder privat. Acht Ranglisten: schwerster und längster Fisch, '
-                + 'Gesamtmasse, stärkste Art, Arten, komplette Reviere, Fänge, Angelzeit.'
-        },
-        {
-            t: 'Läuft auch ohne Server', go: '#gesamt', go2: 'Ausprobieren',
-            d: 'Der Guide ist fertiges HTML und JavaScript. Ohne Netz bleibt alles außer Konto und '
-                + 'Gruppen benutzbar; abgehakte Arten liegen im Browser.'
-        }
-    ];
-
-    return h('div', { className: 'ufs-start' },
-        h('section', { className: 'hero' },
-            h('p', { className: 'eyebrow' }, 'Fan-Atlas · Ultimate Fishing Simulator 1'),
-            h('h1', null, 'Die Zahlen kommen aus den Spieldateien.'),
-            h('p', { className: 'lead' },
-                'Spots, Artenlisten, Beißzeiten, Ködervorlieben und Größenstufen sind ausgelesen, '
-                + 'nicht geschätzt. Was aus der Community-Recherche stammt, steht als solches dabei.'),
-            h('div', { className: 'ufs-row', style: { gap: '.5rem' } },
-                h('a', { className: 'ufs-btn primary', href: '#gesamt' }, h(Icon, { name: 'map' }), 'Reviere öffnen'),
-                h('a', { className: 'ufs-btn', href: '#arten' }, h(Icon, { name: 'fish' }), 'Arten ansehen'),
-                h('a', { className: 'ufs-btn', href: '#statistik' }, h(Icon, { name: 'import' }), 'Spielstand laden')),
-
-            h('div', { className: 'wall' },
-                h('div', { className: 'wallhd' },
-                    h('span', null, 'Beißzeit über 24 Stunden, je Art aus dem Spiel'),
-                    h('span', { className: 'sub' }, 'dunkel = Nacht · zum Öffnen anklicken')),
-                h('div', { className: 'grid' }, wall.map(function (e) {
-                    return h('a', {
-                        key: e.k, className: 'cell', href: '#arten/' + e.k,
-                        title: speciesName(e.k, lang) + ' – Beißzeitkurve'
-                    },
-                        h(MiniCurve, { act: e.s.act }),
-                        h('span', { className: 'nm' }, speciesName(e.k, lang)));
-                })))),
-
-        h('section', { className: 'facts' },
-            [
-                [counts.maps, 'Reviere'], [counts.species, 'Arten'], [counts.spots, 'Spots'],
-                [counts.dots, 'Schwarmpunkte'], [counts.baits, 'Köder'], [counts.act, 'Beißzeitkurven']
-            ].map(function (f) {
-                return h('div', { key: f[1], className: 'fact' },
-                    h('span', { className: 'n' }, fmtNum(f[0])),
-                    h('span', { className: 'l' }, f[1]));
-            })),
-
-        h('section', null,
-            h('h2', null, 'Was der Atlas kann'),
-            h('div', { className: 'cards' }, FEATURES.map(function (f) {
-                return h('div', { key: f.t, className: 'card' },
-                    h('h3', null, f.t),
-                    h('p', null, f.d),
-                    h('a', { className: 'go', href: f.go }, f.go2, ' →'));
-            }))),
-
-        h('section', null,
-            h('h2', null, 'Woher die Zahlen kommen'),
-            h('div', { className: 'two' },
-                h('div', { className: 'card' },
-                    h('h3', null, 'Aus den Spieldateien'),
-                    h('ul', null,
-                        h('li', null, 'Spotnummern und ihre Lage auf dem Kartenbild'),
-                        h('li', null, 'Artenliste je Revier und je Spot, mit der Zahl der Fische'),
-                        h('li', null, 'Gewichts- und Längenspanne, Beißzeitkurve, Wetterkurven'),
-                        h('li', null, 'Ködervorliebe je Art, Ködertyp, Führungsfaktoren'),
-                        h('li', null, 'Größenstufen für Haken, Kunstköder, Fliegen und Köder'),
-                        h('li', null, 'Namen und Beschreibungen aus der Lokalisierung'))),
-                h('div', { className: 'card' },
-                    h('h3', null, 'Aus der Community-Recherche'),
-                    h('ul', null,
-                        h('li', null, 'Hakengrößen als Erfahrungswert je Art und Revier'),
-                        h('li', null, 'Tiefenangaben und Montagehinweise'),
-                        h('li', null, 'Strategien je Spot und Vertrauensstufe je Eintrag')),
-                    h('p', { className: 'note' },
-                        'Diese Angaben sind im Guide als Community-Werte gekennzeichnet. '
-                        + 'Wo die Spieldateien etwas Genaueres hergeben, ersetzt es sie.')))),
-
-        h('section', { className: 'oss' },
-            h('div', null,
-                h('h2', null, 'Offen und nachprüfbar'),
-                h('p', null,
-                    'Der Quelltext und die Werkzeuge, die die Spieldateien auslesen, liegen offen. '
-                    + 'Wer die Zahlen anzweifelt, kann sie mit derselben Spielinstallation nachziehen.')),
-            h('a', {
-                className: 'ufs-btn primary', href: 'https://github.com/unserioes24/ufs-atlas',
-                target: '_blank', rel: 'noopener noreferrer'
-            }, h(Icon, { name: 'source' }), 'Auf GitHub ansehen')),
-
-        h('p', { className: 'foot' },
-            'Fan-Projekt, nicht mit den Entwicklern verbunden. Guide-Stand ' + D.generated
-            + ' · Spieldaten ' + (G.generated || '–') + '.'));
-}
 
 /* ------------------------------------------------------------- Revierkarte */
 
@@ -2874,7 +2687,9 @@ function App() {
     }, []);
     const [selectedSpot, setSelectedSpot] = useState(null);
     const [highlight, setHighlight] = useState(null);
-    const [lang, setLang] = useState(function () { return localStorage.getItem('ufs-lang') || 'de'; });
+    const i18n = useI18n();
+    const lang = i18n.lang;
+    const t = i18n.t;
     const [favorites, setFavorites] = useState(function () {
         try { return JSON.parse(localStorage.getItem('ufs-favs') || '[]'); } catch (e) { return []; }
     });
@@ -2898,7 +2713,7 @@ function App() {
         if (local.updatedAt) localStorage.setItem('ufs-updated', local.updatedAt);
         else localStorage.removeItem('ufs-updated');
     }, [local]);
-    useEffect(function () { localStorage.setItem('ufs-lang', lang); }, [lang]);
+
     useEffect(function () {
         function fn(e) {
             if (e.key === '/' && ['INPUT', 'TEXTAREA'].indexOf((document.activeElement || {}).tagName) < 0) {
@@ -3123,26 +2938,26 @@ function App() {
                     h(Icon, { name: 'search', className: 'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500' }),
                     h('input', {
                         ref: searchRef, value: query, onChange: function (e) { setQuery(e.target.value); },
-                        placeholder: 'Fisch, Köder, Spot oder Methode suchen …  /',
+                        placeholder: t('app.searchPlaceholder') + '  /',
                         className: 'w-full rounded-2xl border border-white/10 bg-white/[.045] py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-cyan-400/50 focus:bg-white/[.07]'
                     })),
                 h('div', { className: 'ufs-headnav' },
                     h('button', {
                         className: cn('ufs-btn', view === 'map' && 'primary'),
                         onClick: function () { setView('map'); }
-                    }, h(Icon, { name: 'map' }), h('span', { className: 'lbl' }, 'Reviere')),
+                    }, h(Icon, { name: 'map' }), h('span', { className: 'lbl' }, t('nav.fisheries'))),
                     h('button', {
                         className: cn('ufs-btn', view === 'arten' && 'primary'),
                         onClick: function () { setView('arten'); }
-                    }, h(Icon, { name: 'fish' }), h('span', { className: 'lbl' }, 'Arten')),
+                    }, h(Icon, { name: 'fish' }), h('span', { className: 'lbl' }, t('nav.species'))),
                     h('button', {
                         className: cn('ufs-btn', view === 'bait' && 'primary'),
                         onClick: function () { setView('bait'); }
-                    }, h(Icon, { name: 'bait' }), h('span', { className: 'lbl' }, 'Köder')),
+                    }, h(Icon, { name: 'bait' }), h('span', { className: 'lbl' }, t('nav.baits'))),
                     h('button', {
                         className: cn('ufs-btn', view === 'stats' && 'primary'),
                         onClick: function () { setView('stats'); }
-                    }, h(Icon, { name: 'scale' }), h('span', { className: 'lbl' }, 'Statistik')),
+                    }, h(Icon, { name: 'scale' }), h('span', { className: 'lbl' }, t('nav.stats'))),
                     API_AVAILABLE ? h('button', {
                         className: cn('ufs-btn', (view === 'angler' || view === 'anmelden') && 'primary'),
                         title: me ? 'Dein Profil – die Adresse lässt sich weitergeben' : 'Anmelden',
@@ -3150,10 +2965,11 @@ function App() {
                             if (me) { setAngler(me.name); setAnglerTab('uebersicht'); setView('angler'); }
                             else setView('anmelden');
                         }
-                    }, h(Icon, { name: 'user' }), h('span', { className: 'lbl' }, me ? 'Profil' : 'Anmelden')) : null,
-                    h('span', { className: 'ufs-chip ufs-mono', title: 'Gefangene Arten insgesamt' }, '✓ ' + allDone + ' / ' + allKeys.length),
+                    }, h(Icon, { name: 'user' }), h('span', { className: 'lbl' }, me ? t('nav.profile') : t('nav.login'))) : null,
+                    h(LangSwitch, null),
+                    h('span', { className: 'ufs-chip ufs-mono', title: t('nav.caughtTotal') }, '✓ ' + allDone + ' / ' + allKeys.length),
                     h('button', { className: 'ufs-btn', onClick: function () { setSourceOpen(true); } },
-                        h(Icon, { name: 'source' }), h('span', { className: 'lbl' }, 'Quellen'))))),
+                        h(Icon, { name: 'source' }), h('span', { className: 'lbl' }, t('nav.sources')))))),
 
         h('div', {
             className: cn('relative mx-auto grid max-w-[1700px] grid-cols-1 gap-6 px-4 py-6 lg:px-7',
@@ -3218,7 +3034,7 @@ function App() {
                         : view === 'anmelden' ? 'Anmelden'
                         : view === 'stats' ? 'Statistik'
                         : 'Gesamtübersicht'),
-                view === 'start' ? h(StartPage, { lang: lang })
+                view === 'start' ? h(StartPage, { onOpenSpecies: function (k) { setOpenSpecies(k); setView('arten'); } })
                 : view === 'angler' ? h(ProfilePage, {
                     name: angler, me: me, lang: lang, local: local,
                     tab: anglerTab, onTab: setAnglerTab,
@@ -3352,7 +3168,7 @@ function App() {
                             value: catchFilter, onChange: setCatchFilter, options: ['Alle', 'offen', 'gefangen'],
                             labels: { Alle: 'alle Arten', offen: 'nur fehlende', gefangen: 'nur gefangene' }
                         }),
-                        h(Toggle, { active: lang === 'de', onClick: function () { setLang(lang === 'de' ? 'en' : 'de'); } },
+                        h(Toggle, { active: lang === 'de', onClick: function () { i18n.setLang(lang === 'de' ? 'en' : 'de'); } },
                             lang === 'de' ? 'Köder & Führung: Deutsch' : 'Köder & Führung: Englisch'),
                         h(Toggle, { active: showOverlay, onClick: function () { setShowOverlay(!showOverlay); } }, 'New-Species-DLC'),
                         h(Toggle, { active: onlyFav, onClick: function () { setOnlyFav(!onlyFav); } }, h(Icon, { name: 'star' }), 'Favoriten'),

@@ -616,3 +616,15 @@
   color: #67e8f9; font: inherit;
 }
 .ufs-linkish:hover { color: #cffafe; text-decoration: underline; }
+
+/* Language switch in the header: two short buttons, the active one lit */
+.ufs-langswitch {
+  display: inline-flex; border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(255, 255, 255, .035); border-radius: 999px; overflow: hidden; flex: none;
+}
+.ufs-langswitch .opt {
+  padding: .3rem .55rem; font-size: 10.5px; font-weight: 800; letter-spacing: .06em;
+  color: #64748b; background: none; border: 0; cursor: pointer;
+}
+.ufs-langswitch .opt:hover { color: #cbd5e1; }
+.ufs-langswitch .opt.on { background: rgba(34, 211, 238, .16); color: #cffafe; }

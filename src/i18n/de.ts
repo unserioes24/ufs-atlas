@@ -129,6 +129,79 @@ export const de = {
   'profile.saveState': 'Stand des Spielstands',
   'profile.noSave': 'Noch kein Spielstand hochgeladen.',
 
+  // ------------------------------------------------------------ Startseite
+  'start.eyebrow': 'Fan-Atlas · Ultimate Fishing Simulator 1',
+  'start.headline': 'Die Zahlen kommen aus den Spieldateien.',
+  'start.lead':
+    'Spots, Artenlisten, Beißzeiten, Ködervorlieben und Größenstufen sind ausgelesen, nicht geschätzt. Was aus der Community-Recherche stammt, steht als solches dabei.',
+  'start.ctaMaps': 'Reviere öffnen',
+  'start.ctaSpecies': 'Arten ansehen',
+  'start.ctaSave': 'Spielstand laden',
+  'start.wallTitle': 'Beißzeit über 24 Stunden, je Art aus dem Spiel',
+  'start.wallHint': 'dunkel = Nacht · zum Öffnen anklicken',
+
+  'start.factFisheries': 'Reviere',
+  'start.factSpecies': 'Arten',
+  'start.factSpots': 'Spots',
+  'start.factShoals': 'Schwarmpunkte',
+  'start.factBaits': 'Köder',
+  'start.factCurves': 'Beißzeitkurven',
+
+  'start.featuresTitle': 'Was der Atlas kann',
+  'start.mapsTitle': 'Reviere und Spots',
+  'start.mapsText':
+    '{maps} Karten mit den Spotnummern aus dem Spiel, den Schwarmpunkten auf dem Kartenbild und der Artenliste je Spot – mitsamt der Zahl der Fische, die dort stehen.',
+  'start.mapsCta': 'Karten öffnen',
+  'start.speciesTitle': 'Arten',
+  'start.speciesText':
+    '{species} Arten mit Gewichts- und Längenspanne, Beißzeitkurve, Wetterkurven und der Beschreibung aus der Enzyklopädie des Spiels.',
+  'start.speciesCta': 'Artenliste',
+  'start.baitsTitle': 'Köder und Angelart',
+  'start.baitsText':
+    'Für jede Art die Ködervorliebe in Prozent, dazu die beste Angelart – Fliege, Kunstköder, Pose oder Grund – und der Faktor jeder Führung beim Spinnfischen.',
+  'start.baitsCta': 'Köderseite',
+  'start.sizesTitle': 'Größenstufen',
+  'start.sizesText':
+    'Haken von #12 bis #12/0 mit der Gewichtsspanne, die sie fangen, dazu die Stufen für Kunstköder und Fliegen. {steps} Stufen, direkt aus dem FishManager.',
+  'start.sizesCta': 'Zu den Arten',
+  'start.saveTitle': 'Dein Spielstand',
+  'start.saveText':
+    'Die PROFILE-Datei laden und sehen, was fehlt: je Revier, je Art, mit deinem Rekord neben dem möglichen Maximum. Die Datei bleibt im Browser.',
+  'start.saveCta': 'Spielstand laden',
+  'start.profileTitle': 'Profil und Vergleich',
+  'start.profileText':
+    'Ein Konto gibt dir eine teilbare Profilseite. Wer sie öffnet und selbst angemeldet ist, sieht seinen Stand daneben – Kennzahl für Kennzahl, Revier für Revier, Art für Art.',
+  'start.profileCta': 'Konto anlegen',
+  'start.groupsTitle': 'Gruppen',
+  'start.groupsText':
+    'Öffentlich, nicht gelistet oder privat. Acht Ranglisten: schwerster und längster Fisch, Gesamtmasse, stärkste Art, Arten, komplette Reviere, Fänge, Angelzeit.',
+  'start.groupsCta': 'Gruppen ansehen',
+  'start.offlineTitle': 'Läuft auch ohne Server',
+  'start.offlineText':
+    'Der Guide ist fertiges HTML und JavaScript. Ohne Netz bleibt alles außer Konto und Gruppen benutzbar; abgehakte Arten liegen im Browser.',
+  'start.offlineCta': 'Ausprobieren',
+
+  'start.sourcesTitle': 'Woher die Zahlen kommen',
+  'start.fromGame': 'Aus den Spieldateien',
+  'start.fromGame1': 'Spotnummern und ihre Lage auf dem Kartenbild',
+  'start.fromGame2': 'Artenliste je Revier und je Spot, mit der Zahl der Fische',
+  'start.fromGame3': 'Gewichts- und Längenspanne, Beißzeitkurve, Wetterkurven',
+  'start.fromGame4': 'Ködervorliebe je Art, Ködertyp, Führungsfaktoren',
+  'start.fromGame5': 'Größenstufen für Haken, Kunstköder, Fliegen und Köder',
+  'start.fromGame6': 'Namen und Beschreibungen aus der Lokalisierung',
+  'start.fromCommunity': 'Aus der Community-Recherche',
+  'start.fromCommunity1': 'Hakengrößen als Erfahrungswert je Art und Revier',
+  'start.fromCommunity2': 'Tiefenangaben und Montagehinweise',
+  'start.fromCommunity3': 'Strategien je Spot und Vertrauensstufe je Eintrag',
+  'start.communityNote':
+    'Diese Angaben sind im Guide als Community-Werte gekennzeichnet. Wo die Spieldateien etwas Genaueres hergeben, ersetzt es sie.',
+
+  'start.openTitle': 'Offen und nachprüfbar',
+  'start.openText':
+    'Der Quelltext und die Werkzeuge, die die Spieldateien auslesen, liegen offen. Wer die Zahlen anzweifelt, kann sie mit derselben Spielinstallation nachziehen.',
+  'start.openCta': 'Auf GitHub ansehen',
+  'start.footer': 'Fan-Projekt, nicht mit den Entwicklern verbunden. Guide-Stand {guide}.',
+
   // --------------------------------------------------------------- Gruppen
   'group.public': 'Öffentlich',
   'group.publicHint': 'steht im Verzeichnis, jeder darf beitreten',
