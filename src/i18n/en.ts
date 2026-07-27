@@ -269,6 +269,29 @@ export const en: Partial<Dict> = {
   'col.state': 'Save from',
   'col.noProfile': 'no profile',
 
+  // Retrieve when spin fishing, in the order of the SpinningMethod enum
+  'spin.straightSlow': 'Straight slow',
+  'spin.straight': 'Straight',
+  'spin.straightFast': 'Straight fast',
+  'spin.liftDrop': 'Lift & drop',
+  'spin.stopGo': 'Stop & go',
+  'spin.twitching': 'Twitching',
+
+  // Weather dials
+  'weather.wind': 'Wind',
+  'weather.windHint': 'calm → stormy',
+  'weather.clouds': 'Cloud cover',
+  'weather.cloudsHint': 'clear → overcast',
+  'weather.rain': 'Rain',
+  'weather.rainHint': 'dry → steady rain',
+
+  'method.noChance': 'No chance: {list}.',
+  'fish.allDay': 'the same around the clock',
+  'fish.hours24': '24 h',
+  'fish.showLess': 'fewer',
+  'fish.showAllBaits': 'all {n} baits',
+  'bait.baitSize': 'Bait size',
+
   // -------------------------------------------------------------- Bait page
   'bait.intro':
     'Every bait prefab in the game carries a list of how strongly each species wants it — a value between 0 and 100 %. Those tables are shown here unchanged. They say nothing about hook size or retrieve; that stays experience.',

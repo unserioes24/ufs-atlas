@@ -117,10 +117,12 @@ export function BiteCurve({
   act,
   height = 34,
   night = true,
+  className,
 }: {
   act: Array<[number, number]>
   height?: number
   night?: boolean
+  className?: string
 }) {
   if (!act || act.length < 2) return null
   const W = 100
@@ -129,7 +131,13 @@ export function BiteCurve({
   const line = xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ')
 
   return (
-    <svg className="crv" viewBox={`0 0 100 ${H}`} preserveAspectRatio="none" aria-hidden>
+    <svg
+      className={cn('ufs-curve', className)}
+      style={{ height: `${H}px` }}
+      viewBox={`0 0 100 ${H}`}
+      preserveAspectRatio="none"
+      aria-hidden
+    >
       {night ? (
         <>
           <rect className="night" x={0} y={0} width={(6 / 24) * W} height={H} />

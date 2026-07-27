@@ -16,6 +16,10 @@ import { useI18n } from '../i18n'
 import { fisheryLabel, parseProfile, profileToCatches } from '../lib/savegame'
 import { fitSteps, gapRange, stepRange } from '../lib/hooks'
 import BaitPage from '../components/bait/BaitPage'
+import {
+    Activity, BaitTop, BiteFactors, MethodList, RetrieveList, SizeFit,
+    bestHours, methodTop, spinTop
+} from '../components/species/facts'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
@@ -236,238 +240,6 @@ function Bar(props) {
 /* ------------------------------------------------- Köder- und Wetterblöcke */
 
 /** Die stärksten Köder einer Art, mit Balken für den Interessenwert. */
-function BaitTop(props) {
-    const list = BAITS_FOR[props.speciesKey] || [];
-    const [all, setAll] = useState(false);
-    if (!list.length) return null;
-    const limit = all ? list.length : (props.limit || 8);
-    const shown = list.slice(0, limit);
-    return h('div', { className: 'ufs-baitlist' },
-        shown.map(function (e) {
-            return h('div', { key: e.bait.key, className: 'row' },
-                h('span', { className: 'nm' }, baitName(e.bait, props.lang)),
-                h('span', { className: cn('kd', e.bait.kind) }, BAIT_KIND[e.bait.kind] || e.bait.kind),
-                h('span', { className: 'bar' }, h('span', { style: { width: Math.round(e.v * 100) + '%' } })),
-                h('span', { className: 'vl' }, Math.round(e.v * 100) + ' %'));
-        }),
-        list.length > limit || all
-            ? h('button', {
-                className: 'ufs-chip ufs-chip-btn', style: { marginTop: '.4rem' },
-                onClick: function (ev) { ev.stopPropagation(); setAll(!all); }
-            }, all ? 'weniger' : 'alle ' + list.length + ' Köder')
-            : null);
-}
-
-/* ------------------------------------------------------------- Angelarten
-
-   species.m trägt vier Prozentwerte: die beste erreichbare Ködervorliebe mit
-   Fliege, Kunstköder, Naturköder und Boilie. Was daraus folgt, steht in
-   Fish.LikesBait:
-
-     eval = Mittel(Zeit, Wind, Bewölkung, Regen) × Ködervorliebe
-     Pose/Grund : + Boilie-Anfütterung × 0,2     (Grundmontage mit Feeder)
-     Spinn/Fliege: × Führungsfaktor              (0 ohne Führung)
-     eval × Schnurfaktor (0,6 … 1) ≥ 0,4  →  Biss     (Casual: ≥ 0,29)
-
-   Die Schwelle ist hart: eine schwache Vorliebe heißt nicht „seltener",
-   sondern ab einem gewissen Punkt „nie". */
-
-const METHODS = [
-    { k: 'fly', de: 'Fliege', note: 'Fliegenrute' },
-    { k: 'lure', de: 'Kunstköder', note: 'Spinnrute' },
-    { k: 'natural', de: 'Naturköder', note: 'Pose / Grund' },
-    { k: 'boilie', de: 'Boilie', note: 'Grundmontage' }
-];
-
-/** Nötiger Wetter-/Zeitwert, damit es mit dieser Vorliebe überhaupt reicht. */
-function needBase(pct) {
-    if (!pct) return null;
-    const need = 0.4 / (pct / 100);
-    return need > 1 ? null : need;
-}
-
-/** Die vier Angelarten einer Art, absteigend, mit Bewertung. */
-function methodList(m) {
-    if (!m || !m.length) return [];
-    return METHODS.map(function (x, i) {
-        const pct = m[i] || 0;
-        return { k: x.k, de: x.de, note: x.note, pct: pct, need: needBase(pct) };
-    }).sort(function (a, b) { return b.pct - a.pct; });
-}
-
-function methodTop(m) {
-    const list = methodList(m).filter(function (x) { return x.pct > 0; });
-    if (!list.length) return null;
-    const best = list[0].pct;
-
-    return { names: list.filter(function (x) { return x.pct === best; }), value: best };
-}
-
-/** Alle vier Angelarten mit Balken; Naturköder zusätzlich zu dritt. */
-function MethodList(props) {
-    const rows = methodList(props.m);
-    if (!rows.length) return null;
-
-    return h('div', null,
-        h('div', { className: 'ufs-baitlist' },
-            rows.map(function (r) {
-                // Drei Köderstücke am Haken: bestes Stück + 0,2 je weiteres
-                const three = r.k === 'natural' && r.pct ? Math.min(140, Math.round(r.pct * 1.4)) : 0;
-                return h('div', { key: r.k, className: 'row' },
-                    h('span', { className: cn('nm', !r.pct && 'off') }, r.de),
-                    h('span', { className: cn('kd', r.k) }, r.note),
-                    h('span', { className: 'bar' },
-                        three ? h('span', {
-                            className: 'ghost', title: 'mit drei Köderstücken',
-                            style: { width: Math.min(100, three) + '%' }
-                        }) : null,
-                        h('span', { style: { width: Math.min(100, r.pct) + '%' } })),
-                    h('span', { className: 'vl' }, r.pct ? r.pct + ' %' : '–'));
-            })),
-        h('p', { className: 'ufs-muted', style: { fontSize: '11px', lineHeight: 1.6, marginTop: '.5rem' } },
-            'Das Spiel verlangt Wetter × Vorliebe × Schnur ≥ 0,4 für einen Biss (Casual 0,29). ',
-            rows[0].need
-                ? 'Mit ' + rows[0].de + ' reicht ein Wetterwert ab ' + Math.round(rows[0].need * 100) + ' %.'
-                : 'Keine Angelart kommt hier ohne perfekte Bedingungen über die Schwelle.',
-            rows.filter(function (r) { return r.pct && !r.need; }).length
-                ? ' Ohne Aussicht: ' + rows.filter(function (r) { return r.pct && !r.need; })
-                    .map(function (r) { return r.de; }).join(', ') + '.'
-                : '',
-            props.m && props.m[2]
-                ? ' Drei Köderstücke am Haken heben den Naturköder auf bis zu '
-                    + Math.round(props.m[2] * 1.4) + ' %.'
-                : ''));
-}
-
-/* Führung beim Spinnfischen. Die Reihenfolge folgt dem Enum SpinningMethod,
-   ohne dessen ersten Eintrag NONE. */
-const SPIN_NAMES = ['Straight langsam', 'Straight', 'Straight schnell', 'Lift & Drop', 'Stop & Go', 'Twitching'];
-
-function spinTop(spin) {
-    if (!spin) return null;
-    let best = -1, at = -1;
-    for (let i = 0; i < spin.length; i++) { if (spin[i] > best) { best = spin[i]; at = i; } }
-    if (at < 0 || best <= 0) return null;
-    const names = [];
-    for (let i = 0; i < spin.length; i++) { if (spin[i] === best) names.push(SPIN_NAMES[i]); }
-    return { names: names, value: best };
-}
-
-/** Alle sechs Führungen mit ihrem Faktor, absteigend. */
-function RetrieveList(props) {
-    const spin = props.spin;
-    if (!spin) return null;
-    const rows = spin.map(function (v, i) { return { name: SPIN_NAMES[i], v: v }; })
-        .sort(function (a, b) { return b.v - a.v; });
-    return h('div', { className: 'ufs-baitlist' },
-        rows.map(function (r) {
-            return h('div', { key: r.name, className: 'row' },
-                h('span', { className: cn('nm', r.v === 0 && 'off') }, r.name),
-                h('span', { className: 'kd' }, ''),
-                h('span', { className: 'bar' }, h('span', { style: { width: Math.round(r.v * 100) + '%' } })),
-                h('span', { className: 'vl' }, Math.round(r.v * 100) + ' %'));
-        }));
-}
-
-/** Beste Uhrzeiten aus der Beißzeitkurve, als lesbarer Text. */
-function bestHours(act) {
-    if (!act || act.length < 2) return null;
-    let top = 0;
-    act.forEach(function (p) { if (p[1] > top) top = p[1]; });
-    if (top <= 0) return null;
-    const peaks = act.filter(function (p) { return p[1] >= top - 0.01 && p[0] < 24; })
-        .map(function (p) { return p[0] + ':00'; });
-    if (!peaks.length) return null;
-    // Steht die Kurve überall gleich hoch, gibt es keine bevorzugte Zeit.
-    const low = act.reduce(function (m, p) { return Math.min(m, p[1]); }, 1);
-    if (top - low < 0.05) return 'rund um die Uhr gleich';
-    return peaks.join(', ');
-}
-
-/** Welche Größenstufen zu dieser Art passen – Haken, Kunstköder, Fliege, Köder. */
-function SizeFit(props) {
-    const sp = props.sp;
-    if (!HOOKS || !sp || !sp.wMax) return null;
-    const lo = sp.wMin || 0, hi = sp.wMax;
-    const rows = [];
-
-    [['hook', 'Haken'], ['lure', 'Kunstköder'], ['fly', 'Fliege']].forEach(function (e) {
-        const idx = fitSteps(HOOKS[e[0]], lo, hi);
-        if (!idx.length) return;
-        rows.push({ label: e[1], step: stepRange(idx), extra: e[0] === 'hook' ? gapRange(idx) : null });
-    });
-    if (sp.lMax && HOOKS.baitLength) {
-        // Längen liegen in den Spieldaten in Zentimetern, die Tabelle in Metern.
-        const idx = fitSteps(HOOKS.baitLength, (sp.lMin || 0) / 100, sp.lMax / 100);
-        if (idx.length) rows.push({ label: 'Ködergröße', step: stepRange(idx), extra: null });
-    }
-    if (!rows.length) return null;
-
-    return h('div', { className: 'ufs-sizes' },
-        rows.map(function (r) {
-            return h('div', { key: r.label, className: 'row' },
-                h('span', { className: 'nm' }, r.label),
-                h('span', { className: 'st' }, r.step),
-                h('span', { className: 'ex' }, r.extra || ''));
-        }));
-}
-
-/** Wetterregler: die drei Kurven, die das Spiel je Art tatsächlich füllt. */
-const BITE_LABEL = { wind: 'Wind', cloudiness: 'Bewölkung', rain: 'Regen' };
-const BITE_HINT = {
-    wind: 'windstill → stürmisch', cloudiness: 'klar → bedeckt', rain: 'trocken → Dauerregen'
-};
-
-function BiteFactors(props) {
-    const b = props.bite;
-    if (!b) return null;
-    const keys = ['wind', 'cloudiness', 'rain'].filter(function (k) { return b[k] && b[k].length; });
-    if (!keys.length) return null;
-    return h('div', { className: 'ufs-bite' },
-        keys.map(function (k) {
-            const c = b[k];
-            const from = c[0][1], to = c[c.length - 1][1];
-            const better = to > from;
-            return h('div', { key: k, className: 'row' },
-                h('span', { className: 'nm' }, BITE_LABEL[k]),
-                h('span', { className: 'hint' }, BITE_HINT[k]),
-                h('span', { className: 'bar' },
-                    h('span', {
-                        className: better ? 'up' : 'down',
-                        style: { width: Math.round(Math.min(1, to) * 100) + '%' }
-                    })),
-                h('span', { className: cn('vl', better && 'up') },
-                    Math.round(from * 100) + ' → ' + Math.round(to * 100) + ' %'));
-        }));
-}
-
-/* -------------------------------------------------------- Aktivitätskurve */
-
-function Activity(props) {
-    const pts = props.act;
-    if (!pts || pts.length < 2) return null;
-    const W = 100, H = 30;
-    const xy = pts.map(function (p) { return [p[0] / 24 * W, H - p[1] * (H - 3) - 1.5]; });
-    const line = xy.map(function (p, i) { return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
-    const area = line + ' L' + W + ' ' + H + ' L0 ' + H + ' Z';
-    let top = 0;
-    pts.forEach(function (p) { if (p[1] > top) top = p[1]; });
-    const peaks = pts.filter(function (p) { return p[1] >= top - 0.01 && p[0] < 24; })
-        .map(function (p) { return p[0] + ':00'; });
-    return h('div', null,
-        h('svg', { className: 'ufs-act', viewBox: '0 0 100 30', preserveAspectRatio: 'none' },
-            [6, 12, 18].map(function (t) {
-                return h('line', { key: t, className: 'grid', x1: t / 24 * W, y1: 0, x2: t / 24 * W, y2: H });
-            }),
-            h('path', { className: 'area', d: area }),
-            h('path', { className: 'line', d: line })),
-        h('div', { className: 'ufs-actlabels' },
-            h('span', null, '0'), h('span', null, '6'), h('span', null, '12'), h('span', null, '18'), h('span', null, '24 Uhr')),
-        peaks.length ? h('div', { className: 'ufs-stats', style: { marginTop: '.35rem' } },
-            h('span', null, 'Beste Beißzeit: ', h('b', null, peaks.join(', ')))) : null);
-}
-
-
 /* ------------------------------------------------------------- Revierkarte */
 
 function FisheryMap(props) {
@@ -636,6 +408,7 @@ function ImportDialog(props) {
 /* --------------------------------------------------------------- Fischkarte */
 
 function FishCard(props) {
+    const t = useI18n().t;
     const f = props.f, lang = props.lang, key = props.speciesKey;
     const sp = key ? SPECIES[key] : null;
     const gm = props.gameEntry;
@@ -647,7 +420,7 @@ function FishCard(props) {
     // Werte aus den Spieldateien, die die Angaben des Guides ersetzen.
     const hookIdx = sp && sp.wMax ? fitSteps(HOOKS && HOOKS.hook, sp.wMin || 0, sp.wMax) : [];
     const hookText = hookIdx.length ? stepRange(hookIdx) + '  ' + gapRange(hookIdx) : null;
-    const hours = sp && sp.act ? bestHours(sp.act) : null;
+    const hours = sp && sp.act ? bestHours(sp.act, t('fish.allDay')) : null;
     const top = sp && sp.spin ? spinTop(sp.spin) : null;
     const mTop = sp && sp.m ? methodTop(sp.m) : null;
 
@@ -696,13 +469,13 @@ function FishCard(props) {
             h(Fact, { icon: 'star', label: 'Beste Zeit', value: hours || f.time }),
             mTop ? h(Fact, {
                 icon: 'bait', label: 'Beste Angelart',
-                value: h('span', null, mTop.names.map(function (x) { return x.de; }).join(' / '),
+                value: h('span', null, mTop.rows.map(function (x) { return t(x.name); }).join(' / '),
                     h('span', { className: 'ufs-muted', style: { fontWeight: 400 } }, '  ' + mTop.value + ' %'))
             }) : null,
             h(Fact, {
                 icon: 'method', label: 'Beste Führung',
                 value: top
-                    ? h('span', null, top.names.join(' / '),
+                    ? h('span', null, top.names.map(t).join(' / '),
                         h('span', { className: 'ufs-muted', style: { fontWeight: 400 } },
                             '  ' + Math.round(top.value * 100) + ' %'))
                     : (lang === 'de' ? toGerman(f.method) : f.method)
@@ -746,7 +519,7 @@ function FishCard(props) {
                 key && (BAITS_FOR[key] || []).length
                     ? h('div', { style: { marginTop: '.7rem' } },
                         h('div', { className: 'hd' }, 'Köder, Interesse laut Prefab'),
-                        h(BaitTop, { speciesKey: key, lang: lang }))
+                        h(BaitTop, { speciesKey: key }))
                     : null,
                 sp.spin
                     ? h('div', { style: { marginTop: '.7rem' } },
@@ -1219,6 +992,7 @@ function topKeys(obj, n) {
 }
 
 function SpeciesPage(props) {
+    const t = useI18n().t;
     // Direktlink auf eine Art: Suche vorbelegen, damit die Karte oben steht.
     const [q, setQ] = useState(function () {
         return props.initialOpen && SPECIES[props.initialOpen] ? speciesName(props.initialOpen, props.lang) : '';
@@ -1315,7 +1089,7 @@ function SpeciesPage(props) {
                     (BAITS_FOR[r.key] || []).length
                         ? h('div', { style: { display: 'block', marginTop: '.5rem' } },
                             h('span', { style: { color: '#64748b' } }, 'Köder'),
-                            h(BaitTop, { speciesKey: r.key, lang: props.lang, limit: 6 }))
+                            h(BaitTop, { speciesKey: r.key, limit: 6 }))
                         : null,
                     s.bite
                         ? h('div', { style: { display: 'block', marginTop: '.5rem' } },

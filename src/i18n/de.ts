@@ -272,6 +272,29 @@ export const de = {
   'col.state': 'Stand',
   'col.noProfile': 'kein Profil',
 
+  // Führung beim Spinnfischen, Reihenfolge wie im Enum SpinningMethod
+  'spin.straightSlow': 'Straight langsam',
+  'spin.straight': 'Straight',
+  'spin.straightFast': 'Straight schnell',
+  'spin.liftDrop': 'Lift & Drop',
+  'spin.stopGo': 'Stop & Go',
+  'spin.twitching': 'Twitching',
+
+  // Wetterregler
+  'weather.wind': 'Wind',
+  'weather.windHint': 'windstill → stürmisch',
+  'weather.clouds': 'Bewölkung',
+  'weather.cloudsHint': 'klar → bedeckt',
+  'weather.rain': 'Regen',
+  'weather.rainHint': 'trocken → Dauerregen',
+
+  'method.noChance': 'Ohne Aussicht: {list}.',
+  'fish.allDay': 'rund um die Uhr gleich',
+  'fish.hours24': '24 Uhr',
+  'fish.showLess': 'weniger',
+  'fish.showAllBaits': 'alle {n} Köder',
+  'bait.baitSize': 'Ködergröße',
+
   // ------------------------------------------------------------- Köderseite
   'bait.intro':
     'Jedes Köder-Prefab im Spiel führt eine Liste, wie stark sich welche Art für ihn interessiert – ein Wert zwischen 0 und 100 %. Diese Tabellen stehen hier unverändert. Sie sagen nichts über Hakengröße und Führung; das bleiben Erfahrungswerte.',

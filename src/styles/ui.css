@@ -486,10 +486,12 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .ufs-start .cell:hover .nm { color: #cffafe; }
-.ufs-start .crv { width: 100%; height: 40px; display: block; }
-.ufs-start .crv .night { fill: rgba(255, 255, 255, .035); }
-.ufs-start .crv .area { fill: rgba(34, 211, 238, .16); }
-.ufs-start .crv .line { fill: none; stroke: #22d3ee; stroke-width: 1.6; }
+/* The bite curve is used on the start page, the fish card and the species
+   page; the height comes from the component. */
+.ufs-curve { width: 100%; display: block; }
+.ufs-curve .night { fill: rgba(255, 255, 255, .035); }
+.ufs-curve .area { fill: rgba(34, 211, 238, .18); }
+.ufs-curve .line { fill: none; stroke: #22d3ee; stroke-width: 1.6; }
 
 /* Zahlenleiste */
 .ufs-start .facts {
