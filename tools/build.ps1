@@ -159,6 +159,9 @@ foreach ($fy in $FISH) {
     }
     if (-not $panel) { $panel = [pscustomobject]@{ mapImage = $L.mapImage; spots = @() } }
     # If the board's MapImage is not where expected, the scene's first one is used.
+    # Everything below reads $mi, origin included: taking the size from the
+    # stand-in but the origin from the empty board pushed Saint Zeno's western
+    # spots to a negative u, off the left edge of the image.
     $mi = $panel.mapImage
     if (-not $mi -or $mi.w -le 0) { $mi = $L.mapImage }
 
@@ -172,8 +175,8 @@ foreach ($fy in $FISH) {
     foreach ($s in $panel.spots) {
         $e = [ordered]@{ n = $s.n }
         if ($fy.map -and $imgW -gt 0 -and $imgH -gt 0 -and $null -ne $s.ax) {
-            $e.u = 0.5 + ($s.ax - $panel.mapImage.ax) / $imgW
-            $e.v = 0.5 - ($s.ay - $panel.mapImage.ay) / $imgH
+            $e.u = 0.5 + ($s.ax - $mi.ax) / $imgW
+            $e.v = 0.5 - ($s.ay - $mi.ay) / $imgH
         }
         if ($null -ne $s.wx) { $e.wx = [Math]::Round($s.wx, 1); $e.wz = [Math]::Round($s.wz, 1); $e.wy = [Math]::Round($s.wy, 1) }
         $spots += [pscustomobject]$e
