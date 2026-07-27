@@ -7,7 +7,7 @@ use App\Entity\ProfileSpecies;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 
-/** Schreibt das Ergebnis eines Spielstand-Imports in das Profil eines Kontos. */
+/** Writes the result of a save-file import into an account's profile. */
 final class ProfileWriter
 {
     public function __construct(
@@ -21,7 +21,7 @@ final class ProfileWriter
         $this->em->flush();
     }
 
-    /** Überschreibt das Profil vollständig. */
+    /** Replaces the profile entirely. */
     public function store(User $user, array $agg): Profile
     {
         $profile = $user->getProfile();
@@ -30,7 +30,7 @@ final class ProfileWriter
             $user->setProfile($profile);
             $this->em->persist($profile);
         } else {
-            // Artenzeilen ersetzen statt ergänzen: ein Import ist die neue Wahrheit
+            // Replace the species rows instead of adding to them: an import is the new truth
             foreach ($profile->getSpecies() as $old) {
                 $this->em->remove($old);
             }
@@ -41,8 +41,8 @@ final class ProfileWriter
         $name = trim((string) ($agg['player']['name'] ?? ''));
         if ($name !== '') {
             $profile->setAnglerName($name);
-            // Nur einen noch nie selbst gewählten Namen überschreiben; er muss
-            // eindeutig bleiben, deshalb notfalls mit -2, -3 … dahinter.
+            // Only overwrite a name that was never chosen by hand; it has to stay
+            // unique, so -2, -3 … goes behind it if needed.
             if (!$user->isNamePicked()) {
                 $user->setName($this->names->unique($name, $user));
             }

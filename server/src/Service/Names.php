@@ -6,9 +6,9 @@ use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Benutzernamen sind eindeutig: unter ihnen findet man ein Profil in der Suche
- * und in Gruppen. Die Datenbank hat denselben Index, hier wird nur vorab
- * geprüft, damit es eine verständliche Fehlermeldung gibt.
+ * User names are unique: they are how a profile is found in search and in
+ * groups. The database carries the same index; this only checks beforehand
+ * so the error message can be a readable one.
  */
 final class Names
 {
@@ -19,7 +19,7 @@ final class Names
     {
     }
 
-    /** Leerzeichen vereinheitlichen, Steuer- und Sonderzeichen entfernen. */
+    /** Normalise whitespace, drop control and special characters. */
     public function normalize(string $wish): string
     {
         $n = preg_replace('/\s+/u', ' ', $wish) ?? '';
@@ -35,7 +35,7 @@ final class Names
         return $len >= self::MIN && $len <= self::MAX;
     }
 
-    /** Frei heißt: kein anderes Konto trägt ihn (Vergleich ohne Groß-/Kleinschreibung). */
+    /** Free means: no other account carries it (compared case-insensitively). */
     public function isFree(string $name, ?User $except = null): bool
     {
         $found = $this->em->getRepository(User::class)->createQueryBuilder('u')
@@ -46,8 +46,8 @@ final class Names
     }
 
     /**
-     * Wörter für die Namen neuer Konten. Bewusst harmlos und ohne Bezug zu
-     * einer Person – der Name lässt sich später jederzeit ändern.
+     * Words for the names of new accounts. Deliberately harmless and with no
+     * bearing on a person – the name can be changed at any time.
      */
     private const WORDS = [
         'Blinker', 'Wobbler', 'Spinner', 'Pose', 'Feeder', 'Boilie', 'Drilling', 'Kescher',
@@ -58,7 +58,7 @@ final class Names
         'Forelle', 'Saibling', 'Aesche', 'Quappe', 'Doebel', 'Brasse', 'Karausche',
     ];
 
-    /** Ein zufälliges Wort mit angehängter Zahl, etwa „Blinker482“. */
+    /** A random word with a number attached, e.g. "Blinker482". */
     public function random(): string
     {
         for ($try = 0; $try < 50; $try++) {
@@ -68,11 +68,11 @@ final class Names
             }
         }
 
-        // Sollte nie eintreten; dann entscheidet der Zufall allein.
+        // Should never happen; then chance alone decides.
         return 'Angler' . bin2hex(random_bytes(4));
     }
 
-    /** Hängt -2, -3 … an, bis der Name frei ist. */
+    /** Appends -2, -3 … until the name is free. */
     public function unique(string $wish, ?User $except = null): string
     {
         $base = $this->normalize($wish);

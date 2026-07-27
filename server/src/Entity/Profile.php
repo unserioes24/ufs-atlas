@@ -7,9 +7,9 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Genau ein Profil je Konto. Ein Spielstand-Import überschreibt es vollständig;
- * die Kennzahlen liegen zusätzlich als Spalten vor, damit Ranglisten in SQL
- * ohne JSON-Auswertung laufen.
+ * Exactly one profile per account. A save-file import replaces it entirely;
+ * the figures are kept as columns as well, so boards can be built in SQL
+ * without digging through JSON.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'profile')]

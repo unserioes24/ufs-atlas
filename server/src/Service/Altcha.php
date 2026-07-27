@@ -3,29 +3,29 @@
 namespace App\Service;
 
 /**
- * ALTCHA: ein Rechennachweis statt eines Bilderrätsels, komplett auf dem
- * eigenen Server. Kein Dienst von außen, keine Cookies von Dritten.
+ * ALTCHA: a proof of work instead of a picture puzzle, served entirely from
+ * this server. No outside service, no third-party cookies.
  *
- * Ablauf (identisch zum offiziellen ALTCHA-Format, damit sich das Widget
- * jederzeit gegen dieses Backend austauschen ließe):
+ * The flow follows the official ALTCHA format, so the widget could be
+ * swapped against this backend at any time:
  *
- *   1. Der Server würfelt eine Zahl zwischen 0 und maxnumber, schickt
- *      SHA-256(salt + zahl) und eine HMAC-Signatur darüber.
- *   2. Der Browser probiert alle Zahlen durch, bis der Hash passt.
- *   3. Der Server rechnet nur einmal nach: Hash stimmt, Signatur stammt von
- *      ihm, Ablaufzeit nicht überschritten.
+ *   1. The server picks a number between 0 and maxnumber and sends
+ *      SHA-256(salt + number) together with an HMAC signature over it.
+ *   2. The browser tries every number until the hash matches.
+ *   3. The server checks once: hash matches, signature is its own, the
+ *      challenge has not expired.
  *
- * Die Signatur macht eine eigene Ablage der offenen Aufgaben überflüssig;
- * gegen Mehrfachnutzung merkt sich die Sitzung die zuletzt ausgegebene.
+ * The signature removes the need to store open challenges; against replay
+ * the session remembers the one handed out last.
  */
 final class Altcha
 {
     private const ALGORITHM = 'SHA-256';
 
-    /** Rund eine halbe Sekunde Rechenzeit im Mittel – für Menschen unauffällig. */
+    /** About half a second of work on average – unnoticeable for a person. */
     private const MAX_NUMBER = 50000;
 
-    /** So lange ist eine ausgegebene Aufgabe gültig. */
+    /** How long a handed-out challenge stays valid. */
     private const TTL = 900;
 
     public function __construct(private readonly string $secret)
@@ -49,12 +49,12 @@ final class Altcha
     }
 
     /**
-     * Prüft die Lösung des Browsers.
+     * Checks the browser's answer.
      *
-     * @param string      $payload  base64-kodiertes JSON aus dem Formular
-     * @param string|null $expected Aufgabe, die diese Sitzung zuletzt bekam
+     * @param string      $payload  base64-encoded JSON from the form
+     * @param string|null $expected the challenge this session received last
      *
-     * @return string|null Fehlermeldung, oder null wenn alles stimmt
+     * @return string|null an error message, or null when everything fits
      */
     public function verify(string $payload, ?string $expected): ?string
     {

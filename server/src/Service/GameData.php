@@ -3,9 +3,9 @@
 namespace App\Service;
 
 /**
- * Die aus den Spieldateien extrahierten Stammdaten, die der Server braucht:
- * Artenliste, Reviere mit ihren Arten und die Schlüssel, unter denen der
- * Spielstand die Revierstatistik ablegt. Erzeugt von tools/build2.ps1.
+ * The master data extracted from the game files that the server needs:
+ * the species list, the fisheries with their species, and the keys the save
+ * file stores its fishery statistics under. Produced by tools/build2.ps1.
  */
 final class GameData
 {

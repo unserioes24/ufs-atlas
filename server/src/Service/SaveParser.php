@@ -7,8 +7,8 @@ namespace App\Service;
  *
  * Satzformat: '~' + Schlüssellänge + Schlüssel + int32 Blocklänge + 0xFF
  *             + 4 Byte Typkennung + Wert.
- * Es wird jede Byteposition geprüft, damit ein unbekannter Datentyp den
- * restlichen Durchlauf nicht verschiebt.
+ * Every byte position is checked, so an unknown data type cannot shift the
+ * rest of the run.
  */
 final class SaveParser
 {
@@ -63,7 +63,7 @@ final class SaveParser
     }
 
     /**
-     * Fasst die Rohwerte zu dem zusammen, was das Profil speichert.
+     * Folds the raw values into what the profile stores.
      *
      * @param array<string, mixed> $raw
      * @param array<string, string[]> $fisherySpecies  Revier-ID => Artenschlüssel
@@ -120,7 +120,7 @@ final class SaveParser
             }
         }
 
-        // Abgeschlossene Reviere: alle Arten des Reviers gefangen
+        // Completed fisheries: every species of the fishery caught
         $complete = 0;
         foreach ($fisherySpecies as $id => $list) {
             if (!$list) {
@@ -166,10 +166,10 @@ final class SaveParser
     }
 
     /**
-     * Angaben zum Angler, einschließlich der fünf Rutensets und der Anzahl
-     * gekaufter Ausrüstung je Kategorie. Der Browser liest dieselben Schlüssel;
-     * beides muss übereinstimmen, damit ein über die Schnittstelle
-     * hochgeladener Stand im Guide genauso aussieht wie ein lokal geladener.
+     * Details about the angler, including the five rod sets and how much gear
+     * was bought per category. The browser reads the same keys; both have to
+     * agree so that a save file uploaded through the API looks exactly like
+     * one loaded locally.
      *
      * @param array<string, mixed> $raw
      */
@@ -237,8 +237,8 @@ final class SaveParser
     }
 
     /**
-     * Modellvarianten einer Art zusammenführen (BROWN_TROUT_B -> BROWN_TROUT),
-     * aber nur, wenn es den Basisschlüssel wirklich gibt.
+     * Fold model variants onto the base species (BROWN_TROUT_B -> BROWN_TROUT),
+     * but only where the base key really exists.
      *
      * @param array<string, mixed> $knownSpecies
      */

@@ -8,19 +8,19 @@ use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Anmeldung über die PHP-Sitzung. Für Uploads per curl gibt es zusätzlich
- * den API-Token des Kontos im Header X-Api-Token.
+ * Sign-in through the PHP session. For uploads by curl there is also the
+ * account's API token in the X-Api-Token header.
  *
- * Wer angemeldet bleiben möchte, bekommt einen zweiten Keks mit einem langen
- * Zufallswert. Gespeichert wird davon nur der Hash, damit ein Blick in die
- * Datenbank keine gültige Anmeldung verschafft. Beim nächsten Besuch ohne
- * Sitzung entsteht daraus eine neue Sitzung, und der Wert wird ausgetauscht.
+ * Whoever wants to stay signed in gets a second cookie with a long random
+ * value. Only its hash is stored, so a look into the database does not hand
+ * anyone a valid session. On the next visit without a session it becomes a
+ * new session, and the value is exchanged.
  */
 final class Auth
 {
     public const COOKIE = 'ufs_remember';
 
-    /** So lange gilt ein solcher Keks. */
+    /** How long such a cookie is good for. */
     private const DAYS = 90;
 
     private ?Cookie $pending = null;
@@ -56,8 +56,8 @@ final class Auth
     }
 
     /**
-     * Ein Keks, den der Aufrufer an seine Antwort hängen muss: Symfony setzt
-     * Kekse nur über die Antwort, deshalb dieser Umweg.
+     * A cookie the caller has to attach to its response: Symfony only sets
+     * cookies through the response, hence the detour.
      */
     public function pendingCookie(): ?Cookie
     {
@@ -67,7 +67,7 @@ final class Auth
         return $c;
     }
 
-    /** Aktives Konto aus der Sitzung, ersatzweise aus dem Keks. */
+    /** The active account from the session, or failing that from the cookie. */
     public function user(): ?User
     {
         $req = $this->requests->getCurrentRequest();
@@ -84,7 +84,7 @@ final class Auth
         return $this->fromCookie();
     }
 
-    /** Konto aus Sitzung oder API-Token – für Endpunkte, die beides erlauben. */
+    /** Account from session or API token – for endpoints that allow both. */
     public function userOrToken(): ?User
     {
         $user = $this->user();
@@ -104,9 +104,9 @@ final class Auth
     }
 
     /**
-     * Meldet anhand des Kekses an. Der Wert besteht aus Konto-Nummer und
-     * Geheimnis; verglichen wird der Hash mit hash_equals, damit die Laufzeit
-     * nicht verrät, wie weit ein geratener Wert stimmt.
+     * Signs in from the cookie. The value is account id plus secret; the hash
+     * is compared with hash_equals so the runtime does not leak how close a
+     * guess was.
      */
     private function fromCookie(): ?User
     {
@@ -132,8 +132,8 @@ final class Auth
             return null;
         }
 
-        // Sitzung wiederherstellen und den Wert austauschen, damit ein
-        // abgefangener Keks nur ein einziges Mal trägt.
+        // Restore the session and swap the value, so an intercepted cookie
+        // works exactly once.
         $session = $this->requests->getSession();
         $session->migrate(true);
         $session->set('uid', $user->getId());

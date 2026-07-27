@@ -3,9 +3,9 @@
 namespace App\Service;
 
 /**
- * Übernimmt den Stand, der im Browser liegt (Haken plus zuletzt geladener
- * Spielstand), in dieselbe Form, die auch der Upload einer PROFILE-Datei
- * erzeugt. Alles kommt vom Client, also wird jeder Wert geprüft und begrenzt.
+ * Takes the state kept in the browser (ticks plus the save file loaded last)
+ * into the same shape an uploaded PROFILE file produces. Everything comes
+ * from the client, so every value is checked and capped.
  */
 final class LocalImport
 {
@@ -34,7 +34,7 @@ final class LocalImport
                 'fishery' => \is_string($b['fishery'] ?? null) ? mb_substr($b['fishery'], 0, 80) : null,
             ];
         }
-        // Von Hand abgehakte Arten zählen mit, auch ohne Fangdaten
+        // Species ticked by hand count too, even without catch data
         foreach ($caught as $key => $on) {
             if ($on && $this->isSpeciesKey($key) && !isset($species[$key]) && \count($species) < self::MAX_SPECIES) {
                 $species[$key] = ['count' => 0, 'best' => 0.0, 'length' => 0.0, 'sum' => 0.0, 'fishery' => null];
@@ -113,8 +113,8 @@ final class LocalImport
         $player = \is_array($stats['player'] ?? null) ? $stats['player'] : [];
 
         return [
-            // Die Zusatzangaben kommen unverändert vom Browser zurück, damit ein
-            // lokal übernommener Stand dasselbe enthält wie ein hochgeladener.
+            // The extra details come back from the browser unchanged, so a state
+            // adopted locally holds the same as an uploaded one.
             'player' => [
                 'name' => \is_string($player['name'] ?? null) ? mb_substr($player['name'], 0, 60) : '',
                 'level' => (int) $this->num($player['level'] ?? 0, 0, 1000),

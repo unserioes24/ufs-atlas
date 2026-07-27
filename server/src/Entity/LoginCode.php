@@ -5,8 +5,8 @@ namespace App\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * Einmalcode für die Anmeldung. Gespeichert wird nur der Hash; abgelaufene
- * oder verbrauchte Codes werden beim nächsten Versand aufgeräumt.
+ * One-time login code. Only the hash is stored; expired or used codes are
+ * cleaned up the next time one is sent.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'login_code')]

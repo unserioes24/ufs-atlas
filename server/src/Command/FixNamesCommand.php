@@ -11,10 +11,10 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Läuft beim Start vor dem Schemaabgleich: erst wenn keine zwei Konten
- * denselben Namen tragen, lässt sich der eindeutige Index anlegen.
+ * Runs at start-up before the schema is applied: only once no two accounts
+ * share a name can the unique index be created.
  */
-#[AsCommand(name: 'app:names:fix', description: 'Macht doppelte Benutzernamen eindeutig.')]
+#[AsCommand(name: 'app:names:fix', description: 'Makes duplicate user names unique.')]
 final class FixNamesCommand extends Command
 {
     public function __construct(
