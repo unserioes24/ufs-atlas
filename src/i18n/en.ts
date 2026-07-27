@@ -269,6 +269,32 @@ export const en: Partial<Dict> = {
   'col.state': 'Save from',
   'col.noProfile': 'no profile',
 
+  // -------------------------------------------------------------- Bait page
+  'bait.intro':
+    'Every bait prefab in the game carries a list of how strongly each species wants it — a value between 0 and 100 %. Those tables are shown here unchanged. They say nothing about hook size or retrieve; that stays experience.',
+  'bait.searchPlaceholder': 'Search bait or fish …',
+  'bait.onlyFor': 'only for {name}',
+  'bait.countOf': '{shown} of {total} baits',
+  'bait.speciesCount': '{n} species',
+  'bait.strongest': 'strongest: {list}',
+  'bait.naturalNote': 'Offered on the hook; more pieces widen the attraction radius.',
+  'bait.boilieNote': 'For carp and big fish, on a hair rig.',
+  'bait.flyNote': 'Four types, fished at different depths.',
+  'bait.lureNote': 'Retrieved actively; the retrieve has a say in the bite.',
+  'bait.hookSizes': 'Hook sizes',
+  'bait.hookText':
+    'Each size lists the fish weight it catches; the range moves up with the size. A hook that is too big misses small fish — hence the in-game hint to try a smaller one. Lures start at #8, flies at #4.',
+  'bait.colSize': 'Size',
+  'bait.colGap': 'Gap',
+  'bait.colHook': 'Hook · fish weight',
+  'bait.colBaitSize': 'Bait size · fish length',
+  'bait.biteTitle': 'What else a bite needs',
+  'bait.biteText':
+    'Besides the bait the game weighs nine dials, each with its own curve per species: time of day, hunger, bait depth, temperature, wind, pressure, cloudiness, rain and bait speed. Only four are filled in — time, wind, cloudiness and rain. The other five sit at a constant 1 for every species and do nothing.',
+  'bait.depthLead': 'Bait depth in particular:',
+  'bait.depthText':
+    'it does not decide whether a fish bites, only whether the bait reaches where the shoal stands. Depth values in guides are observations about where the fish are, not a preference.',
+
   // Parts of a rod set, as the save file lists them
   'slot.rod': 'Rod',
   'slot.iceRod': 'Ice rod',

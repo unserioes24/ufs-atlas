@@ -14,6 +14,8 @@ import StartPage from '../components/start/StartPage'
 import { LangSwitch } from '../components/LangSwitch'
 import { useI18n } from '../i18n'
 import { fisheryLabel, parseProfile, profileToCatches } from '../lib/savegame'
+import { fitSteps, gapRange, stepRange } from '../lib/hooks'
+import BaitPage from '../components/bait/BaitPage'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
@@ -130,42 +132,8 @@ const BAIT_KIND = {
 };
 function baitName(b, lang) { return (lang === 'en' ? b.en : b.de) || b.en || b.key; }
 
-/* ----------------------------------------------------------- Größenstufen */
-
-/* Das Spiel führt 18 Größenstufen. Zu jeder steht, welches Fischgewicht sie
-   fängt – getrennt für Haken, Kunstköder und Fliege – und welche Fischlänge
-   die zugehörige Ködergröße abdeckt. Die Spaltbreite des Hakens steht in
-   Metern daneben. */
+/* The size steps themselves now live in src/lib/hooks.ts. */
 const HOOKS = G.hooks || null;
-
-/** Stufen, deren Spanne sich mit [lo, hi] überschneidet. Leere Stufen zählen nicht. */
-function fitSteps(table, lo, hi) {
-    const out = [];
-    if (!table) return out;
-    for (let i = 0; i < table.length; i++) {
-        const a = table[i][0], b = table[i][1];
-        if (b <= 0) continue;
-        if (a <= hi && b >= lo) out.push(i);
-    }
-    return out;
-}
-/* Die Beschriftung (#12 … #12/0) baut das Spiel in UtilitiesUnits.GetHookSizeString
-   aus dem Index zusammen; hooks.ps1 legt sie deshalb als Liste mit ab. */
-function stepLabel(i) {
-    if (HOOKS && HOOKS.label && HOOKS.label[i]) return HOOKS.label[i];
-    return 'Stufe ' + (i + 1);
-}
-function stepRange(idx) {
-    if (!idx.length) return null;
-    const a = stepLabel(idx[0]), b = stepLabel(idx[idx.length - 1]);
-    return a === b ? a : a + ' – ' + b;
-}
-function gapRange(idx) {
-    if (!idx.length || !HOOKS || !HOOKS.gap) return null;
-    const a = Math.round(HOOKS.gap[idx[0]] * 1000);
-    const b = Math.round(HOOKS.gap[idx[idx.length - 1]] * 1000);
-    return a === b ? a + ' mm' : a + '–' + b + ' mm';
-}
 
 /* ------------------------------------------------------- Köder-Übersetzung */
 
@@ -854,139 +822,6 @@ function Sources(props) {
             }))));
 }
 
-
-/* -------------------------------------------------------------- Köderseite */
-
-const BAIT_GROUPS = [
-    { kind: 'natural', title: 'Naturköder', note: 'Werden am Haken angeboten, mehrere Stücke vergrößern den Anziehungsradius.' },
-    { kind: 'boilie', title: 'Boilies', note: 'Für Karpfen und Großfisch, an der Haarmontage.' },
-    { kind: 'fly', title: 'Fliegen', note: 'Vier Typen, unterschiedlich tief geführt.' },
-    { kind: 'lure', title: 'Kunstköder', note: 'Werden aktiv geführt; die Führungsart entscheidet mit über den Biss.' }
-];
-
-function BaitPage(props) {
-    const [open, setOpen] = useState(null);
-    const [q, setQ] = useState('');
-    const [onlySpecies, setOnlySpecies] = useState(null);
-    const lang = props.lang;
-
-    const list = useMemo(function () {
-        const all = Object.keys(BAITS).map(function (k) { return BAITS[k]; });
-        return all.filter(function (b) {
-            if (onlySpecies && !b.fish[onlySpecies]) return false;
-            if (!q) return true;
-            const needle = q.toLowerCase();
-            if ((b.de + ' ' + b.en).toLowerCase().indexOf(needle) >= 0) return true;
-            // auch nach Fischnamen suchen: „Karpfen“ findet alle Karpfenköder
-            return Object.keys(b.fish).some(function (s) {
-                return speciesName(s, lang).toLowerCase().indexOf(needle) >= 0;
-            });
-        }).sort(function (a, b) {
-            if (onlySpecies) return b.fish[onlySpecies] - a.fish[onlySpecies];
-            return baitName(a, lang).localeCompare(baitName(b, lang));
-        });
-    }, [q, onlySpecies, lang]);
-
-    if (!Object.keys(BAITS).length) {
-        return h('div', { className: 'ufs-note' },
-            'Keine Köderdaten geladen. Die Tabelle entsteht beim Auslesen der Spieldateien.');
-    }
-
-    function card(b) {
-        const isOpen = open === b.key;
-        const entries = Object.keys(b.fish)
-            .map(function (s) { return { s: s, v: b.fish[s] }; })
-            .sort(function (x, y) { return y.v - x.v; });
-        const top = entries.slice(0, 3).map(function (e) { return speciesName(e.s, lang); }).join(', ');
-        return h('div', {
-            key: b.key,
-            className: cn('ufs-baitcard has', isOpen && 'open'),
-            onClick: function () { setOpen(isOpen ? null : b.key); }
-        },
-            h('div', { className: 'de' }, baitName(b, lang)),
-            h('div', { className: 'en' }, lang === 'en' ? b.de : b.en),
-            h('div', { className: 'cnt' },
-                entries.length + ' Arten' + (top ? ' · am stärksten: ' + top : '')),
-            isOpen
-                ? h('div', { className: 'list', style: { gridTemplateColumns: '1fr' } },
-                    h('div', { className: 'ufs-baitlist' }, entries.map(function (e) {
-                        return h('div', { key: e.s, className: 'row' },
-                            h('span', { className: 'nm' }, speciesName(e.s, lang)),
-                            h('span', { className: 'bar' }, h('span', { style: { width: Math.round(e.v * 100) + '%' } })),
-                            h('span', { className: 'vl' }, Math.round(e.v * 100) + ' %'));
-                    })))
-                : null);
-    }
-
-    return h('div', null,
-        h('div', { className: 'ufs-note ok', style: { marginBottom: '1rem' } },
-            'Jedes Köder-Prefab im Spiel führt eine Liste, wie stark sich welche Art für ihn interessiert – ',
-            'ein Wert zwischen 0 und 100 %. Diese Tabellen stehen hier unverändert. ',
-            'Sie sagen nichts über Hakengröße und Führung; das bleiben Erfahrungswerte.'),
-
-        h('div', { className: 'ufs-row', style: { marginBottom: '.9rem' } },
-            h('input', {
-                value: q, onChange: function (e) { setQ(e.target.value); },
-                placeholder: 'Köder oder Fisch suchen …',
-                className: 'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50',
-                style: { minWidth: '240px' }
-            }),
-            onlySpecies
-                ? h(Toggle, { active: true, onClick: function () { setOnlySpecies(null); } },
-                    'nur für ' + speciesName(onlySpecies, lang))
-                : null,
-            h('span', { className: 'ufs-muted', style: { fontSize: '11.5px' } },
-                list.length + ' von ' + Object.keys(BAITS).length + ' Ködern')),
-
-        BAIT_GROUPS.map(function (g) {
-            const items = list.filter(function (b) { return b.kind === g.kind; });
-            if (!items.length) return null;
-            return h('section', { key: g.kind, className: 'ufs-spotcard', style: { marginBottom: '1rem' } },
-                h('h3', null, g.title + ' · ' + items.length),
-                h('p', { className: 'ufs-muted', style: { fontSize: '11.5px', margin: '0 0 .7rem', lineHeight: 1.55 } }, g.note),
-                h('div', { className: 'ufs-baitgrid' }, items.map(card)));
-        }),
-
-        HOOKS ? h('section', { className: 'ufs-spotcard', style: { marginBottom: '1rem' } },
-            h('h3', null, 'Hakengrößen · ' + HOOKS.steps),
-            h('p', { className: 'ufs-muted', style: { fontSize: '11.5px', margin: '0 0 .7rem', lineHeight: 1.55 } },
-                'Zu jeder Größe steht, welches Fischgewicht sie fängt; die Spanne wandert mit der Größe nach oben. ',
-                'Ein zu großer Haken lässt kleine Fische aus – daher die Meldung im Spiel, es mit einem kleineren ',
-                'zu versuchen. Kunstköder greifen erst ab #8, Fliegen ab #4.'),
-            h('div', { style: { overflowX: 'auto' } },
-                h('table', { className: 'ufs-rec' },
-                    h('thead', null, h('tr', null,
-                        h('th', null, 'Größe'), h('th', null, 'Spalt'),
-                        h('th', null, 'Haken · Fischgewicht'), h('th', null, 'Kunstköder'),
-                        h('th', null, 'Fliege'), h('th', null, 'Ködergröße · Fischlänge'))),
-                    h('tbody', null, HOOKS.hook.map(function (row, i) {
-                        function rng(t, unit, scale) {
-                            if (!t || !t[i] || t[i][1] <= 0) return '–';
-                            const a = t[i][0] * (scale || 1), b = t[i][1] * (scale || 1);
-                            return Math.round(a) + '–' + Math.round(b) + ' ' + unit;
-                        }
-                        return h('tr', { key: i },
-                            h('td', { className: 'n' }, stepLabel(i)),
-                            h('td', { className: 'num' }, Math.round(HOOKS.gap[i] * 1000) + ' mm'),
-                            h('td', { className: 'num' }, rng(HOOKS.hook, 'kg')),
-                            h('td', { className: 'num' }, rng(HOOKS.lure, 'kg')),
-                            h('td', { className: 'num' }, rng(HOOKS.fly, 'kg')),
-                            h('td', { className: 'num' }, rng(HOOKS.baitLength, 'cm', 100)));
-                    })))))
-            : null,
-
-        h('section', { className: 'ufs-spotcard' },
-            h('h3', null, 'Was der Biss sonst noch braucht'),
-            h('p', { className: 'ufs-muted', style: { fontSize: '12px', lineHeight: 1.65, margin: '.2rem 0 0' } },
-                'Neben dem Köder gewichtet das Spiel neun Regler, jeder mit einer eigenen Kurve je Art: ',
-                'Uhrzeit, Hunger, Ködertiefe, Temperatur, Wind, Luftdruck, Bewölkung, Regen und Ködergeschwindigkeit. ',
-                'Gefüllt sind davon nur vier – Uhrzeit, Wind, Bewölkung und Regen. Die übrigen fünf stehen bei allen ',
-                '134 Arten auf der Konstanten 1 und wirken damit nicht. ',
-                h('b', { style: { color: '#cbd5e1' } }, 'Insbesondere die Ködertiefe: '),
-                'sie entscheidet nicht darüber, ob ein Fisch beißt, sondern nur darüber, ob der Köder dort ankommt, ',
-                'wo der Schwarm steht. Tiefenangaben in Guides sind also Beobachtungen über den Standort der Fische, ',
-                'keine Vorliebe.')));
-}
 
 /* ----------------------------------------------------------- Rekordseite */
 
@@ -2888,7 +2723,7 @@ function App() {
                     onOpenUser: function (n) { setAngler(n); setAnglerTab('uebersicht'); setView('angler'); },
                     onOpenGroups: function () { setGroupId(null); setView('gruppen'); }
                 })
-                : view === 'bait' ? h(BaitPage, { lang: lang })
+                : view === 'bait' ? h(BaitPage, null)
                 : view === 'gruppen' ? h(GroupsPage, {
                     me: me, openId: groupId, onOpen: setGroupId,
                     onOpenUser: function (name) { setAngler(name); setAnglerTab('uebersicht'); setView('angler'); },

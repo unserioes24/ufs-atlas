@@ -272,6 +272,34 @@ export const de = {
   'col.state': 'Stand',
   'col.noProfile': 'kein Profil',
 
+  // ------------------------------------------------------------- Köderseite
+  'bait.intro':
+    'Jedes Köder-Prefab im Spiel führt eine Liste, wie stark sich welche Art für ihn interessiert – ein Wert zwischen 0 und 100 %. Diese Tabellen stehen hier unverändert. Sie sagen nichts über Hakengröße und Führung; das bleiben Erfahrungswerte.',
+  'bait.searchPlaceholder': 'Köder oder Fisch suchen …',
+  'bait.onlyFor': 'nur für {name}',
+  'bait.countOf': '{shown} von {total} Ködern',
+  'bait.speciesCount': '{n} Arten',
+  'bait.strongest': 'am stärksten: {list}',
+  'bait.naturalNote':
+    'Werden am Haken angeboten, mehrere Stücke vergrößern den Anziehungsradius.',
+  'bait.boilieNote': 'Für Karpfen und Großfisch, an der Haarmontage.',
+  'bait.flyNote': 'Vier Typen, unterschiedlich tief geführt.',
+  'bait.lureNote':
+    'Werden aktiv geführt; die Führungsart entscheidet mit über den Biss.',
+  'bait.hookSizes': 'Hakengrößen',
+  'bait.hookText':
+    'Zu jeder Größe steht, welches Fischgewicht sie fängt; die Spanne wandert mit der Größe nach oben. Ein zu großer Haken lässt kleine Fische aus – daher die Meldung im Spiel, es mit einem kleineren zu versuchen. Kunstköder greifen erst ab #8, Fliegen ab #4.',
+  'bait.colSize': 'Größe',
+  'bait.colGap': 'Spalt',
+  'bait.colHook': 'Haken · Fischgewicht',
+  'bait.colBaitSize': 'Ködergröße · Fischlänge',
+  'bait.biteTitle': 'Was der Biss sonst noch braucht',
+  'bait.biteText':
+    'Neben dem Köder gewichtet das Spiel neun Regler, jeder mit einer eigenen Kurve je Art: Uhrzeit, Hunger, Ködertiefe, Temperatur, Wind, Luftdruck, Bewölkung, Regen und Ködergeschwindigkeit. Gefüllt sind davon nur vier – Uhrzeit, Wind, Bewölkung und Regen. Die übrigen fünf stehen bei allen Arten auf der Konstanten 1 und wirken damit nicht.',
+  'bait.depthLead': 'Insbesondere die Ködertiefe:',
+  'bait.depthText':
+    'sie entscheidet nicht darüber, ob ein Fisch beißt, sondern nur darüber, ob der Köder dort ankommt, wo der Schwarm steht. Tiefenangaben in Guides sind also Beobachtungen über den Standort der Fische, keine Vorliebe.',
+
   // Teile eines Rutensets, wie der Spielstand sie führt
   'slot.rod': 'Rute',
   'slot.iceRod': 'Eisrute',
