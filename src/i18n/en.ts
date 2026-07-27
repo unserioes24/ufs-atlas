@@ -387,6 +387,11 @@ export const en: Partial<Dict> = {
   'gloss.gear.title': 'Rig & equipment',
   'gloss.gear.note': '',
 
+  'gear.set': 'Set {n}',
+  'gear.hookStep': 'Hook step',
+  'gear.depth': 'Depth',
+  'gear.shot': 'Shot',
+
   // Equipment classes from the save file
   'cat.ROD': 'Rods',
   'cat.ICE_ROD': 'Ice rods',

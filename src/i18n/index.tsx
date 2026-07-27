@@ -83,6 +83,6 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
 export function useI18n(): I18n {
   const ctx = useContext(Ctx)
-  if (!ctx) throw new Error('useI18n außerhalb des I18nProvider benutzt')
+  if (!ctx) throw new Error('useI18n used outside the I18nProvider')
   return ctx
 }

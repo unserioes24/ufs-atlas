@@ -392,6 +392,11 @@ export const de = {
   'gloss.gear.title': 'Montage & Ausrüstung',
   'gloss.gear.note': '',
 
+  'gear.set': 'Set {n}',
+  'gear.hookStep': 'Hakenstufe',
+  'gear.depth': 'Tiefe',
+  'gear.shot': 'Schrot',
+
   // Ausrüstungsklassen aus dem Spielstand
   'cat.ROD': 'Ruten',
   'cat.ICE_ROD': 'Eisruten',

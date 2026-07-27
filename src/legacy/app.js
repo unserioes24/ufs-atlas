@@ -22,6 +22,8 @@ import {
 } from '../components/species/facts'
 import SpeciesPage from '../components/species/SpeciesPage'
 import { FishCard } from '../components/species/FishCard'
+import { RodSets } from '../components/profile/RodSets'
+import { categoryLabel } from '../lib/gear'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
@@ -455,66 +457,6 @@ function RecordsPage(props) {
                 })))));
 }
 
-/* ------------------------------------------------------------- Rutensets */
-
-/** Item-Kürzel aus dem Spielstand -> lesbarer Name (Köder über die Spielsprache). */
-const ITEM_NAMES = {};
-(function () {
-    const cats = (G.glossary || {}).categories || [];
-    cats.forEach(function (c) {
-        c.items.forEach(function (it) {
-            const seg = String(it.key).split('/').pop();
-            if (seg) ITEM_NAMES[seg] = it.de;
-        });
-    });
-})();
-
-const CATEGORY_LABELS = {
-    ROD: 'Ruten', ICE_ROD: 'Eisruten', ROD_STAND: 'Ständer', REEL: 'Rollen', LINE: 'Schnüre',
-    FLOAT: 'Posen', HOOK: 'Haken', BAIT: 'Naturköder', BOILIE: 'Boilies', FEEDER: 'Feeder',
-    FEEDER_BAIT: 'Feederköder', BITE_INDICATOR: 'Bissanzeiger', LURE: 'Kunstköder',
-    SPOON: 'Blinker', SPINNER: 'Spinner', WOBBLER: 'Wobbler', SOFT: 'Gummiköder',
-    FLY: 'Fliegen', BOAT: 'Boote', DRILLER: 'Bohrer', FISHING: 'Kescher',
-    GAS: 'Gaskocher', BEER: 'Getränke', FILLET: 'Filets', ICE: 'Eis-Ausrüstung'
-};
-function categoryLabel(c) { return CATEGORY_LABELS[c] || c.replace(/_/g, ' '); }
-
-function itemLabel(id) {
-    if (!id) return null;
-    let s = String(id).replace(/^(FEEDER_BAIT|BAIT|BOILIE)_/, '');
-    if (ITEM_NAMES[s]) return ITEM_NAMES[s];
-    const noNum = s.replace(/_\d+$/, '');
-    if (ITEM_NAMES[noNum]) return ITEM_NAMES[noNum];
-    // Produktbezeichnungen nur aufhübschen: ROD_ABU_GARCIA_02 -> Abu Garcia 02
-    const parts = String(id).replace(/^(ICE_ROD|ROD_STAND|FEEDER_BAIT|BITE_INDICATOR|[A-Z]+)_/, '').split('_');
-    return parts.map(function (p) {
-        if (/^\d+$/.test(p)) return p.replace(/^0+(?=\d)/, '');
-        return p.charAt(0) + p.slice(1).toLowerCase();
-    }).join(' ');
-}
-
-function RodSets(props) {
-    const t = useI18n().t;
-    const sets = props.sets || [];
-    if (!sets.length) return null;
-    return h('div', { className: 'ufs-setgrid' }, sets.map(function (s) {
-        return h('div', { key: s.n, className: 'ufs-setcard' },
-            h('div', { className: 'hd' }, 'Set ' + s.n),
-            h('div', { className: 'rows' },
-                s.parts.map(function (p) {
-                    return h('div', { key: p.slot },
-                        h('span', null, t(p.slot)), h('em', null, itemLabel(p.id)));
-                }),
-                s.baits.length
-                    ? h('div', null, h('span', null, 'Köder'),
-                        h('em', null, s.baits.map(itemLabel).join(', ')))
-                    : null),
-            h('div', { className: 'ft' },
-                typeof s.hookSize === 'number' ? h('span', null, 'Hakenstufe ', h('b', null, s.hookSize)) : null,
-                typeof s.depth === 'number' ? h('span', null, 'Tiefe ', h('b', null, s.depth)) : null,
-                typeof s.weight === 'number' ? h('span', null, 'Schrot ', h('b', null, s.weight)) : null));
-    }));
-}
 
 /* ---------------------------------------------------------- Statistikseite */
 
@@ -551,6 +493,7 @@ function fmtWhen(iso) {
 }
 
 function StatsPage(props) {
+    const t = useI18n().t;
     const stats = props.stats;
     const TABS = { fische: 'arten', arten: 'arten', sets: 'sets', vergleich: 'vergleich', reviere: 'reviere' };
     const [tab, setTab] = useState(TABS[props.tab] || 'reviere');
@@ -630,7 +573,7 @@ function StatsPage(props) {
                         h('div', { className: 'ufs-row' },
                             Object.keys(p.owned).sort(function (a, b) { return p.owned[b] - p.owned[a]; })
                                 .map(function (c) {
-                                    return h('span', { key: c, className: 'ufs-chip' }, categoryLabel(c) + ': ' + p.owned[c]);
+                                    return h('span', { key: c, className: 'ufs-chip' }, categoryLabel(c, t) + ': ' + p.owned[c]);
                                 })))
                     : null)
             : null,
