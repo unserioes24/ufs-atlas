@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Eigene Bausteine, die kein Tailwind-Gegenstück haben. Sie standen bisher im
+   <style>-Block von index.html. */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background: theme('colors.abgrund');
+  }
+  ::selection {
+    background: rgba(34, 211, 238, 0.28);
+  }
+}
+
+@layer components {
+  /* Feines Raster im Hintergrund, wie Tiefenlinien auf einer Seekarte */
+  .water-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* Milchglas für Kopfzeile und Seitenmenüs */
+  .glass {
+    background: linear-gradient(180deg, rgba(16, 31, 42, 0.86), rgba(8, 20, 29, 0.8));
+    backdrop-filter: blur(18px);
+  }
+
+  .scrollbar::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.24);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+    color: black;
+  }
+  .print-card {
+    break-inside: avoid;
+    border: 1px solid #ddd !important;
+    background: white !important;
+    color: black !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-floaty {
+    animation: none;
+  }
+}

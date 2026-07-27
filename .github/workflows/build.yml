@@ -1,0 +1,65 @@
+name: Build
+
+# Der Guide hat keinen Server-Anteil im Build: aus TypeScript und den
+# Spieldaten entsteht ein Ordner mit fertigen Dateien. Der Auslieferungsschritt
+# liegt weiterhin bei GitLab, wo die Zugangsdaten stehen.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Typen prüfen
+        run: npm run check
+
+      - name: Bauen
+        run: npm run build
+
+      - name: Ergebnis sichern
+        uses: actions/upload-artifact@v4
+        with:
+          name: ufs-atlas-dist
+          path: dist/
+          retention-days: 14
+
+  # Ein Tag v1.2.3 hängt das gebaute Ergebnis als Archiv an die Veröffentlichung.
+  # Darin steckt nur, was der Browser braucht – keine Werkzeuge, kein Servercode.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ufs-atlas-dist
+          path: dist
+
+      - name: Archiv packen
+        run: cd dist && zip -r ../ufs-atlas-${{ github.ref_name }}.zip .
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: ufs-atlas-${{ github.ref_name }}.zip
+          generate_release_notes: true

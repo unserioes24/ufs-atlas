@@ -15,3 +15,7 @@ desktop.ini
 
 # Prüfseite für den lokalen Rendertest
 _check.html
+
+# Node und Build
+node_modules/
+dist/
