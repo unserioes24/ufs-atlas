@@ -7,7 +7,10 @@
  * and this file shrinks until it disappears.
  */
 import React from 'react'
-import { GAME, GUIDE, norm } from '../data'
+import {
+    BAITS, BAITS_FOR, FISHERIES, GAME, GUIDE, HOOKS, SPECIES,
+    baitName, norm, speciesKey, speciesName,
+} from '../data'
 import { API_AVAILABLE, api } from '../lib/api'
 import { DASH, cn, fmtAgo, fmtNum, fmtTime, fmtWhen, newerThan } from '../lib/format'
 import { Badge, Bar, Icon, Mini, Select } from '../components/primitives'
@@ -40,8 +43,7 @@ const h = React.createElement
 
 const D = GUIDE
 const G = GAME
-const SPECIES = G.species || {};
-const FISHERIES = G.fisheries || {};
+
 
 const accent = {
     cyan: 'from-cyan-400/20 via-blue-500/10 to-transparent', sky: 'from-sky-400/20 via-cyan-500/10 to-transparent',
@@ -56,96 +58,8 @@ const accent = {
     stone: 'from-stone-400/15 via-slate-500/10 to-transparent'
 };
 
-
-/* ------------------------------------------------------------------ Arten */
-
-const enIndex = {}, deIndex = {};
-Object.keys(SPECIES).forEach(function (k) {
-    const s = SPECIES[k];
-    if (s.en && !enIndex[norm(s.en)]) enIndex[norm(s.en)] = k;
-    if (s.de && !deIndex[norm(s.de)]) deIndex[norm(s.de)] = k;
-});
-
-/* Der Guide nennt einige Arten anders als das Spiel: teils eine Kurzform,
-   teils den gebräuchlicheren Handelsnamen. */
-const NAME_ALIAS = {
-    apapa: 'APAPA',                     // im Spiel „Apapá“
-    grayling: 'WHITE_GRAYLING',         // Baikal, im Spiel „White Grayling“
-    commonbleak: 'BLEAK',
-    longfineel: 'LONGFIN_EEL',          // im Spiel „New Zealand longfin eel“
-    redlionfish: 'COMMON_LIONFISH',
-    graysnapper: 'GREY_SNAPER'          // Schreibweise des Spiels
-};
-
-/* Manche Fische stecken doppelt in den Spieldaten, einmal je Revier-Generation.
-   Steht die eine Fassung nicht im Revier, ist die andere gemeint. */
-const EQUIV = [
-    ['GREAT_BARRACUDA', 'BARRACUDA'],
-    ['GRAY_SNAPPER_C', 'GREY_SNAPER'],
-    ['GIANT_GROUPER', 'GIANT_GROUPER_D'],
-    ['BLACKTIP_REEF_SHARK', 'BLACKTIP_SHARK_D']
-];
-
-/** Guide-Eintrag -> Artenschlüssel der Spieldaten (oder null). */
-function speciesKey(name, de, mapId) {
-    let k = NAME_ALIAS[norm(name)] || NAME_ALIAS[norm(de)]
-        || enIndex[norm(name)] || deIndex[norm(de)] || enIndex[norm(de)] || deIndex[norm(name)] || null;
-    if (!k || !mapId) return k;
-
-    // Führt der Schlüssel in diesem Revier ins Leere, die Zwillingsart nehmen.
-    const fy = FISHERIES[mapId];
-    if (!fy) return k;
-    const here = {};
-    fy.species.forEach(function (g) { here[g.s] = true; });
-    if (here[k]) return k;
-    for (let i = 0; i < EQUIV.length; i++) {
-        if (EQUIV[i].indexOf(k) < 0) continue;
-        for (let j = 0; j < EQUIV[i].length; j++) {
-            if (here[EQUIV[i][j]]) return EQUIV[i][j];
-        }
-    }
-    return k;
-}
-function speciesName(key, lang) {
-    const s = SPECIES[key];
-    if (!s) return key;
-    return (lang === 'en' ? s.en : s.de) || s.en || s.de || key;
-}
-
 /* ------------------------------------------------------------ Köderdaten */
 
-/* Jedes Köder-Prefab im Spiel führt Buch darüber, wie stark sich welche Art
-   für ihn interessiert – ein Wert zwischen 0 und 1. In gamedata.js steht das
-   platzsparend als "Index:Prozent", hier wird es einmal ausgepackt. */
-const BAIT_SPECIES = G.baitSpecies || [];
-const BAITS = {};
-Object.keys(G.baits || {}).forEach(function (k) {
-    const b = G.baits[k];
-    const fish = {};
-    String(b.i || '').split(',').forEach(function (pair) {
-        if (!pair) return;
-        const p = pair.split(':');
-        const key = BAIT_SPECIES[Number(p[0])];
-        if (key) fish[key] = Number(p[1]) / 100;
-    });
-    BAITS[k] = { key: k, en: b.en, de: b.de, kind: b.kind, fish: fish };
-});
-
-/** Umgekehrte Sicht: welche Köder taugen für eine Art, absteigend sortiert. */
-const BAITS_FOR = {};
-Object.keys(BAITS).forEach(function (k) {
-    const b = BAITS[k];
-    Object.keys(b.fish).forEach(function (s) {
-        (BAITS_FOR[s] = BAITS_FOR[s] || []).push({ bait: b, v: b.fish[s] });
-    });
-});
-Object.keys(BAITS_FOR).forEach(function (s) {
-    BAITS_FOR[s].sort(function (a, b) { return b.v - a.v || a.bait.de.localeCompare(b.bait.de); });
-});
-function baitName(b, lang) { return (lang === 'en' ? b.en : b.de) || b.en || b.key; }
-
-/* The size steps themselves now live in src/lib/hooks.ts. */
-const HOOKS = G.hooks || null;
 
 
 
