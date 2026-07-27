@@ -176,7 +176,7 @@ namespace Ufs
         }
 
         /// Sucht in allen MonoBehaviours einer Datei nach PPtr-Verweisen (fileID, pathID)
-        /// auf die angegebenen Ziel-pathIDs. Liefert Klasse und Größe des Verweisenden.
+        /// at the given target pathIDs. Returns the class and size of the referrer.
         public static string FindRefs(string file, int fileId, long[] targets)
         {
             SerializedFile sf = new SerializedFile(file);
@@ -199,9 +199,9 @@ namespace Ufs
             return "treffer=" + hits.Count + "\n" + string.Join("\n", hits.ToArray());
         }
 
-        /// Listet MonoBehaviours mit eigenem Namen (ScriptableObjects, also
-        /// Datenobjekte ohne GameObject) – dort liegen in Unity üblicherweise
-        /// Ausrüstungs- und Item-Definitionen.
+        /// Lists MonoBehaviours that carry a name of their own (ScriptableObjects,
+        /// that is data objects without a GameObject) – in Unity that is usually
+        /// where equipment and item definitions sit.
         public static string ListScriptables(string file, string nameRegex)
         {
             SerializedFile sf = new SerializedFile(file);

@@ -7,8 +7,8 @@ using System.Text;
 namespace Ufs
 {
     /// <summary>
-    /// Liest die FishSpawner einer Szene mit dem echten Feld-Layout der Klasse,
-    /// so wie es in Assembly-CSharp.dll steht:
+    /// Reads a scene's FishSpawners using the class's real field layout, the way
+    /// Assembly-CSharp.dll spells it out:
     ///
     ///     Fish.Species species;      // [ReadOnly] enum, int32
     ///     Fish         fishPrefab;   // PPtr
@@ -19,8 +19,8 @@ namespace Ufs
     ///           spawnersParent, alwaysSpawn, spawnAtStart;
     ///     float maxFishAwayDistance, fishSizeMultiplier;
     ///
-    /// Die frühere Fassung hatte die Liste der DLC-Arten übersehen und deshalb
-    /// angenommen, das New-Fish-Species-DLC habe gar keine Spawnpunkte.
+    /// An earlier version had missed the list of DLC species and concluded from
+    /// that the New Fish Species DLC has no spawn points at all.
     /// </summary>
     public class SpawnerDlc
     {
@@ -47,7 +47,7 @@ namespace Ufs
             public bool Ok;
         }
 
-        /// <summary>Zerlegt einen MonoBehaviour-Block nach obigem Layout.</summary>
+        /// <summary>Takes a MonoBehaviour block apart along the layout above.</summary>
         static Parsed Parse(byte[] d)
         {
             Parsed p = new Parsed();

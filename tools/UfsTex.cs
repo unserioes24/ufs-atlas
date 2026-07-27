@@ -130,8 +130,8 @@ namespace Ufs
             }
         }
 
-        /// Wie Save, aber ohne Zuschnitt und auf maxDim herunterskaliert (für den 3D-Viewer,
-        /// dessen UVs die vollständige Textur brauchen).
+        /// Like Save, but without cropping and scaled down to maxDim, for callers whose
+        /// UVs need the full texture.
         public static string SaveScaled(string dataFile, long offset, int size, int w, int h, int fmt, string outJpg, int maxDim)
         {
             byte[] raw = new byte[size];

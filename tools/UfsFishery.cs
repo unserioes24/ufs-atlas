@@ -121,8 +121,8 @@ namespace Ufs
             }
 
             // --- Karten-Tafeln ---
-            // Jede Szene hat getrennte Tafeln für Sommer (MapParentNormal) und Eisfischen
-            // (MapParentIce). Buttons hängen direkt an der Tafel, das MapImage liegt eine
+            // Every scene has separate boards for summer (MapParentNormal) and ice
+            // fishing (MapParentIce). Buttons hang off the board itself, the MapImage sits one
             // Ebene tiefer unter MapBackground.
             var panelOfButton = new Dictionary<long, long>();   // buttonGo -> Tafel-Transform
             foreach (long bgo in buttons)
@@ -150,7 +150,7 @@ namespace Ufs
                 panelName[kv.Value] = nm == null ? "" : nm;
             }
 
-            // --- map image rect (erste Tafel, für Rückwärtskompatibilität) ---
+            // --- map image rect (first board, kept for backwards compatibility) ---
             float imgAx = 0, imgAy = 0, imgW = 0, imgH = 0, imgS = 1;
             if (mapImageGo != 0)
             {
@@ -222,7 +222,7 @@ namespace Ufs
             j.Append(",\"mapImage\":{\"ax\":").Append(F(imgAx)).Append(",\"ay\":").Append(F(imgAy));
             j.Append(",\"w\":").Append(F(imgW)).Append(",\"h\":").Append(F(imgH)).Append(",\"scale\":").Append(F(imgS)).Append("}");
 
-            // Tafeln in stabiler Reihenfolge: erst die mit den meisten Buttons.
+            // Boards in a stable order: the one with the most buttons first.
             var panelIds = new List<long>();
             foreach (var kv in panelOfButton) if (!panelIds.Contains(kv.Value)) panelIds.Add(kv.Value);
             panelIds.Sort(delegate (long a, long b)
@@ -281,20 +281,20 @@ namespace Ufs
             }
             j.Append(']');
 
-            // Zusatzarten des New-Fish-Species-DLC. Im GameController stehen die
+            // Extra species of the New Fish Species DLC. In GameController the
             // drei Felder unmittelbar hintereinander:
             //
             //   List<Fish>        fishFromDLC
             //   float             fishSpawnersDLCAmount
             //   List<FishSpawner> fishSpawnersDLC
             //
-            // Das ergibt die Folge [int n][n PPtr][float][int m]. Die Spawnerliste
-            // ist in allen Szenen leer (m == 0): das Spiel gibt den DLC-Arten zur
-            // Laufzeit einen Anteil der gewöhnlichen Spawner, feste Plätze haben
-            // sie nicht. Der Anteil steht in fishSpawnersDLCAmount.
-            // Das Muster ist schmal, aber nicht eindeutig: in einem Block von
-            // mehreren Kilobyte trifft es gelegentlich auch auf andere Felder zu.
-            // Deshalb kommen alle Kandidaten heraus; build.ps1 nimmt den, dessen
+            // That gives the sequence [int n][n PPtr][float][int m]. The spawner list
+            // is empty in every scene (m == 0): at runtime the game hands the DLC
+            // species a share of the ordinary spawners, they have no fixed places of
+            // their own. That share sits in fishSpawnersDLCAmount.
+            // The pattern is narrow but not unique: inside a block of several
+            // kilobytes it occasionally matches other fields as well. So every
+            // candidate comes out; build.ps1 takes the one whose
             // Verweise sich sämtlich als Fisch-Prefabs auflösen lassen.
             j.Append(",\"dlcCandidates\":[");
             bool firstCand = true;
@@ -362,16 +362,16 @@ namespace Ufs
                 species = species.Substring("FishSpawner_".Length);
 
                 // FishSpawner, Feldreihenfolge laut Assembly-CSharp.dll:
-                //   Fish.Species species;        int32, in den Szenen durchweg 132
+                //   Fish.Species species;        int32, 132 throughout the scenes
                 //   Fish         fishPrefab;     PPtr
                 //   List<Fish>   fishPrefabs;    int32 Anzahl + PPtr je Eintrag
                 //   List<Fish>   fishPrefabsDLC; ebenso
                 //   int          count;
-                //   sechs bool, jeweils auf 4 Byte ausgerichtet
+                //   six bools, each aligned to 4 bytes
                 //   float        maxFishAwayDistance, fishSizeMultiplier;
                 //
-                // fishPrefabs ist die Liste der Arten, aus denen dieser Spawner
-                // würfelt. Kariba, Grönland und Thailand nutzen sie stark; eine
+                // fishPrefabs is the list of species this spawner draws from.
+                // Kariba, Greenland and Thailand lean on it heavily; a
                 // frühere Größenschranke hatte genau diese Spawner verworfen.
                 int refFile = 0; long refPath = 0; int cnt = 0; float radius = 0, sizeMul = 0;
                 var alts = new List<string>();
@@ -391,16 +391,16 @@ namespace Ufs
                             r.Skip(12);                 // PPtr m_GameObject
                             r.Skip(4);                  // m_Enabled samt Ausrichtung
                             r.Skip(12);                 // PPtr m_Script
-                            // Der FishSpawner trägt keinen Namen; die beiden anderen
+                            // The FishSpawner carries no name; the other two
                             // Bausteine am selben Objekt heißen "ObjectIcons/FishSpawner"
-                            // und "FISH_SPAWNER" und scheiden damit aus.
+                            // and "FISH_SPAWNER", which rules them out.
                             if (r.Str() != "") continue;
 
                             int speciesId = r.I32();
                             if (speciesId < 0 || speciesId > 200) continue;
 
-                            // fishPrefab darf leer sein: an Kariba und Grönland ist nur
-                            // die Liste gefüllt, der einzelne Verweis bleibt 0:0.
+                            // fishPrefab may be empty: at Kariba and Greenland only the
+                            // list is filled, the single reference stays 0:0.
                             int rf = r.I32(); long rp = r.I64();
 
                             var a2 = new List<string>();
