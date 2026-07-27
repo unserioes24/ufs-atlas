@@ -49,6 +49,13 @@ class Profile
     #[ORM\Column(type: 'json')] private array $fisheries = [];
     #[ORM\Column(type: 'json')] private array $caught = [];
 
+    /**
+     * Alles zum Angler, was über Name, Stufe und Punkte hinausgeht: Geld,
+     * Erfahrung, Glück, Kraft, die fünf Rutensets und die gekaufte Ausrüstung.
+     * Damit lässt sich der Stand im Browser vollständig wiederherstellen.
+     */
+    #[ORM\Column(type: 'json')] private array $details = [];
+
     #[ORM\Column] private \DateTimeImmutable $updatedAt;
 
     /** @var Collection<int, ProfileSpecies> */
@@ -104,6 +111,8 @@ class Profile
     public function setFisheries(array $v): void { $this->fisheries = $v; }
     public function getCaught(): array { return $this->caught; }
     public function setCaught(array $v): void { $this->caught = $v; }
+    public function getDetails(): array { return $this->details; }
+    public function setDetails(array $v): void { $this->details = $v; }
 
     public function getUpdatedAt(): \DateTimeImmutable { return $this->updatedAt; }
     public function touch(): void { $this->updatedAt = new \DateTimeImmutable(); }

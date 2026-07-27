@@ -22,6 +22,14 @@ class User
     #[ORM\Column(length: 60)]
     private string $name;
 
+    /**
+     * Hat sich das Konto den Namen selbst ausgesucht? Solange nicht, darf ein
+     * Spielstand-Import den zufällig vergebenen Namen durch den Anglernamen
+     * aus dem Spiel ersetzen.
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $namePicked = false;
+
     /** Für den Upload per curl/Aufgabenplanung, ohne Sitzung. */
     #[ORM\Column(length: 64, unique: true)]
     private string $apiToken;
@@ -31,6 +39,16 @@ class User
 
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $lastLoginAt = null;
+
+    /**
+     * „Angemeldet bleiben“: nur der Hash des Kekswerts wird gespeichert, und
+     * bei jedem Einsatz durch einen neuen ersetzt.
+     */
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $rememberHash = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $rememberUntil = null;
 
     #[ORM\OneToOne(mappedBy: 'user', targetEntity: Profile::class, cascade: ['persist', 'remove'])]
     private ?Profile $profile = null;
@@ -54,10 +72,31 @@ class User
     public function getId(): ?int { return $this->id; }
     public function getEmail(): string { return $this->email; }
     public function getName(): string { return $this->name; }
-    public function setName(string $n): void { $this->name = $n; }
+    public function setName(string $n, bool $picked = false): void
+    {
+        $this->name = $n;
+        if ($picked) {
+            $this->namePicked = true;
+        }
+    }
+    public function isNamePicked(): bool { return $this->namePicked; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
     public function getLastLoginAt(): ?\DateTimeImmutable { return $this->lastLoginAt; }
     public function touchLogin(): void { $this->lastLoginAt = new \DateTimeImmutable(); }
+
+    public function getRememberHash(): ?string { return $this->rememberHash; }
+    public function getRememberUntil(): ?\DateTimeImmutable { return $this->rememberUntil; }
+    public function setRemember(string $hash, \DateTimeImmutable $until): void
+    {
+        $this->rememberHash = $hash;
+        $this->rememberUntil = $until;
+    }
+    public function clearRemember(): void
+    {
+        $this->rememberHash = null;
+        $this->rememberUntil = null;
+    }
+
     public function getProfile(): ?Profile { return $this->profile; }
     public function setProfile(?Profile $p): void { $this->profile = $p; }
 

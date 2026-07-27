@@ -113,10 +113,19 @@ final class LocalImport
         $player = \is_array($stats['player'] ?? null) ? $stats['player'] : [];
 
         return [
+            // Die Zusatzangaben kommen unverändert vom Browser zurück, damit ein
+            // lokal übernommener Stand dasselbe enthält wie ein hochgeladener.
             'player' => [
                 'name' => \is_string($player['name'] ?? null) ? mb_substr($player['name'], 0, 60) : '',
                 'level' => (int) $this->num($player['level'] ?? 0, 0, 1000),
                 'score' => (int) $this->num($player['score'] ?? 0, 0, 1_000_000_000),
+                'money' => (int) $this->num($player['money'] ?? 0, 0, 1_000_000_000),
+                'exp' => (int) $this->num($player['exp'] ?? 0, 0, 1_000_000_000),
+                'luck' => $this->num($player['luck'] ?? 0, 0, 100),
+                'strength' => $this->num($player['strength'] ?? 0, 0, 100),
+                'version' => \is_string($player['version'] ?? null) ? mb_substr($player['version'], 0, 40) : null,
+                'sets' => \is_array($player['sets'] ?? null) ? \array_slice($player['sets'], 0, 5) : [],
+                'owned' => \is_array($player['owned'] ?? null) ? $player['owned'] : [],
             ],
             'species' => $species,
             'fisheries' => $fisheries,

@@ -16,15 +16,24 @@ if [ -n "$DATABASE_URL" ]; then
         sleep 2
     done
 
-    # Muss vor dem Schemaabgleich laufen: der eindeutige Index auf den
+    # Muss vor den Migrationen laufen: der eindeutige Index auf den
     # Benutzernamen entsteht erst, wenn keine Dubletten mehr existieren.
     php bin/console app:names:fix --no-interaction || true
 
-    # Kein Migrationsverlauf nötig: das Schema wird aus den Entities abgeleitet.
-    # Bewusst ohne --complete, damit nichts unbeabsichtigt entfernt wird.
-    echo "Schema abgleichen ..."
-    php bin/console doctrine:schema:update --force --no-interaction || \
-        echo "Schemaabgleich fehlgeschlagen – bitte Logs prüfen." >&2
+    php bin/console doctrine:migrations:sync-metadata-storage --no-interaction >/dev/null 2>&1 || true
+
+    # Bestehende Datenbanken sind vor Einführung der Migrationen entstanden.
+    # Steht app_user schon da, gilt der Ausgangsstand als eingespielt und wird
+    # nur verbucht. Ist er bereits verbucht, schlägt der Befehl fehl - egal.
+    if php bin/console dbal:run-sql "SELECT 1 FROM app_user LIMIT 1" >/dev/null 2>&1; then
+        php bin/console doctrine:migrations:version \
+            --add 'DoctrineMigrations\Version20260727090000' --no-interaction \
+            >/dev/null 2>&1 || true
+    fi
+
+    echo "Migrationen einspielen ..."
+    php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration || \
+        echo "Migration fehlgeschlagen - bitte Logs pruefen." >&2
 fi
 
 php bin/console cache:warmup --no-interaction || true

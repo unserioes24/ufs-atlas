@@ -154,13 +154,7 @@ final class SaveParser
         }
 
         return [
-            'player' => [
-                'name' => \is_string($raw['playerName'] ?? null) ? $raw['playerName'] : '',
-                'level' => (int) ($raw['playersLevel'] ?? 0),
-                'score' => (int) ($raw['playersScore'] ?? 0),
-                'money' => (int) ($raw['playersMoney'] ?? 0),
-                'exp' => (int) ($raw['playersExperience'] ?? 0),
-            ],
+            'player' => $this->player($raw),
             'species' => $species,
             'fisheries' => $fisheries,
             'totals' => $totals,
@@ -168,6 +162,77 @@ final class SaveParser
             'fisheriesComplete' => $complete,
             'biggest' => ['weight' => $bigW, 'weightSpecies' => $bigWKey, 'length' => $bigL, 'lengthSpecies' => $bigLKey],
             'topSpecies' => ['weight' => $topSum, 'key' => $topKey],
+        ];
+    }
+
+    /**
+     * Angaben zum Angler, einschließlich der fünf Rutensets und der Anzahl
+     * gekaufter Ausrüstung je Kategorie. Der Browser liest dieselben Schlüssel;
+     * beides muss übereinstimmen, damit ein über die Schnittstelle
+     * hochgeladener Stand im Guide genauso aussieht wie ein lokal geladener.
+     *
+     * @param array<string, mixed> $raw
+     */
+    private function player(array $raw): array
+    {
+        $slots = [
+            'ROD' => 'Rute', 'ICE_ROD' => 'Eisrute', 'REEL' => 'Rolle', 'LINE' => 'Schnur',
+            'FLOAT' => 'Pose', 'HOOK' => 'Haken', 'BOILIE' => 'Boilie', 'FEEDER' => 'Feeder',
+            'FEEDER_BAIT' => 'Feederköder', 'ROD_STAND' => 'Ständer', 'BITE_INDICATOR' => 'Bissanzeiger',
+        ];
+
+        $sets = [];
+        for ($n = 1; $n <= 5; $n++) {
+            $eq = $n === 1 ? 'currentEquipment_' : 'currentEquipment_' . $n . '_';
+            $bt = $n === 1 ? 'currentBaits_' : 'currentBaits_' . $n . '_';
+            $sfx = $n === 1 ? '' : $n . '_';
+
+            $parts = [];
+            foreach ($slots as $key => $label) {
+                $v = $raw[$eq . $key] ?? null;
+                if (\is_string($v) && $v !== '') {
+                    $parts[] = ['slot' => $label, 'id' => $v];
+                }
+            }
+            $baits = [];
+            for ($i = 0; $i < 3; $i++) {
+                $v = $raw[$bt . $i] ?? null;
+                if (\is_string($v) && $v !== '') {
+                    $baits[] = $v;
+                }
+            }
+            if (!$parts && !$baits) {
+                continue;
+            }
+            $sets[] = [
+                'n' => $n, 'parts' => $parts, 'baits' => $baits,
+                'depth' => $raw['currentFloatDepth' . $sfx] ?? null,
+                'weight' => $raw['currentFloatWeight' . $sfx] ?? null,
+                'hookSize' => $raw['currentHookSize' . $sfx] ?? null,
+            ];
+        }
+
+        $owned = [];
+        foreach ($raw as $k => $v) {
+            if ($v !== true || !preg_match('/^([A-Z][A-Z0-9_]+)_isBought$/', $k, $m)) {
+                continue;
+            }
+            preg_match('/^(ICE_ROD|ROD_STAND|FEEDER_BAIT|BITE_INDICATOR|[A-Z]+)/', $m[1], $c);
+            $cat = $c[1] ?? 'SONST';
+            $owned[$cat] = ($owned[$cat] ?? 0) + 1;
+        }
+
+        return [
+            'name' => \is_string($raw['playerName'] ?? null) ? $raw['playerName'] : '',
+            'level' => (int) ($raw['playersLevel'] ?? 0),
+            'score' => (int) ($raw['playersScore'] ?? 0),
+            'money' => (int) ($raw['playersMoney'] ?? 0),
+            'exp' => (int) ($raw['playersExperience'] ?? 0),
+            'luck' => (float) ($raw['playersLuck'] ?? 0),
+            'strength' => (float) ($raw['playersStrength'] ?? 0),
+            'version' => \is_string($raw['gameVersion'] ?? null) ? $raw['gameVersion'] : null,
+            'sets' => $sets,
+            'owned' => $owned,
         ];
     }
 

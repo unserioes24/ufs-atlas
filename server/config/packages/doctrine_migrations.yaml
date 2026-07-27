@@ -1,0 +1,7 @@
+doctrine_migrations:
+    migrations_paths:
+        'DoctrineMigrations': '%kernel.project_dir%/migrations'
+    enable_profiler: false
+    # Alle Änderungen am Schema laufen über Migrationen; ein Abgleich direkt
+    # aus den Entities findet nicht mehr statt.
+    transactional: true

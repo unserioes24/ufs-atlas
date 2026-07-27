@@ -57,10 +57,20 @@ class UserController extends AbstractController
             ];
         }
 
+        // Aus den Anglerdaten nur, was den Fortschritt zeigt – die Rutensets
+        // bleiben dem eigenen Konto vorbehalten.
+        $d = $p->getDetails();
+
         return [
             'anglerName' => $p->getAnglerName(),
             'level' => $p->getPlayerLevel(),
             'score' => $p->getPlayerScore(),
+            'money' => (int) ($d['money'] ?? 0),
+            'exp' => (int) ($d['exp'] ?? 0),
+            'luck' => (float) ($d['luck'] ?? 0),
+            'strength' => (float) ($d['strength'] ?? 0),
+            'version' => $d['version'] ?? null,
+            'owned' => \is_array($d['owned'] ?? null) ? $d['owned'] : [],
             'totals' => [
                 'fish' => $p->getTotalFish(),
                 'bites' => $p->getTotalBites(),
@@ -86,7 +96,30 @@ class UserController extends AbstractController
     #[Route('/users/{id}', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function show(int $id): JsonResponse
     {
-        $user = $this->em->getRepository(User::class)->find($id);
+        return $this->publicProfile($this->em->getRepository(User::class)->find($id));
+    }
+
+    /**
+     * Dasselbe Profil über den Anglernamen. Der Name ist eindeutig und steht in
+     * der Adressleiste – damit lässt sich ein Profil weitergeben, ohne dass
+     * jemand eine Nummer im Kopf behalten muss.
+     */
+    #[Route('/users/name/{name}', methods: ['GET'], requirements: ['name' => '.+'])]
+    public function showByName(string $name): JsonResponse
+    {
+        $user = $this->em->getRepository(User::class)->createQueryBuilder('u')
+            ->where('LOWER(u.name) = :n')->setParameter('n', mb_strtolower(trim($name)))
+            ->setMaxResults(1)->getQuery()->getOneOrNullResult();
+
+        return $this->publicProfile($user);
+    }
+
+    /**
+     * Ist jemand angemeldet, liegt das eigene Profil gleich mit in der Antwort:
+     * der Vergleich braucht beide Seiten und soll nicht zwei Anfragen kosten.
+     */
+    private function publicProfile(?User $user): JsonResponse
+    {
         if ($user === null) {
             return $this->json(['error' => 'Unbekanntes Profil.'], 404);
         }
@@ -101,6 +134,11 @@ class UserController extends AbstractController
             'user' => self::userPayload($user),
             'profile' => self::profilePayload($user->getProfile()),
             'following' => $follows,
+            'self' => $me !== null && $me->getId() === $user->getId(),
+            'me' => $me === null ? null : [
+                'user' => self::userPayload($me),
+                'profile' => self::profilePayload($me->getProfile()),
+            ],
             'meta' => [
                 'totalSpecies' => $this->game->totalSpecies(),
                 'totalFisheries' => $this->game->totalFisheries(),

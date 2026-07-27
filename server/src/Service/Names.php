@@ -45,6 +45,33 @@ final class Names
         return $found === null || ($except !== null && $found->getId() === $except->getId());
     }
 
+    /**
+     * Wörter für die Namen neuer Konten. Bewusst harmlos und ohne Bezug zu
+     * einer Person – der Name lässt sich später jederzeit ändern.
+     */
+    private const WORDS = [
+        'Blinker', 'Wobbler', 'Spinner', 'Pose', 'Feeder', 'Boilie', 'Drilling', 'Kescher',
+        'Rolle', 'Schnur', 'Grundblei', 'Nymphe', 'Streamer', 'Angelrute', 'Bissanzeiger',
+        'Uferkante', 'Seerose', 'Schilfgras', 'Kiesbank', 'Altarm', 'Strudel', 'Buhne',
+        'Morgennebel', 'Abendrot', 'Windstille', 'Wolkenbruch', 'Mondlicht', 'Sonnenbank',
+        'Hecht', 'Zander', 'Karpfen', 'Schleie', 'Barbe', 'Aland', 'Rotauge', 'Wels',
+        'Forelle', 'Saibling', 'Aesche', 'Quappe', 'Doebel', 'Brasse', 'Karausche',
+    ];
+
+    /** Ein zufälliges Wort mit angehängter Zahl, etwa „Blinker482“. */
+    public function random(): string
+    {
+        for ($try = 0; $try < 50; $try++) {
+            $name = self::WORDS[random_int(0, \count(self::WORDS) - 1)] . random_int(100, 9999);
+            if ($this->isFree($name)) {
+                return $name;
+            }
+        }
+
+        // Sollte nie eintreten; dann entscheidet der Zufall allein.
+        return 'Angler' . bin2hex(random_bytes(4));
+    }
+
     /** Hängt -2, -3 … an, bis der Name frei ist. */
     public function unique(string $wish, ?User $except = null): string
     {

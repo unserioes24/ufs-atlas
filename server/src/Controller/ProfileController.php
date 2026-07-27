@@ -51,6 +51,59 @@ class ProfileController extends AbstractController
      *   curl -H "X-Api-Token: ..." --data-binary "@PROFILE_0" \
      *        https://fish.tobee94.de/api/profile/upload
      */
+    /**
+     * Der vollständige Stand in der Form, die der Browser lokal hält.
+     *
+     * Wird ein Spielstand über die Schnittstelle hochgeladen, weiß der Browser
+     * nichts davon. Beim nächsten Laden holt er sich hier den Stand und
+     * übernimmt ihn, falls er neuer ist als der eigene.
+     */
+    #[Route('/state', methods: ['GET'])]
+    public function state(): JsonResponse
+    {
+        $user = $this->auth->user();
+        if ($user === null) {
+            return $this->json(['error' => 'Nicht angemeldet.'], 401);
+        }
+        $profile = $user->getProfile();
+        if ($profile === null) {
+            return $this->json(['state' => null]);
+        }
+
+        $caught = [];
+        $bests = [];
+        foreach ($profile->getSpecies() as $s) {
+            $key = $s->getSpeciesKey();
+            $caught[$key] = true;
+            $bests[$key] = [
+                'count' => $s->getCount(),
+                'weight' => $s->getBestWeight(),
+                'length' => $s->getBestLength(),
+                'sum' => $s->getSumWeight(),
+                'fishery' => $s->getFishery(),
+            ];
+        }
+
+        $player = $profile->getDetails();
+        $player['name'] = $profile->getAnglerName();
+        $player['level'] = $profile->getPlayerLevel();
+        $player['score'] = $profile->getPlayerScore();
+
+        return $this->json([
+            'state' => [
+                'updatedAt' => $profile->getUpdatedAt()->format(\DateTimeInterface::ATOM),
+                'caught' => $caught,
+                'bests' => $bests,
+                'stats' => [
+                    'player' => $player,
+                    'fisheries' => $profile->getFisheries(),
+                    'bests' => $bests,
+                    'total' => \count($caught),
+                ],
+            ],
+        ]);
+    }
+
     #[Route('/upload', methods: ['POST', 'PUT'])]
     public function upload(Request $request): JsonResponse
     {
@@ -143,7 +196,7 @@ class ProfileController extends AbstractController
             return $this->json(['error' => 'Diesen Namen hat schon jemand.'], 409);
         }
 
-        $user->setName($name);
+        $user->setName($name, true);
         try {
             $this->writer->flush();
         } catch (UniqueConstraintViolationException) {

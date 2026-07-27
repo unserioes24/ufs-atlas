@@ -30,8 +30,22 @@ Der Guide selbst hat keinen Build-Schritt: `index.html`, `app.js`, `gamedata.js`
    `docker compose -f deploy/docker-compose.yml pull && up -d --wait`.
 
 Beim Start macht der Container doppelte Benutzernamen eindeutig
-(`app:names:fix`) und gleicht danach das Datenbankschema aus den Entities ab
-(`doctrine:schema:update --force`, bewusst ohne `--complete`).
+(`app:names:fix`) und spielt danach die Migrationen ein
+(`doctrine:migrations:migrate`). Das Schema wird nicht mehr aus den Entities
+abgeleitet: jede Änderung an einer Entity braucht eine Migration in
+`server/migrations/`.
+
+Datenbanken, die vor der Umstellung entstanden sind, bekommen beim ersten Start
+den Ausgangsstand `Version20260727090000` nur verbucht – die Tabellen stehen
+dort bereits. Alles danach läuft normal durch.
+
+Neue Migration schreiben (im laufenden Container, danach die Datei ins Projekt
+übernehmen):
+
+```sh
+docker compose -f deploy/docker-compose.yml exec web \
+    php bin/console doctrine:migrations:diff --no-interaction
+```
 
 ## Einmalige Einrichtung
 

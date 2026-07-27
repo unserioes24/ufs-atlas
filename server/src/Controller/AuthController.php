@@ -7,6 +7,7 @@ use App\Entity\User;
 use App\Service\Altcha;
 use App\Service\Auth;
 use App\Service\Names;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -135,13 +136,31 @@ class AuthController extends AbstractController
         $entry->markUsed();
         $user = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
         if ($user === null) {
-            $user = new User($email, $this->names->unique('Angler'));
-            $this->em->persist($user);
-            $this->em->flush();
+            // Neue Konten bekommen einen zufälligen Namen. Ein Spielstand-Import
+            // überschreibt ihn später durch den Anglernamen aus dem Spiel.
+            // Namen sind eindeutig. Der Zufallsname wird vorher geprüft; greifen
+            // zwei Anmeldungen im selben Augenblick zum gleichen, entscheidet
+            // der Index in der Datenbank. Dann ist der Code noch unverbraucht
+            // und ein zweiter Versuch führt sofort zum Ziel.
+            $user = new User($email, $this->names->random());
+            try {
+                $this->em->persist($user);
+                $this->em->flush();
+            } catch (UniqueConstraintViolationException) {
+                return $this->json(['error' => 'Das hat sich überschnitten. Bitte den Code noch einmal abschicken.'], 409);
+            }
         }
-        $this->auth->login($user);
 
-        return $this->json(['ok' => true, 'user' => UserController::userPayload($user)]);
+        $remember = (bool) ($data['remember'] ?? false);
+        $this->auth->login($user, $remember);
+
+        $response = $this->json(['ok' => true, 'user' => UserController::userPayload($user)]);
+        $cookie = $this->auth->pendingCookie();
+        if ($cookie !== null) {
+            $response->headers->setCookie($cookie);
+        }
+
+        return $response;
     }
 
     #[Route('/logout', methods: ['POST'])]
@@ -149,7 +168,13 @@ class AuthController extends AbstractController
     {
         $this->auth->logout();
 
-        return $this->json(['ok' => true]);
+        $response = $this->json(['ok' => true]);
+        $cookie = $this->auth->pendingCookie();
+        if ($cookie !== null) {
+            $response->headers->setCookie($cookie);
+        }
+
+        return $response;
     }
 
     /** Aktueller Anmeldezustand, wird beim Laden der Seite abgefragt. */
@@ -161,7 +186,14 @@ class AuthController extends AbstractController
             return $this->json(['user' => null]);
         }
 
-        return $this->json(['user' => UserController::userPayload($user, true)]);
+        // Kam die Anmeldung aus dem Keks, wurde dessen Wert gerade erneuert.
+        $response = $this->json(['user' => UserController::userPayload($user, true)]);
+        $cookie = $this->auth->pendingCookie();
+        if ($cookie !== null) {
+            $response->headers->setCookie($cookie);
+        }
+
+        return $response;
     }
 
     #[Route('/token/new', methods: ['POST'])]

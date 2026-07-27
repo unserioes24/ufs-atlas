@@ -41,8 +41,9 @@ final class ProfileWriter
         $name = trim((string) ($agg['player']['name'] ?? ''));
         if ($name !== '') {
             $profile->setAnglerName($name);
-            // Nur einen noch nie gewählten Namen überschreiben; er muss eindeutig bleiben.
-            if ($user->getName() === '' || preg_match('/^Angler(-\d+|-[0-9a-f]{8})?$/', $user->getName())) {
+            // Nur einen noch nie selbst gewählten Namen überschreiben; er muss
+            // eindeutig bleiben, deshalb notfalls mit -2, -3 … dahinter.
+            if (!$user->isNamePicked()) {
                 $user->setName($this->names->unique($name, $user));
             }
         }
@@ -67,6 +68,7 @@ final class ProfileWriter
 
         $profile->setFisheries($agg['fisheries'] ?? []);
         $profile->setCaught(array_keys($agg['species'] ?? []));
+        $profile->setDetails(\is_array($agg['player'] ?? null) ? $agg['player'] : []);
         $profile->touch();
 
         foreach (($agg['species'] ?? []) as $key => $s) {
