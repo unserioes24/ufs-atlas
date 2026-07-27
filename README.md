@@ -30,7 +30,7 @@ Dann `http://localhost:8080` öffnen.
 - **Spieldaten je Art** – Gewichts- und Längenspanne, Beißzeitkurve über 24 Stunden,
   Anzahl der Schwarmpunkte im Revier, deutsche Enzyklopädie-Beschreibung, Modelltextur.
 - **Artenseite** (`#arten`) – alle 136 Arten mit Größenspanne, Revieren, Ködern, Methode,
-  Haken, Führung, Beißzeitkurve und **drehbarem 3D-Modell aus dem Spiel** (132 Arten).
+  Haken, Führung, Beißzeitkurve und der besten Angelart.
 - **Statistik** (`#statistik`) – komplett aus dem geladenen Spielstand: Angler, Punkte,
   Geld, Angelzeit, je Revier Fänge, Bisse, Trefferquote, Gewicht und größter Fang,
   dazu je Art dein Rekord im Verhältnis zum möglichen Maximum.
@@ -40,10 +40,15 @@ Dann `http://localhost:8080` öffnen.
 - **Konto, Gruppen und Vergleich** (`#gruppen`, nur mit Server) – Anmeldung per
   E-Mail-Code, ein Profil je Konto, Gruppen mit Ranglisten für schwersten und
   längsten Fisch, Gesamtmasse, größte Masse einer Art, Artenzahl und komplette
-  Reviere. Profilen folgen und sich direkt danebenstellen.
+  Reviere. Gruppen sind öffentlich, nicht gelistet oder privat.
+- **Anglerprofil** (`#angler/<Name>`, nur mit Server) – teilbare Seite mit
+  Kennzahlen, Fortschritt je Revier, Rekorden je Art und dem, was noch fehlt.
+  Wer angemeldet ist, sieht seinen eigenen Stand daneben: Kennzahl für
+  Kennzahl, Revier für Revier und Art für Art, jeweils mit dem Datum beider
+  Spielstände. Dort liegen auch Gruppen und Kontoeinstellungen.
 - **Adressleiste als Zustand** – `#revier/betty`, `#revier/moraine/spot3`, `#arten/PIKE`,
-  `#koeder`, `#statistik`, `#gruppen` sind direkt verlinkbar.
-- 21 Karteneinträge, 205 recherchierte Fisch-/Strategieeinträge, ergänzt um alle Arten,
+  `#koeder`, `#statistik`, `#gruppen`, `#angler/Name/gruppen` sind direkt verlinkbar.
+- 21 Karteneinträge, 204 recherchierte Fisch-/Strategieeinträge, ergänzt um alle Arten,
   die nur in den Spieldateien stehen.
 - Suche, Filter nach Methode, Vertrauensstufe, offen/gefangen und Favoriten, Druckansicht.
 
@@ -70,8 +75,6 @@ Community-Werte tragen eine Vertrauensstufe.
 - `gamedata.js` – aus dem Spiel extrahierte Daten (136 Arten, 20 Reviere)
 - `maps/` – Revierkarten aus dem Spiel
 - `fish/` – zugeschnittene Modelltexturen der Fische
-- `models/` – 3D-Modelle je Art, jeweils eine Datei mit Mesh und eingebetteter Textur;
-  wird erst beim Öffnen einer Art nachgeladen
 - `tools/` – die Extraktions-Pipeline, siehe `tools/README.md`
 - `server/` – Symfony-Backend, liefert im Betrieb auch den Guide aus
 - `deploy/`, `Dockerfile.web`, `DEPLOY.md` – Container und Auslieferung

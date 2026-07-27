@@ -1,6 +1,6 @@
 ﻿<#
     Vollständige Extraktions-Pipeline: aus der Spielinstallation entstehen
-    gamedata.js, maps\*.jpg und fish\*.jpg.
+    gamedata.js und maps\*.jpg.
 
     Aufruf (Windows PowerShell 5.1):
         .\tools\extract.ps1
@@ -11,8 +11,7 @@
 param(
     [string]$Game = 'C:\Program Files (x86)\Steam\steamapps\common\Ultimate Fishing\UltimateFishing_Data',
     [string]$Work = (Join-Path $PSScriptRoot '_work'),
-    [string]$Proj = (Split-Path $PSScriptRoot -Parent),
-    [switch]$SkipImages
+    [string]$Proj = (Split-Path $PSScriptRoot -Parent)
 )
 
 $ErrorActionPreference = 'Stop'
@@ -54,7 +53,7 @@ $MAPS = @(
 )
 
 # ------------------------------------------------- 1) Lokalisierungstabelle
-Write-Host "`n[1/6] Lokalisierungstabelle (I2, 12 Sprachen)" -ForegroundColor Cyan
+Write-Host "`n[1/5] Lokalisierungstabelle (I2, 12 Sprachen)" -ForegroundColor Cyan
 $res = Join-Path $Game 'resources.assets'
 $fs = [IO.File]::OpenRead($res)
 try {
@@ -69,7 +68,7 @@ try {
 & "$PSScriptRoot\terms.ps1" -In "$Work\terms.bin" -Out "$Work\terms.tsv"
 
 # ------------------------------------------------------------ 2) Reviere
-Write-Host "`n[2/6] Reviere (Spots, Spawner, Reiseziele)" -ForegroundColor Cyan
+Write-Host "`n[2/5] Reviere (Spots, Spawner, Reiseziele)" -ForegroundColor Cyan
 foreach ($i in $LEVELS) {
     $lv = Join-Path $Game "level$i"
     if (-not (Test-Path $lv)) { Write-Host "  level$i fehlt"; continue }
@@ -78,7 +77,7 @@ foreach ($i in $LEVELS) {
 }
 
 # ---------------------------------------------------- 3) Fisch-Prefabs
-Write-Host "`n[3/6] Fisch-Prefabs (Gewicht, Länge, Beißzeiten)" -ForegroundColor Cyan
+Write-Host "`n[3/5] Fisch-Prefabs (Gewicht, Länge, Beißzeiten)" -ForegroundColor Cyan
 [IO.File]::WriteAllText("$Work\fishprefabs.json",
     [Ufs.Extractor]::Run((Join-Path $Game 'sharedassets2.assets'), '^Fish_[A-Z]', $false, 1800))
 
@@ -96,7 +95,7 @@ foreach ($file in (Get-ChildItem "$Game\sharedassets*.assets") + @(Get-Item "$Ga
 $idx | ConvertTo-Json -Depth 4 -Compress | Set-Content "$Work\fishindex.json" -Encoding UTF8
 
 # ------------------------------------------------------- 4) Kartenbilder
-Write-Host "`n[4/6] Kartenbilder" -ForegroundColor Cyan
+Write-Host "`n[4/5] Kartenbilder" -ForegroundColor Cyan
 New-Item -ItemType Directory -Force "$Proj\maps" | Out-Null
 foreach ($m in $MAPS) {
     $src = Join-Path $Game $m.f
@@ -106,7 +105,7 @@ foreach ($m in $MAPS) {
 }
 
 # ------------------------------------------- 5) Zusammenführen zu gamedata
-Write-Host "`n[5/6] Datenaufbereitung" -ForegroundColor Cyan
+Write-Host "`n[5/5] Datenaufbereitung" -ForegroundColor Cyan
 & "$PSScriptRoot\baits.ps1"      -Work $Work -Game $Game
 & "$PSScriptRoot\baittypes.ps1"  -Work $Work -Game $Game | Out-Null
 & "$PSScriptRoot\bitecurves.ps1" -Work $Work
@@ -120,13 +119,6 @@ if (Test-Path $jsonPath) {
     [IO.File]::WriteAllText((Join-Path $Proj 'gamedata.js'), "window.UFS_GAME = $j;", (New-Object Text.UTF8Encoding($false)))
     Remove-Item $jsonPath -Force
     Write-Host "  gamedata.js geschrieben"
-}
-
-# -------------------------------------------------------- 6) Fischbilder
-if ($SkipImages) { Write-Host "`n[6/6] Fischbilder übersprungen" -ForegroundColor Cyan }
-else {
-    Write-Host "`n[6/6] Fischbilder" -ForegroundColor Cyan
-    & "$PSScriptRoot\fishimg.ps1" -Work $Work -Proj $Proj -Game $Game
 }
 
 Write-Host "`nFertig." -ForegroundColor Green

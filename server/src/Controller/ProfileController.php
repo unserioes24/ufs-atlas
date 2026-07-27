@@ -49,7 +49,7 @@ class ProfileController extends AbstractController
      * Upload auch per Aufgabenplanung erledigen lässt:
      *
      *   curl -H "X-Api-Token: ..." --data-binary "@PROFILE_0" \
-     *        https://fish.tobee94.de/api/profile/upload
+     *        https://ufs-atlas.de/api/profile/upload
      */
     /**
      * Der vollständige Stand in der Form, die der Browser lokal hält.

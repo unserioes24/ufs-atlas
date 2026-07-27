@@ -137,10 +137,6 @@
 .ufs-stats { display: flex; flex-wrap: wrap; gap: .5rem .9rem; font-size: 12px; color: #cbd5e1; }
 .ufs-stats b { color: #f1f5f9; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-.ufs-fishimg {
-  width: 100%; max-height: 170px; object-fit: contain; object-position: center;
-  border-radius: 14px; border: 1px solid var(--ufs-line); background: #060f16; display: block;
-}
 .ufs-thumb {
   width: 84px; height: 46px; object-fit: cover; border-radius: 10px;
   border: 1px solid var(--ufs-line); background: #060f16; flex: none;
@@ -393,6 +389,110 @@
 .ufs-note.ok {
   border-color: rgba(52, 211, 153, .3); background: rgba(52, 211, 153, .08); color: #a7f3d0;
 }
+
+/* ------------------------------------------------------------- Startseite
+
+   Der Aufmacher ist die Wand aus Beißzeitkurven: das ist die Kurve, die das
+   Spiel je Art mitbringt, und damit das ehrlichste Bild dessen, was dieser
+   Atlas tut. Alles andere bleibt bewusst ruhig. */
+
+.ufs-start { max-width: 1080px; margin: 0 auto; }
+.ufs-start section { margin-bottom: 3.5rem; }
+.ufs-start h2 {
+  font-size: 12px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
+  color: #64748b; margin: 0 0 1rem;
+}
+
+.ufs-start .hero { padding-top: 1rem; }
+.ufs-start .eyebrow {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+  color: #22d3ee; margin: 0 0 .9rem;
+}
+.ufs-start .hero h1 {
+  font-size: clamp(2rem, 5.5vw, 3.4rem); line-height: 1.05; letter-spacing: -.02em;
+  font-weight: 900; color: #f8fafc; margin: 0 0 1rem; max-width: 18ch;
+}
+.ufs-start .lead {
+  font-size: 15px; line-height: 1.7; color: #94a3b8; max-width: 62ch; margin: 0 0 1.4rem;
+}
+
+/* Kurvenwand */
+.ufs-start .wall {
+  margin-top: 2.5rem; border-top: 1px solid rgba(255, 255, 255, .1); padding-top: 1rem;
+}
+.ufs-start .wallhd {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem;
+  font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: #64748b;
+  margin-bottom: .9rem;
+}
+.ufs-start .wallhd .sub { color: #475569; }
+.ufs-start .wall .grid {
+  display: grid; gap: .5rem;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.ufs-start .cell {
+  display: block; text-decoration: none; border-radius: 12px; padding: .45rem .55rem .4rem;
+  border: 1px solid rgba(255, 255, 255, .07); background: rgba(255, 255, 255, .02);
+  transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+.ufs-start .cell:hover {
+  border-color: rgba(34, 211, 238, .45); background: rgba(34, 211, 238, .07);
+  transform: translateY(-2px);
+}
+.ufs-start .cell .nm {
+  display: block; margin-top: .3rem; font-size: 11px; font-weight: 600; color: #cbd5e1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ufs-start .cell:hover .nm { color: #cffafe; }
+.ufs-start .crv { width: 100%; height: 40px; display: block; }
+.ufs-start .crv .night { fill: rgba(255, 255, 255, .035); }
+.ufs-start .crv .area { fill: rgba(34, 211, 238, .16); }
+.ufs-start .crv .line { fill: none; stroke: #22d3ee; stroke-width: 1.6; }
+
+/* Zahlenleiste */
+.ufs-start .facts {
+  display: grid; gap: 1px; background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .08); border-radius: 18px; overflow: hidden;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+.ufs-start .fact { background: #071019; padding: .9rem .8rem; text-align: center; }
+.ufs-start .fact .n {
+  display: block; font-size: 22px; font-weight: 900; color: #e2e8f0;
+  font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+}
+.ufs-start .fact .l {
+  display: block; margin-top: .15rem; font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: #64748b;
+}
+
+/* Funktionskarten */
+.ufs-start .cards {
+  display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.ufs-start .two { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.ufs-start .card {
+  border: 1px solid rgba(255, 255, 255, .09); background: rgba(0, 0, 0, .2);
+  border-radius: 18px; padding: 1rem 1.1rem;
+}
+.ufs-start .card h3 { margin: 0 0 .45rem; font-size: 14px; font-weight: 800; color: #e2e8f0; }
+.ufs-start .card p { margin: 0; font-size: 12.5px; line-height: 1.65; color: #94a3b8; }
+.ufs-start .card ul { margin: 0; padding-left: 1.05rem; }
+.ufs-start .card li { font-size: 12.5px; line-height: 1.7; color: #94a3b8; }
+.ufs-start .card .note { margin-top: .6rem; font-size: 11.5px; color: #64748b; }
+.ufs-start .card .go {
+  display: inline-block; margin-top: .7rem; font-size: 12px; font-weight: 700;
+  color: #67e8f9; text-decoration: none;
+}
+.ufs-start .card .go:hover { color: #cffafe; }
+
+.ufs-start .oss {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;
+  border: 1px solid rgba(34, 211, 238, .22); background: rgba(34, 211, 238, .05);
+  border-radius: 22px; padding: 1.2rem 1.4rem;
+}
+.ufs-start .oss h2 { margin-bottom: .4rem; }
+.ufs-start .oss p { margin: 0; font-size: 12.5px; line-height: 1.65; color: #94a3b8; max-width: 60ch; }
+.ufs-start .foot { font-size: 11px; color: #475569; text-align: center; margin: 0 0 1rem; }
 
 /* ---------------------------------------------------- Profil und Vergleich */
 

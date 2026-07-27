@@ -40,8 +40,6 @@ COPY --from=vendor /app/vendor ./vendor
 # Der Guide selbst
 COPY index.html app.js gamedata.js styles.css ui.css data.json robots.txt ./public/
 COPY maps   ./public/maps
-COPY fish   ./public/fish
-COPY models ./public/models
 
 COPY deploy/apache-app.conf /etc/apache2/conf-available/app.conf
 COPY deploy/entrypoint.sh /usr/local/bin/entrypoint

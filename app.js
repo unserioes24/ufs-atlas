@@ -159,7 +159,6 @@ function gapRange(idx) {
     const b = Math.round(HOOKS.gap[idx[idx.length - 1]] * 1000);
     return a === b ? a + ' mm' : a + '–' + b + ' mm';
 }
-function fishImage(key) { return 'fish/' + String(key).toLowerCase() + '.jpg'; }
 
 /* ------------------------------------------------------- Köder-Übersetzung */
 
@@ -651,6 +650,197 @@ function Activity(props) {
             h('span', null, 'Beste Beißzeit: ', h('b', null, peaks.join(', ')))) : null);
 }
 
+/* -------------------------------------------------------------- Startseite
+
+   Der Aufmacher ist keine Bildstrecke, sondern eine Wand aus Beißzeitkurven:
+   genau die Kurve, die das Spiel für jede Art mitbringt und die dieser Atlas
+   ausliest. Ein Klick darauf führt zur Art. Alles darunter ist bewusst ruhig. */
+
+/** Eine Beißzeitkurve als kleine Fläche, ohne Achsen und Beschriftung. */
+function MiniCurve(props) {
+    const pts = props.act;
+    if (!pts || pts.length < 2) return null;
+    const W = 100, H = 34;
+    const xy = pts.map(function (p) { return [p[0] / 24 * W, H - p[1] * (H - 4) - 2]; });
+    const line = xy.map(function (p, i) { return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
+
+    return h('svg', { className: 'crv', viewBox: '0 0 100 34', preserveAspectRatio: 'none', 'aria-hidden': true },
+        // Nachtstunden dunkler: die Kurve liest sich erst mit dem Tagesrhythmus
+        h('rect', { className: 'night', x: 0, y: 0, width: 6 / 24 * W, height: H }),
+        h('rect', { className: 'night', x: 20 / 24 * W, y: 0, width: 4 / 24 * W, height: H }),
+        h('path', { className: 'area', d: line + ' L' + W + ' ' + H + ' L0 ' + H + ' Z' }),
+        h('path', { className: 'line', d: line }));
+}
+
+/** Zwölf Arten, deren Kurven sich deutlich unterscheiden. */
+const START_SPECIES = [
+    'PIKE', 'MIRROR_CARP', 'RAINBOW_TROUT', 'WELS_CATFISH', 'ZANDER', 'PERCH',
+    'BREAM', 'TENCH', 'ATLANTIC_SALMON', 'BARBEL', 'ARAPAIMA', 'GREENLAND_SHARK'
+];
+
+function StartPage(props) {
+    const lang = props.lang;
+
+    const wall = useMemo(function () {
+        const seen = {};
+        const out = [];
+        START_SPECIES.forEach(function (k) {
+            const s = SPECIES[k];
+            if (s && s.act && !seen[k]) { seen[k] = true; out.push({ k: k, s: s }); }
+        });
+        Object.keys(SPECIES).forEach(function (k) {
+            if (out.length >= 12 || seen[k] || !SPECIES[k].act) return;
+            seen[k] = true;
+            out.push({ k: k, s: SPECIES[k] });
+        });
+
+        return out.slice(0, 12);
+    }, []);
+
+    const counts = useMemo(function () {
+        let withAct = 0, withM = 0;
+        Object.keys(SPECIES).forEach(function (k) {
+            if (SPECIES[k].act) withAct++;
+            if (SPECIES[k].m) withM++;
+        });
+        let spots = 0, dots = 0;
+        Object.keys(FISHERIES).forEach(function (id) {
+            spots += (FISHERIES[id].spots || []).length;
+            dots += (FISHERIES[id].dots || []).length;
+        });
+
+        return {
+            maps: D.maps.length, species: Object.keys(SPECIES).length, baits: Object.keys(BAITS).length,
+            act: withAct, m: withM, spots: spots, dots: dots,
+            steps: HOOKS ? HOOKS.steps : 18
+        };
+    }, []);
+
+    const FEATURES = [
+        {
+            t: 'Reviere und Spots', go: '#gesamt', go2: 'Karten öffnen',
+            d: counts.maps + ' Karten mit den Spotnummern aus dem Spiel, den Schwarmpunkten auf dem '
+                + 'Kartenbild und der Artenliste je Spot – mitsamt der Zahl der Fische, die dort stehen.'
+        },
+        {
+            t: 'Arten', go: '#arten', go2: 'Artenliste',
+            d: counts.species + ' Arten mit Gewichts- und Längenspanne, Beißzeitkurve, Wetterkurven und der '
+                + 'Beschreibung aus der Enzyklopädie des Spiels.'
+        },
+        {
+            t: 'Köder und Angelart', go: '#koeder', go2: 'Köderseite',
+            d: 'Für jede Art die Ködervorliebe in Prozent, dazu die beste Angelart – Fliege, Kunstköder, '
+                + 'Pose oder Grund – und der Faktor jeder Führung beim Spinnfischen.'
+        },
+        {
+            t: 'Größenstufen', go: '#arten', go2: 'Zu den Arten',
+            d: 'Haken von #12 bis #12/0 mit der Gewichtsspanne, die sie fangen, dazu die Stufen für '
+                + 'Kunstköder und Fliegen. ' + counts.steps + ' Stufen, direkt aus dem FishManager.'
+        },
+        {
+            t: 'Dein Spielstand', go: '#statistik', go2: 'Spielstand laden',
+            d: 'Die PROFILE-Datei laden und sehen, was fehlt: je Revier, je Art, mit deinem Rekord neben '
+                + 'dem möglichen Maximum. Die Datei bleibt im Browser.'
+        },
+        {
+            t: 'Profil und Vergleich', go: '#gruppen', go2: 'Konto anlegen',
+            d: 'Ein Konto gibt dir eine teilbare Profilseite. Wer sie öffnet und selbst angemeldet ist, '
+                + 'sieht seinen Stand daneben – Kennzahl für Kennzahl, Revier für Revier, Art für Art.'
+        },
+        {
+            t: 'Gruppen', go: '#gruppen', go2: 'Gruppen ansehen',
+            d: 'Öffentlich, nicht gelistet oder privat. Acht Ranglisten: schwerster und längster Fisch, '
+                + 'Gesamtmasse, stärkste Art, Arten, komplette Reviere, Fänge, Angelzeit.'
+        },
+        {
+            t: 'Läuft auch ohne Server', go: '#gesamt', go2: 'Ausprobieren',
+            d: 'Der Guide ist fertiges HTML und JavaScript. Ohne Netz bleibt alles außer Konto und '
+                + 'Gruppen benutzbar; abgehakte Arten liegen im Browser.'
+        }
+    ];
+
+    return h('div', { className: 'ufs-start' },
+        h('section', { className: 'hero' },
+            h('p', { className: 'eyebrow' }, 'Fan-Atlas · Ultimate Fishing Simulator 1'),
+            h('h1', null, 'Die Zahlen kommen aus den Spieldateien.'),
+            h('p', { className: 'lead' },
+                'Spots, Artenlisten, Beißzeiten, Ködervorlieben und Größenstufen sind ausgelesen, '
+                + 'nicht geschätzt. Was aus der Community-Recherche stammt, steht als solches dabei.'),
+            h('div', { className: 'ufs-row', style: { gap: '.5rem' } },
+                h('a', { className: 'ufs-btn primary', href: '#gesamt' }, h(Icon, { name: 'map' }), 'Reviere öffnen'),
+                h('a', { className: 'ufs-btn', href: '#arten' }, h(Icon, { name: 'fish' }), 'Arten ansehen'),
+                h('a', { className: 'ufs-btn', href: '#statistik' }, h(Icon, { name: 'import' }), 'Spielstand laden')),
+
+            h('div', { className: 'wall' },
+                h('div', { className: 'wallhd' },
+                    h('span', null, 'Beißzeit über 24 Stunden, je Art aus dem Spiel'),
+                    h('span', { className: 'sub' }, 'dunkel = Nacht · zum Öffnen anklicken')),
+                h('div', { className: 'grid' }, wall.map(function (e) {
+                    return h('a', {
+                        key: e.k, className: 'cell', href: '#arten/' + e.k,
+                        title: speciesName(e.k, lang) + ' – Beißzeitkurve'
+                    },
+                        h(MiniCurve, { act: e.s.act }),
+                        h('span', { className: 'nm' }, speciesName(e.k, lang)));
+                })))),
+
+        h('section', { className: 'facts' },
+            [
+                [counts.maps, 'Reviere'], [counts.species, 'Arten'], [counts.spots, 'Spots'],
+                [counts.dots, 'Schwarmpunkte'], [counts.baits, 'Köder'], [counts.act, 'Beißzeitkurven']
+            ].map(function (f) {
+                return h('div', { key: f[1], className: 'fact' },
+                    h('span', { className: 'n' }, fmtNum(f[0])),
+                    h('span', { className: 'l' }, f[1]));
+            })),
+
+        h('section', null,
+            h('h2', null, 'Was der Atlas kann'),
+            h('div', { className: 'cards' }, FEATURES.map(function (f) {
+                return h('div', { key: f.t, className: 'card' },
+                    h('h3', null, f.t),
+                    h('p', null, f.d),
+                    h('a', { className: 'go', href: f.go }, f.go2, ' →'));
+            }))),
+
+        h('section', null,
+            h('h2', null, 'Woher die Zahlen kommen'),
+            h('div', { className: 'two' },
+                h('div', { className: 'card' },
+                    h('h3', null, 'Aus den Spieldateien'),
+                    h('ul', null,
+                        h('li', null, 'Spotnummern und ihre Lage auf dem Kartenbild'),
+                        h('li', null, 'Artenliste je Revier und je Spot, mit der Zahl der Fische'),
+                        h('li', null, 'Gewichts- und Längenspanne, Beißzeitkurve, Wetterkurven'),
+                        h('li', null, 'Ködervorliebe je Art, Ködertyp, Führungsfaktoren'),
+                        h('li', null, 'Größenstufen für Haken, Kunstköder, Fliegen und Köder'),
+                        h('li', null, 'Namen und Beschreibungen aus der Lokalisierung'))),
+                h('div', { className: 'card' },
+                    h('h3', null, 'Aus der Community-Recherche'),
+                    h('ul', null,
+                        h('li', null, 'Hakengrößen als Erfahrungswert je Art und Revier'),
+                        h('li', null, 'Tiefenangaben und Montagehinweise'),
+                        h('li', null, 'Strategien je Spot und Vertrauensstufe je Eintrag')),
+                    h('p', { className: 'note' },
+                        'Diese Angaben sind im Guide als Community-Werte gekennzeichnet. '
+                        + 'Wo die Spieldateien etwas Genaueres hergeben, ersetzt es sie.')))),
+
+        h('section', { className: 'oss' },
+            h('div', null,
+                h('h2', null, 'Offen und nachprüfbar'),
+                h('p', null,
+                    'Der Quelltext und die Werkzeuge, die die Spieldateien auslesen, liegen offen. '
+                    + 'Wer die Zahlen anzweifelt, kann sie mit derselben Spielinstallation nachziehen.')),
+            h('a', {
+                className: 'ufs-btn primary', href: 'https://github.com/unserioes24/ufs-atlas',
+                target: '_blank', rel: 'noopener noreferrer'
+            }, h(Icon, { name: 'source' }), 'Auf GitHub ansehen')),
+
+        h('p', { className: 'foot' },
+            'Fan-Projekt, nicht mit den Entwicklern verbunden. Guide-Stand ' + D.generated
+            + ' · Spieldaten ' + (G.generated || '–') + '.'));
+}
+
 /* ------------------------------------------------------------- Revierkarte */
 
 function FisheryMap(props) {
@@ -824,8 +1014,6 @@ function FishCard(props) {
     const gm = props.gameEntry;
     const best = key ? props.bests[key] : null;
     const done = key ? !!props.caught[key] : false;
-    const [imgOk, setImgOk] = useState(true);
-    const [show3d, setShow3d] = useState(false);
 
     const spots = gm && gm.spots && gm.spots.length ? gm.spots : null;
 
@@ -911,22 +1099,6 @@ function FishCard(props) {
 
             sp ? h('div', { className: cn('ufs-gamebox', props.compact ? '' : 'lg:col-span-2') },
                 h('div', { className: 'hd' }, 'Aus den Spieldateien'),
-                key && MODELS[key]
-                    ? h('div', { style: { marginBottom: '.7rem' } },
-                        show3d
-                            ? h(FishModel, { speciesKey: key })
-                            : h('button', {
-                                className: 'ufs-btn', style: { width: '100%', justifyContent: 'center' },
-                                onClick: function () { setShow3d(true); }
-                            }, '◈ 3D-Modell aus dem Spiel anzeigen'))
-                    : (key && imgOk ? h('figure', { style: { margin: '0 0 .7rem' } },
-                        h('img', {
-                            className: 'ufs-fishimg', src: fishImage(key), loading: 'lazy',
-                            alt: 'Spieltextur ' + speciesName(key, 'de'),
-                            onError: function () { setImgOk(false); }
-                        }),
-                        h('figcaption', { style: { fontSize: '10px', color: '#64748b', marginTop: '.25rem' } },
-                            'Modelltextur aus dem Spiel')) : null),
                 h('div', { className: 'ufs-stats' },
                     sp.wMax ? h('span', null, 'Gewicht: ', h('b', null, sp.wMin + '–' + sp.wMax + ' kg')) : null,
                     sp.lMax ? h('span', null, 'Länge: ', h('b', null, sp.lMin + '–' + sp.lMax + ' cm')) : null,
@@ -1023,248 +1195,6 @@ function Sources(props) {
             }))));
 }
 
-/* --------------------------------------------------------- 3D-Fischmodell */
-
-const MODELS = {};
-(window.UFS_MODELS || []).forEach(function (k) { MODELS[k] = true; });
-
-/** Lädt models/<key>.js per <script>-Tag (fetch ist unter file:// gesperrt). */
-function loadMesh(key, cb) {
-    window.UFS_MESH = window.UFS_MESH || {};
-    if (window.UFS_MESH[key]) { cb(window.UFS_MESH[key]); return; }
-    const s = document.createElement('script');
-    s.src = 'models/' + key + '.js';
-    s.onload = function () { cb(window.UFS_MESH[key] || null); };
-    s.onerror = function () { cb(null); };
-    document.head.appendChild(s);
-}
-function meshBlob(entry) { return typeof entry === 'string' ? entry : (entry && entry.m); }
-function meshTexture(entry) { return (entry && typeof entry === 'object') ? entry.t : null; }
-
-/** Entpackt das UFSM-Format zu Float32-Attributen inklusive berechneter Normalen. */
-function decodeMesh(b64) {
-    const bin = atob(b64);
-    const buf = new ArrayBuffer(bin.length);
-    const u8 = new Uint8Array(buf);
-    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-    const dv = new DataView(buf);
-    if (String.fromCharCode(u8[0], u8[1], u8[2], u8[3]) !== 'UFSM') return null;
-    const vCount = dv.getUint16(6, true);
-    const iCount = dv.getUint32(8, true);
-    const minX = dv.getFloat32(12, true), minY = dv.getFloat32(16, true), minZ = dv.getFloat32(20, true);
-    const sx = dv.getFloat32(24, true), sy = dv.getFloat32(28, true), sz = dv.getFloat32(32, true);
-    let p = 36;
-    const pos = new Float32Array(vCount * 3);
-    for (let v = 0; v < vCount; v++) {
-        pos[v * 3] = minX + (dv.getInt16(p, true) + 16000) / 32000 * sx; p += 2;
-        pos[v * 3 + 1] = minY + (dv.getInt16(p, true) + 16000) / 32000 * sy; p += 2;
-        pos[v * 3 + 2] = minZ + (dv.getInt16(p, true) + 16000) / 32000 * sz; p += 2;
-    }
-    const uv = new Float32Array(vCount * 2);
-    for (let v = 0; v < vCount; v++) {
-        uv[v * 2] = dv.getUint16(p, true) / 65535; p += 2;
-        uv[v * 2 + 1] = 1 - dv.getUint16(p, true) / 65535; p += 2;
-    }
-    const idx = new Uint16Array(iCount);
-    for (let i = 0; i < iCount; i++) { idx[i] = dv.getUint16(p, true); p += 2; }
-
-    // Normalen aus den Dreiecken mitteln – im Export sind keine enthalten.
-    const nrm = new Float32Array(vCount * 3);
-    for (let i = 0; i + 2 < iCount; i += 3) {
-        const a = idx[i] * 3, b = idx[i + 1] * 3, c = idx[i + 2] * 3;
-        const ux = pos[b] - pos[a], uy = pos[b + 1] - pos[a + 1], uz = pos[b + 2] - pos[a + 2];
-        const vx = pos[c] - pos[a], vy = pos[c + 1] - pos[a + 1], vz = pos[c + 2] - pos[a + 2];
-        const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
-        nrm[a] += nx; nrm[a + 1] += ny; nrm[a + 2] += nz;
-        nrm[b] += nx; nrm[b + 1] += ny; nrm[b + 2] += nz;
-        nrm[c] += nx; nrm[c + 1] += ny; nrm[c + 2] += nz;
-    }
-    for (let v = 0; v < vCount; v++) {
-        const o = v * 3;
-        const l = Math.sqrt(nrm[o] * nrm[o] + nrm[o + 1] * nrm[o + 1] + nrm[o + 2] * nrm[o + 2]) || 1;
-        nrm[o] /= l; nrm[o + 1] /= l; nrm[o + 2] /= l;
-    }
-
-    // Zentrum und Radius für die Kamera
-    let cx = 0, cy = 0, cz = 0;
-    for (let v = 0; v < vCount; v++) { cx += pos[v * 3]; cy += pos[v * 3 + 1]; cz += pos[v * 3 + 2]; }
-    cx /= vCount; cy /= vCount; cz /= vCount;
-    let rad = 0;
-    for (let v = 0; v < vCount; v++) {
-        const dx = pos[v * 3] - cx, dy = pos[v * 3 + 1] - cy, dz = pos[v * 3 + 2] - cz;
-        const d = dx * dx + dy * dy + dz * dz;
-        if (d > rad) rad = d;
-    }
-    rad = Math.sqrt(rad) || 1;
-    return { pos: pos, uv: uv, nrm: nrm, idx: idx, count: iCount, center: [cx, cy, cz], radius: rad };
-}
-
-const VS = [
-    'attribute vec3 aPos; attribute vec3 aNrm; attribute vec2 aUv;',
-    'uniform mat4 uMvp; uniform mat4 uModel;',
-    'varying vec2 vUv; varying vec3 vNrm;',
-    'void main(){ vUv=aUv; vNrm=mat3(uModel)*aNrm; gl_Position=uMvp*vec4(aPos,1.0); }'
-].join('\n');
-const FS = [
-    'precision mediump float;',
-    'uniform sampler2D uTex; uniform float uHasTex;',
-    'varying vec2 vUv; varying vec3 vNrm;',
-    'void main(){',
-    '  vec3 n=normalize(vNrm);',
-    '  float d=max(dot(n,normalize(vec3(0.4,0.8,0.6))),0.0)*0.65+0.45;',
-    '  float rim=pow(1.0-max(dot(n,vec3(0.0,0.0,1.0)),0.0),2.0)*0.25;',
-    '  vec3 base = uHasTex>0.5 ? texture2D(uTex,vUv).rgb : vec3(0.55,0.68,0.75);',
-    '  gl_FragColor=vec4(base*d + vec3(0.35,0.75,0.85)*rim, 1.0);',
-    '}'
-].join('\n');
-
-function mul(a, b) {
-    const o = new Float32Array(16);
-    for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
-        o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
-    }
-    return o;
-}
-
-function FishModel(props) {
-    const key = props.speciesKey;
-    const canvasRef = useRef(null);
-    const stateRef = useRef({ yaw: 0.6, pitch: 0.15, drag: false, auto: true });
-    const [status, setStatus] = useState('load');
-
-    useEffect(function () {
-        let raf = 0, gl = null, disposed = false;
-        const cv = canvasRef.current;
-        if (!cv) return;
-
-        loadMesh(key, function (entry) {
-            if (disposed) return;
-            const b64 = meshBlob(entry);
-            if (!b64) { setStatus('none'); return; }
-            const texUri = meshTexture(entry);
-            const mesh = decodeMesh(b64);
-            if (!mesh) { setStatus('none'); return; }
-            gl = cv.getContext('webgl', { antialias: true, alpha: false });
-            if (!gl) { setStatus('nogl'); return; }
-            setStatus('ok');
-
-            function sh(type, src) {
-                const s = gl.createShader(type);
-                gl.shaderSource(s, src); gl.compileShader(s);
-                return s;
-            }
-            const prog = gl.createProgram();
-            gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS));
-            gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
-            gl.linkProgram(prog);
-            gl.useProgram(prog);
-
-            function buf(data, size, name) {
-                const b = gl.createBuffer();
-                gl.bindBuffer(gl.ARRAY_BUFFER, b);
-                gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-                const loc = gl.getAttribLocation(prog, name);
-                gl.enableVertexAttribArray(loc);
-                gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
-            }
-            buf(mesh.pos, 3, 'aPos');
-            buf(mesh.nrm, 3, 'aNrm');
-            buf(mesh.uv, 2, 'aUv');
-            const ib = gl.createBuffer();
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
-            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.idx, gl.STATIC_DRAW);
-
-            const uMvp = gl.getUniformLocation(prog, 'uMvp');
-            const uModel = gl.getUniformLocation(prog, 'uModel');
-            const uHasTex = gl.getUniformLocation(prog, 'uHasTex');
-            gl.uniform1f(uHasTex, 0);
-
-            if (texUri) {
-                const tex = gl.createTexture();
-                const img = new Image();
-                img.onload = function () {
-                    if (disposed) return;
-                    try {
-                        gl.bindTexture(gl.TEXTURE_2D, tex);
-                        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
-                        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-                        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-                        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-                        gl.useProgram(prog);
-                        gl.uniform1f(uHasTex, 1);
-                    } catch (e) { /* ohne Textur weiterzeichnen */ }
-                };
-                img.src = texUri;
-            }
-
-            gl.enable(gl.DEPTH_TEST);
-            gl.clearColor(0.024, 0.055, 0.078, 1);
-
-            function frame() {
-                if (disposed) return;
-                const st = stateRef.current;
-                if (st.auto && !st.drag) st.yaw += 0.006;
-                const w = cv.clientWidth, hgt = cv.clientHeight;
-                if (cv.width !== w || cv.height !== hgt) { cv.width = w; cv.height = hgt; }
-                gl.viewport(0, 0, cv.width, cv.height);
-                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-                const asp = cv.width / Math.max(1, cv.height);
-                const f = 1 / Math.tan(0.5 * 0.9);
-                const near = mesh.radius * 0.05, far = mesh.radius * 12;
-                const proj = new Float32Array([
-                    f / asp, 0, 0, 0, 0, f, 0, 0, 0, 0, (far + near) / (near - far), -1,
-                    0, 0, 2 * far * near / (near - far), 0]);
-                const cy = Math.cos(st.yaw), sy2 = Math.sin(st.yaw);
-                const cp = Math.cos(st.pitch), sp2 = Math.sin(st.pitch);
-                const model = new Float32Array([
-                    cy, sy2 * sp2, -sy2 * cp, 0,
-                    0, cp, sp2, 0,
-                    sy2, -cy * sp2, cy * cp, 0,
-                    0, 0, 0, 1]);
-                const dist = mesh.radius * 1.95;
-                const view = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0,
-                    -(model[0] * mesh.center[0] + model[4] * mesh.center[1] + model[8] * mesh.center[2]),
-                    -(model[1] * mesh.center[0] + model[5] * mesh.center[1] + model[9] * mesh.center[2]),
-                    -(model[2] * mesh.center[0] + model[6] * mesh.center[1] + model[10] * mesh.center[2]) - dist, 1]);
-                gl.uniformMatrix4fv(uModel, false, model);
-                gl.uniformMatrix4fv(uMvp, false, mul(proj, mul(view, model)));
-                gl.drawElements(gl.TRIANGLES, mesh.count, gl.UNSIGNED_SHORT, 0);
-                raf = requestAnimationFrame(frame);
-            }
-            frame();
-        });
-
-        function down(e) { stateRef.current.drag = true; stateRef.current.lx = e.clientX; stateRef.current.ly = e.clientY; }
-        function move(e) {
-            const st = stateRef.current;
-            if (!st.drag) return;
-            st.yaw += (e.clientX - st.lx) * 0.01;
-            st.pitch = Math.max(-1.3, Math.min(1.3, st.pitch + (e.clientY - st.ly) * 0.01));
-            st.lx = e.clientX; st.ly = e.clientY;
-        }
-        function up() { stateRef.current.drag = false; }
-        cv.addEventListener('mousedown', down);
-        window.addEventListener('mousemove', move);
-        window.addEventListener('mouseup', up);
-
-        return function () {
-            disposed = true;
-            cancelAnimationFrame(raf);
-            cv.removeEventListener('mousedown', down);
-            window.removeEventListener('mousemove', move);
-            window.removeEventListener('mouseup', up);
-        };
-    }, [key]);
-
-    return h('div', { className: 'ufs-model' },
-        h('canvas', { ref: canvasRef, className: 'ufs-canvas' }),
-        status === 'load' ? h('div', { className: 'ufs-model-msg' }, 'Modell wird geladen …') : null,
-        status === 'none' ? h('div', { className: 'ufs-model-msg' }, 'Für diese Art liegt kein Modell vor.') : null,
-        status === 'nogl' ? h('div', { className: 'ufs-model-msg' }, 'WebGL ist im Browser nicht verfügbar.') : null,
-        status === 'ok' ? h('div', { className: 'ufs-model-hint' }, 'ziehen zum Drehen') : null);
-}
 
 /* -------------------------------------------------------------- Köderseite */
 
@@ -1854,7 +1784,7 @@ function SpeciesPage(props) {
                     (s.wMax ? s.wMin + '–' + s.wMax + ' kg' : 'ohne Größenangabe') +
                     (s.lMax ? ' · ' + s.lMin + '–' + s.lMax + ' cm' : '')),
                 isOpen ? h('div', { className: 'list', style: { gridTemplateColumns: '1fr' } },
-                    MODELS[r.key] ? h('div', { style: { margin: '.2rem 0 .6rem' } }, h(FishModel, { speciesKey: r.key })) : null,
+
                     h('div', null, h('span', null, 'Reviere'), h('em', null,
                         r.where.length ? r.where.map(function (w) { return mapName[w] || w; }).join(', ') : 'keine Spawnpunkte')),
                     g && Object.keys(g.baits).length
@@ -2338,7 +2268,7 @@ function ProfilePage(props) {
 
     if (!API_AVAILABLE) {
         return h('div', { className: 'ufs-note' },
-            'Profile brauchen den Server. Öffne den Guide über ', h('code', null, 'https://fish.tobee94.de'), '.');
+            'Profile brauchen den Server. Öffne den Guide über ', h('code', null, 'https://ufs-atlas.de'), '.');
     }
 
     // Menüpunkte: was es beim fremden Profil nicht zu sehen gibt, fällt weg.
@@ -3007,7 +2937,7 @@ function CommunityPage(props) {
     if (!API_AVAILABLE) {
         return h('div', { className: 'ufs-note' },
             'Konten und Gruppen brauchen den Server. Öffne den Guide dafür über ',
-            h('code', null, 'https://fish.tobee94.de'),
+            h('code', null, 'https://ufs-atlas.de'),
             ' statt als lokale Datei.');
     }
     if (!me) {
@@ -3375,6 +3305,10 @@ function App() {
         function apply() {
             const parts = decodeURIComponent((location.hash || '').replace(/^#/, '')).split('/');
             const head = (parts[0] || '').toLowerCase();
+            // Die Startseite stellt den Dienst vor; ohne Server gibt es
+            // nichts vorzustellen, dann beginnt der Guide bei den Revieren.
+            if (head === 'start' && API_AVAILABLE) { setView('start'); return; }
+            if (head === '' && API_AVAILABLE) { setView('start'); return; }
             if (head === 'koeder') { setView('bait'); return; }
             if (head === 'angler' && parts[1]) {
                 setAngler(parts[1]);
@@ -3408,7 +3342,8 @@ function App() {
         let hash = selectedMap === '__all__'
             ? '#gesamt'
             : '#revier/' + selectedMap + (selectedSpot ? '/spot' + selectedSpot : '');
-        if (view === 'bait') hash = '#koeder';
+        if (view === 'start') hash = '#start';
+        else if (view === 'bait') hash = '#koeder';
         else if (view === 'angler' && angler) {
             hash = '#angler/' + encodeURIComponent(angler)
                 + (anglerTab && anglerTab !== 'uebersicht' ? '/' + anglerTab : '');
@@ -3550,7 +3485,13 @@ function App() {
 
         h('header', { className: 'no-print sticky top-0 z-40 border-b border-white/10 bg-[#061017]/80 backdrop-blur-xl' },
             h('div', { className: 'mx-auto flex max-w-[1700px] items-center gap-4 px-4 py-3 lg:px-7' },
-                h('button', { onClick: function () { setSelectedMap(playable[0].id); }, className: 'flex shrink-0 items-center gap-3 text-left' },
+                h('button', {
+                    onClick: function () {
+                        if (API_AVAILABLE) { setView('start'); return; }
+                        setView('map'); setSelectedMap(playable[0].id);
+                    },
+                    className: 'flex shrink-0 items-center gap-3 text-left'
+                },
                     h('span', { className: 'grid h-10 w-10 place-items-center rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-cyan-400/20 to-blue-500/10 shadow-glow' },
                         h(Icon, { name: 'fish', className: 'text-cyan-200' })),
                     h('span', null,
@@ -3648,13 +3589,14 @@ function App() {
                         className: 'ufs-btn', style: { marginLeft: '.6rem', padding: '.15rem .6rem' },
                         onClick: function () { setSyncNote(null); }
                     }, 'Ok')) : null,
-                view === 'map' && !isGlobal || view === 'angler' ? null : h('h1', { className: 'mb-4 text-2xl font-black tracking-tight text-white' },
+                view === 'map' && !isGlobal || view === 'angler' || view === 'start' ? null : h('h1', { className: 'mb-4 text-2xl font-black tracking-tight text-white' },
                     view === 'bait' ? 'Köder & Methoden'
                         : view === 'arten' ? 'Fischarten'
                         : view === 'community' ? 'Gruppen & Vergleich'
                         : view === 'stats' ? 'Statistik'
                         : 'Gesamtübersicht'),
-                view === 'angler' ? h(ProfilePage, {
+                view === 'start' ? h(StartPage, { lang: lang })
+                : view === 'angler' ? h(ProfilePage, {
                     name: angler, me: me, lang: lang, local: local,
                     tab: anglerTab, onTab: setAnglerTab,
                     onBack: function () { setView('community'); },

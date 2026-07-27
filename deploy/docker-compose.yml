@@ -1,6 +1,10 @@
-# Anwendungsstack für fish.tobee94.de.
+# Anwendungsstack für ufs-atlas.de.
 # Wird von der CI (Job `deploy`) auf das gemeinsame `web`-Netz gelegt.
 # TLS und Host-Routing macht Traefik auf demselben Host wie fuewa.systems.
+#
+# fish.tobee94.de war die erste Adresse und bleibt erreichbar: ein eigener
+# Router schickt sie dauerhaft (301) auf ufs-atlas.de weiter, damit alte
+# Links und Lesezeichen nicht ins Leere laufen.
 name: fish
 services:
   web:
@@ -34,10 +38,19 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=web"
-      - "traefik.http.routers.fish-web.rule=Host(`fish.tobee94.de`)"
+      - "traefik.http.routers.fish-web.rule=Host(`ufs-atlas.de`) || Host(`www.ufs-atlas.de`)"
       - "traefik.http.routers.fish-web.entrypoints=websecure"
       - "traefik.http.routers.fish-web.tls.certresolver=le"
       - "traefik.http.services.fish-web.loadbalancer.server.port=80"
+      # Alte Adresse: dauerhaft auf die neue umleiten, Pfad bleibt erhalten.
+      - "traefik.http.routers.fish-old.rule=Host(`fish.tobee94.de`)"
+      - "traefik.http.routers.fish-old.entrypoints=websecure"
+      - "traefik.http.routers.fish-old.tls.certresolver=le"
+      - "traefik.http.routers.fish-old.service=fish-web"
+      - "traefik.http.routers.fish-old.middlewares=fish-toatlas"
+      - "traefik.http.middlewares.fish-toatlas.redirectregex.regex=^https://fish\\.tobee94\\.de/(.*)"
+      - "traefik.http.middlewares.fish-toatlas.redirectregex.replacement=https://ufs-atlas.de/$${1}"
+      - "traefik.http.middlewares.fish-toatlas.redirectregex.permanent=true"
 
   db:
     image: mariadb:11.4

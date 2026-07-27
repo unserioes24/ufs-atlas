@@ -26,7 +26,6 @@ Zwischenergebnisse landen in `tools/_work/` und können gelöscht werden.
 | Deutsche Namen, Beschreibungen, Ködernamen | I2-Localization-Tabelle in `resources.assets` (12 Sprachen) |
 | Kartenbilder | `Map*`-Texturen in den `sharedassets*.resS` (RGB24 bzw. DXT1) |
 | Fischbilder | Albedo-/Diffuse-Texturen der Fischmodelle, automatisch auf den sichtbaren Bereich zugeschnitten |
-| 3D-Modelle | Mesh (Klasse 43) des SkinnedMeshRenderers im Fisch-Prefab, Textur über die Material-Eigenschaft `_MainTex` |
 
 ## Dateien
 
