@@ -75,10 +75,66 @@ function FitSimilarity($pts, [bool]$mirror) {
 }
 
 function ApplyFit($fit, $x, $z) {
+    if ($fit.affine) {
+        # Ausdrücklich als Gleitkomma rechnen: PowerShell richtet sich beim
+        # Rechnen nach dem linken Operanden, und aus der Hashtabelle kommt
+        # sonst schon mal ein ganzzahliger Typ zurück.
+        $xx = [double]$x; $zz = [double]$z
+        $u = [double]$fit.ca * $xx + [double]$fit.cb * $zz + [double]$fit.cc
+        $v = [double]$fit.cd * $xx + [double]$fit.ce * $zz + [double]$fit.cf
+        return @($u, $v)
+    }
     $ai = if ($fit.mirror) { -$z } else { $z }
     $u = $fit.sr * $x - $fit.si * $ai + $fit.tr
     $v = $fit.si * $x + $fit.sr * $ai + $fit.ti
     return @($u, $v)
+}
+
+<#
+    Manche Kartenbilder sind nicht maßstabsgetreu: Florida etwa ist in der
+    Breite anders gestaucht als in der Höhe. Eine Ähnlichkeitstransformation
+    (Drehung plus einheitlicher Maßstab) trifft das nicht, eine affine schon.
+    Gelöst wird über die Normalgleichungen, 3x3 nach Cramer.
+
+        u = a*x + b*z + c        v = d*x + e*z + f
+#>
+function Det3($a11, $a12, $a13, $a21, $a22, $a23, $a31, $a32, $a33) {
+    $t1 = $a11 * ($a22 * $a33 - $a23 * $a32)
+    $t2 = $a12 * ($a21 * $a33 - $a23 * $a31)
+    $t3 = $a13 * ($a21 * $a32 - $a22 * $a31)
+    return [double]($t1 - $t2 + $t3)
+}
+
+function FitAffine($pts) {
+    # Unterbestimmt wäre die Abbildung ab drei Punkten exakt lösbar, aber ohne
+    # jede Kontrolle. Erst ab vier Punkten hat der Fehler eine Aussage.
+    if ($pts.Count -lt 4) { return $null }
+    $sxx = 0.0; $sxz = 0.0; $sx = 0.0; $szz = 0.0; $sz = 0.0; $s1 = 0.0
+    $sux = 0.0; $suz = 0.0; $su = 0.0; $svx = 0.0; $svz = 0.0; $sv = 0.0
+    foreach ($p in $pts) {
+        $x = [double]$p.x; $z = [double]$p.z; $u = [double]$p.u; $v = [double]$p.v
+        $sxx += $x * $x; $sxz += $x * $z; $sx += $x
+        $szz += $z * $z; $sz += $z; $s1 += 1
+        $sux += $u * $x; $suz += $u * $z; $su += $u
+        $svx += $v * $x; $svz += $v * $z; $sv += $v
+    }
+    $det = Det3 $sxx $sxz $sx  $sxz $szz $sz  $sx $sz $s1
+    if ([Math]::Abs($det) -lt 1e-9) { return $null }
+
+    $a = (Det3 $sux $sxz $sx  $suz $szz $sz  $su $sz $s1) / $det
+    $b = (Det3 $sxx $sux $sx  $sxz $suz $sz  $sx $su $s1) / $det
+    $c = (Det3 $sxx $sxz $sux  $sxz $szz $suz  $sx $sz $su) / $det
+    $d = (Det3 $svx $sxz $sx  $svz $szz $sz  $sv $sz $s1) / $det
+    $e = (Det3 $sxx $svx $sx  $sxz $svz $sz  $sx $sv $s1) / $det
+    $f = (Det3 $sxx $sxz $svx  $sxz $szz $svz  $sx $sz $sv) / $det
+
+    # Entartete Lösungen aussortieren: die Abbildung muss die Fläche erhalten
+    # und darf nicht zu einer Linie zusammenfallen.
+    $area = [Math]::Abs($a * $e - $b * $d)
+    if ($area -lt 1e-9) { return $null }
+
+    return @{ affine = $true; ca = [double]$a; cb = [double]$b; cc = [double]$c
+              cd = [double]$d; ce = [double]$e; cf = [double]$f }
 }
 
 # --------------------------------------------------------------- main build
@@ -153,6 +209,22 @@ foreach ($fy in $FISH) {
         $score = 0.0
         if ($tot -gt 0) { $score = ($inb / $tot) * 100 + ($(if ($inb) { $blue / $inb } else { 0 })) }
         if ($score -gt $bestScore) { $bestScore = $score; $best = $f; $bestErr = $err }
+    }
+
+    # Trägt die Ähnlichkeitstransformation nicht, wird die affine geprüft. Sie
+    # gewinnt nur, wenn sie die Spots deutlich besser trifft – sonst bleibt es
+    # bei der einfacheren Abbildung.
+    $aff = FitAffine $pairs
+    if ($aff) {
+        $errA = 0.0
+        foreach ($p in $pairs) {
+            $r = ApplyFit $aff $p.x $p.z
+            $errA += [Math]::Sqrt(($r[0] - $p.u) * ($r[0] - $p.u) + ($r[1] - $p.v) * ($r[1] - $p.v))
+        }
+        $errA /= $pairs.Count
+        if ($errA -lt 0.05 -and ($null -eq $best -or $errA -lt $bestErr * 0.7)) {
+            $best = $aff; $bestErr = $errA
+        }
     }
 
     # --- spawners -> uv, nearest spot

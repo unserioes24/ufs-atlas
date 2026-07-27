@@ -154,12 +154,24 @@ Ein Karpfen etwa steht auf `Straight langsam` bei 100 %, auf `Lift & Drop` und
 `Stop & Go` bei 60 % und auf `Straight`, `Straight schnell` und `Twitching` bei 0 –
 diese drei Führungen bringen bei ihm also gar nichts.
 
+## Welt → Karte
+
+Die Abbildung von Weltkoordinaten auf das Kartenbild wird aus den Spots geschätzt,
+die beides mitbringen: Position in der Szene und Position auf dem Kartenbild.
+
+Zuerst wird eine Ähnlichkeitstransformation versucht (Drehung, einheitlicher
+Maßstab, Verschiebung, wahlweise gespiegelt). Trägt die nicht, greift eine affine
+Abbildung mit getrennten Maßstäben je Achse. Das ist bei mehreren Karten nötig,
+weil das Kartenbild in der Breite anders gestaucht ist als in der Höhe – am
+deutlichsten bei Florida, wo der mittlere Fehler von 0,19 auf 0,008 fällt.
+Angenommen wird die affine Lösung nur ab vier Spots und wenn sie klar besser
+liegt; sonst bleibt es bei der einfacheren.
+
 ## Grenzen
 
-- Die Welt→Karte-Abbildung wird aus den Spotpaaren geschätzt. Liegen die Spots fast auf einer
-  Linie oder ist das Kartenbild nicht maßstabsgetreu, wird sie verworfen (`fitOk: false`) und
-  es werden nur die Spots gezeichnet, keine Schwarmpunkte. Betroffen sind Baikal, Grönland,
-  Japan, Kariba, Taupo und Florida.
+- Ohne Spots auf dem Kartenbild gibt es keine Abbildung: `Piñas Bay – Ocean` und
+  `Greenland – Sea` sind reine Offshore-Karten und zeigen deshalb keine
+  Schwarmpunkte (`fitOk: false`).
 - Hakengrößen stehen nicht als eigenes Feld in den Spieldaten; das Spiel leitet sie aus der
   Fischgröße ab. Die Hakenangaben im Guide bleiben deshalb Community-Werte.
 - Die Byte-Offsets der Kartentexturen in `extract.ps1` gelten für den Spielstand vom Juli 2026.
