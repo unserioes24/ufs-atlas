@@ -1,21 +1,32 @@
-# Ein Container: Apache mit PHP liefert sowohl den Guide als auch die API aus.
+# One container: Apache with PHP serves both the guide and the API.
 #
-# Der Guide besteht aus fertigem HTML/JS/CSS und wird nach server/public
-# kopiert; Symfony übernimmt nur Anfragen, die dort keine Datei treffen.
+# The guide is built from TypeScript sources here and lands in server/public;
+# Symfony only sees requests that do not hit a file there.
 
-# ── Abhängigkeiten ───────────────────────────────────────────────────
+# ── Guide ────────────────────────────────────────────────────────────
+FROM node:22-alpine AS web
+WORKDIR /app
+# Dependencies first: they change far less often than the sources.
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY tsconfig.json vite.config.ts tailwind.config.js postcss.config.js index.html ./
+COPY src ./src
+COPY public ./public
+RUN npm run build
+
+# ── PHP dependencies ─────────────────────────────────────────────────
 FROM composer:2 AS vendor
 WORKDIR /app
 COPY server/composer.json ./
-# Ohne --ignore-platform-reqs: composer.json pinnt die Plattform auf PHP 8.5
-# und jedes Symfony-Paket auf 7.4 – sonst mischt Composer 7.4 und 8.x.
+# Without --ignore-platform-reqs: composer.json pins the platform to PHP 8.5
+# and every Symfony package to 7.4 – otherwise Composer mixes 7.4 and 8.x.
 RUN composer install --no-dev --no-scripts --prefer-dist --no-interaction
 
-# ── Laufzeit ─────────────────────────────────────────────────────────
+# ── Runtime ──────────────────────────────────────────────────────────
 FROM php:8.5-apache
 
-# OPcache ist in den PHP-8.5-Images fest eingebaut; docker-php-ext-install
-# würde daran scheitern, eingestellt wird sie trotzdem über conf.d.
+# OPcache is built into the PHP 8.5 images; docker-php-ext-install would fail
+# on it, so it is only configured through conf.d.
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends curl; \
@@ -33,13 +44,12 @@ RUN sed -ri 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
 
 WORKDIR /var/www/html
 
-# Symfony-Anwendung
+# Symfony application
 COPY server/ ./
 COPY --from=vendor /app/vendor ./vendor
 
-# Der Guide selbst
-COPY index.html app.js gamedata.js styles.css ui.css data.json robots.txt ./public/
-COPY maps   ./public/maps
+# The built guide
+COPY --from=web /app/dist/ ./public/
 
 COPY deploy/apache-app.conf /etc/apache2/conf-available/app.conf
 COPY deploy/entrypoint.sh /usr/local/bin/entrypoint

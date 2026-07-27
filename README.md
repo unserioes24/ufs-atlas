@@ -1,89 +1,84 @@
-# UFS Atlas – Ultimate Fishing Simulator Guide
+# UFS Atlas — a guide for Ultimate Fishing Simulator 1
 
-Interaktive React-/Tailwind-Webapp für **Ultimate Fishing Simulator 1 (PC/Steam)**.
-Der Guide kombiniert recherchierte Community-Werte mit Daten, die direkt aus der
-Spielinstallation ausgelesen wurden.
+Web app for **Ultimate Fishing Simulator 1 (PC/Steam)**. It combines numbers read
+straight out of a local game installation with values researched by the community,
+and it always says which is which.
 
-## Start
+Live at **[ufs-atlas.de](https://ufs-atlas.de)**. The interface is German today;
+English is being added.
 
-`index.html` direkt im Browser öffnen. React wird in Version 18.3.1 von UNPKG geladen,
-alles Übrige liegt lokal vor.
-
-Alternativ lokal ausliefern:
+## Running it
 
 ```bash
-python -m http.server 8080
+npm install
+npm run dev        # development server on http://localhost:5173
+npm run build      # production build into dist/
 ```
 
-Dann `http://localhost:8080` öffnen.
+`npm run dev` proxies `/api` to the live server. Point it somewhere else with
+`UFS_API=http://localhost:8080 npm run dev`.
 
-## Funktionen
+Without the API the guide still works: maps, species, baits, size steps and the
+save-file statistics all run in the browser. Accounts, profiles and groups need
+the server.
 
-- **Revierkarte aus dem Spiel** – die Originalkarte jedes Reviers mit allen nummerierten
-  Reisepunkten. Punkt überfahren zeigt die Arten in Wurfweite, Klick filtert die Liste
-  auf diesen Spot.
-- **Fangliste zum Abhaken** – jede Art lässt sich als gefangen markieren; Fortschritt je
-  Revier und insgesamt. Wahlweise per Klick oder durch **Import des Spielstands**
-  (`PROFILE_0` / `PROFILE_1`), inklusive persönlicher Rekorde und Rekordrevier.
-- **Köder & Führung auf Deutsch** – Umschalter zwischen den englischen Originalbegriffen
-  und den deutschen Bezeichnungen aus der Lokalisierungstabelle des Spiels.
-- **Spieldaten je Art** – Gewichts- und Längenspanne, Beißzeitkurve über 24 Stunden,
-  Anzahl der Schwarmpunkte im Revier, deutsche Enzyklopädie-Beschreibung, Modelltextur.
-- **Artenseite** (`#arten`) – alle 136 Arten mit Größenspanne, Revieren, Ködern, Methode,
-  Haken, Führung, Beißzeitkurve und der besten Angelart.
-- **Statistik** (`#statistik`) – komplett aus dem geladenen Spielstand: Angler, Punkte,
-  Geld, Angelzeit, je Revier Fänge, Bisse, Trefferquote, Gewicht und größter Fang,
-  dazu je Art dein Rekord im Verhältnis zum möglichen Maximum.
-- **Köderseite** (`#koeder`) – alle Naturköder, Boilies, Kunstköderarten, Methoden und
-  Montageteile mit den Originalbezeichnungen des Spiels, jeweils mit den Arten, für die
-  der Guide sie empfiehlt.
-- **Konto, Gruppen und Vergleich** (`#gruppen`, nur mit Server) – Anmeldung per
-  E-Mail-Code, ein Profil je Konto, Gruppen mit Ranglisten für schwersten und
-  längsten Fisch, Gesamtmasse, größte Masse einer Art, Artenzahl und komplette
-  Reviere. Gruppen sind öffentlich, nicht gelistet oder privat.
-- **Anglerprofil** (`#angler/<Name>`, nur mit Server) – teilbare Seite mit
-  Kennzahlen, Fortschritt je Revier, Rekorden je Art und dem, was noch fehlt.
-  Wer angemeldet ist, sieht seinen eigenen Stand daneben: Kennzahl für
-  Kennzahl, Revier für Revier und Art für Art, jeweils mit dem Datum beider
-  Spielstände. Dort liegen auch Gruppen und Kontoeinstellungen.
-- **Adressleiste als Zustand** – `#revier/betty`, `#revier/moraine/spot3`, `#arten/PIKE`,
-  `#koeder`, `#statistik`, `#gruppen`, `#angler/Name/gruppen` sind direkt verlinkbar.
-- 21 Karteneinträge, 204 recherchierte Fisch-/Strategieeinträge, ergänzt um alle Arten,
-  die nur in den Spieldateien stehen.
-- Suche, Filter nach Methode, Vertrauensstufe, offen/gefangen und Favoriten, Druckansicht.
+## What it does
 
-## Datenquellen
+- **Fishery maps from the game** — the original map of every fishery with its
+  numbered travel points. Hovering a point shows the species within casting
+  range, clicking filters the list to that spot. Shoal positions are projected
+  from the scene onto the map image.
+- **A catch list** — tick species off by hand or import your save file
+  (`PROFILE_0` / `PROFILE_1`), which also brings your personal records.
+- **Per species from the game files** — weight and length range, the 24-hour
+  bite curve, weather curves, encyclopedia text, and the best fishing method.
+- **Baits and methods** — how strongly each species wants each bait, in percent;
+  which of fly, lure, float or ground actually works; and the factor of every
+  retrieve when spin fishing.
+- **Size steps** — hooks from #12 to #12/0 with the fish weight each one catches,
+  plus the separate tables for lures and flies.
+- **Statistics** from your save file: progress per fishery and per species, your
+  record next to what the species can reach.
+- **Profiles** (`#angler/<name>`) — a shareable page with your numbers. Anyone
+  signed in who opens it sees their own state next to yours: figure by figure,
+  fishery by fishery, species by species, each with the date of both save files.
+- **Groups** — public, unlisted or private, with eight leaderboards.
+- **The address bar is the state**: `#revier/betty`, `#revier/moraine/spot3`,
+  `#arten/PIKE`, `#koeder`, `#statistik`, `#angler/Name/gruppen`.
 
-| Aus den Spieldateien | Aus der Community-Recherche |
+## Where the numbers come from
+
+| From the game files | From community research |
 | --- | --- |
-| Spotnummern und ihre Position auf der Karte | Köderempfehlungen |
-| Artenliste je Revier und je Spot | Hakengrößen |
-| Anzahl Schwarmpunkte und Fische | Führung und Rollengeschwindigkeit |
-| Gewicht, Länge, Beißzeiten | Ködertiefe und Praxisnotizen |
-| Deutsche Namen und Beschreibungen | |
+| Spot numbers and their position on the map | Hook sizes per species and fishery |
+| Species per fishery and per spot, with fish counts | Depth hints and rig notes |
+| Weight and length range, bite curve, weather curves | Strategies per spot |
+| Bait preference per species, bait type, retrieve factors | |
+| Size steps for hooks, lures, flies and baits | |
+| Names and descriptions from the localisation table | |
 
-Die Trennung ist in der Oberfläche sichtbar: Spieldaten stehen im blau abgesetzten Block,
-Community-Werte tragen eine Vertrauensstufe.
+The split is visible in the interface: game data sits in the blue block, community
+values carry a confidence level. See [`tools/README.md`](tools/README.md) for how
+the extraction works — every number can be reproduced from your own install.
 
-## Dateien
+## Layout
 
-- `index.html` – Einstieg mit eingebetteter Guide-Datenbasis
-- `app.js` – die Anwendung; lesbares JavaScript, bewusst ohne Build-Schritt
-- `styles.css` – lokal erzeugtes Tailwind-CSS
-- `ui.css` – Bausteine für Revierkarte, Fangliste und Spieldaten-Block
-- `data.json` – Guide-Datenbasis separat zur Weiterverarbeitung
-- `gamedata.js` – aus dem Spiel extrahierte Daten (136 Arten, 20 Reviere)
-- `maps/` – Revierkarten aus dem Spiel
-- `fish/` – zugeschnittene Modelltexturen der Fische
-- `tools/` – die Extraktions-Pipeline, siehe `tools/README.md`
-- `server/` – Symfony-Backend, liefert im Betrieb auch den Guide aus
-- `deploy/`, `Dockerfile.web`, `DEPLOY.md` – Container und Auslieferung
+| Path | What it is |
+| --- | --- |
+| `src/` | the app: TypeScript, React, Tailwind |
+| `src/data/` | `guide.json` (research) and `gamedata.json` (extracted) |
+| `src/i18n/` | interface texts, one file per language |
+| `maps/` | fishery maps from the game |
+| `tools/` | the extraction pipeline, PowerShell and C# |
+| `server/` | Symfony backend; in production it also serves the guide |
+| `deploy/`, `Dockerfile.web` | container and delivery |
 
-## Datenhinweis
+## A note on the data
 
-Fischschwärme bewegen sich im Spiel. Spotnummern und Artenzuordnungen entsprechen den
-Spawndefinitionen der Szene, sind aber keine Garantie für einen Fang zu jedem Zeitpunkt.
-Community-Werte für Köder, Haken und Führung sind praxiserprobte Startpunkte; niedrige
-Vertrauensstufen sind in der Oberfläche ausdrücklich markiert.
+Shoals move in the game. Spot numbers and species per spot follow the spawn
+definitions of the scene; they are not a promise that a fish stands there right
+now. Community values for hooks and rigs are tested starting points, and low
+confidence is marked as such in the interface.
 
-Fan-Projekt, nicht offiziell mit den Entwicklern verbunden.
+Fan project, not affiliated with the developers. Ultimate Fishing Simulator is a
+trademark of its owners; no game assets are redistributed here.

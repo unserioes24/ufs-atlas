@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$Work = (Join-Path $PSScriptRoot '_work'),
     [string]$Proj = (Split-Path $PSScriptRoot -Parent)
 )
@@ -15,7 +15,7 @@ foreach ($line in [IO.File]::ReadAllLines("$sp\terms.tsv")) {
 }
 $locKeys = @{}
 foreach ($t in $terms.Keys) { if ($t -match '^FISH/(.+)_NAME$') { $locKeys[$Matches[1]] = $true } }
-Write-Host "Lokalisierte Fischarten: $($locKeys.Count)"
+Write-Host "Localised species: $($locKeys.Count)"
 
 $ALIAS = @{
     'Cods'='ATLANTIC_COD'; 'Sharks'='GREENLAND_SHARK'; 'Halibuts'='ATLANTIC_HALIBUT'
@@ -194,7 +194,7 @@ foreach ($ob in $fp.objects) {
 }
 $prefabKeys | ConvertTo-Json -Compress | Set-Content (Join-Path $sp 'prefabkeys.json') -Encoding UTF8
 
-Write-Host "Arten mit Spieldaten: $($species.Count)   nicht auflösbar: $($unres.Keys.Count)"
+Write-Host "Species with game data: $($species.Count)   unresolved: $($unres.Keys.Count)"
 if ($unres.Keys.Count) { Write-Host ("  " + (($unres.Keys | Sort-Object) -join ', ')) }
 
 # species that exist in localisation but have no prefab stats
@@ -314,7 +314,7 @@ foreach ($k in $ORDER) {
         save = $SAVEKEY[$k]
         fitOk = $f.fitOk; spots = $spots; species = $sl; dots = $dots
     }
-    Write-Host ("{0,-16} spots={1,-3} arten={2,-3} dots={3}" -f $k, $spots.Count, $sl.Count, $dots.Count)
+    Write-Host ("{0,-16} spots={1,-3} species={2,-3} dots={3}" -f $k, $spots.Count, $sl.Count, $dots.Count)
 }
 
 # --------------------------------------------------------------- 3) Glossar
@@ -467,9 +467,9 @@ if (Test-Path $baitFile) {
         if ($pairs.Count -eq 0) { continue }
         $baits[$base] = [ordered]@{ en = $en; de = $de; kind = $kind; i = ($pairs -join ',') }
     }
-    Write-Host "Köder: $($baits.Count)   Arten in den Tabellen: $($baitSpecies.Count)"
+    Write-Host "Baits: $($baits.Count)   species in the tables: $($baitSpecies.Count)"
     if ($baitDropped.Count) {
-        Write-Host ("  ohne Entsprechung in der Artenliste: " + (($baitDropped.Keys | Sort-Object) -join ', '))
+        Write-Host ("  without a match in the species list: " + (($baitDropped.Keys | Sort-Object) -join ', '))
     }
 
     # Beste erreichbare Ködervorliebe je Art und Angelart. Hier zählt jedes
@@ -502,7 +502,7 @@ if (Test-Path $baitFile) {
         $species[$sk].m = $vals
         $withMethods++
     }
-    Write-Host "Angelarten je Fisch bewertet: $withMethods"
+    Write-Host "Fishing methods rated per species: $withMethods"
 }
 
 # Nur die drei Kurven, die je Art überhaupt gefüllt sind.
@@ -536,7 +536,7 @@ $hooks = $null
 $hookFile = Join-Path $sp 'hooks.json'
 if (Test-Path $hookFile) {
     $hooks = Get-Content $hookFile -Raw | ConvertFrom-Json
-    Write-Host "Größentabellen: $($hooks.steps) Stufen"
+    Write-Host "Size tables: $($hooks.steps) steps"
 }
 
 $data = [ordered]@{
@@ -550,7 +550,8 @@ $data = [ordered]@{
     hooks       = $hooks
 }
 $json = $data | ConvertTo-Json -Depth 12 -Compress
-[IO.File]::WriteAllText("$proj\gamedata.json", $json)
+New-Item -ItemType Directory -Force (Join-Path $proj 'src\data') | Out-Null
+[IO.File]::WriteAllText("$proj\src\data\gamedata.json", $json)
 
 # ---------------------------------------------- 4) Stammdaten für den Server
 # Der Symfony-Dienst wertet hochgeladene Spielstände selbst aus und braucht
@@ -580,4 +581,4 @@ New-Item -ItemType Directory -Force (Join-Path $proj 'server\data') | Out-Null
 [IO.File]::WriteAllText((Join-Path $proj 'server\data\gamedata-server.json'),
     ($srv | ConvertTo-Json -Depth 8 -Compress))
 Write-Host "-> server/data/gamedata-server.json"
-Write-Host "-> gamedata.json  $([Math]::Round($json.Length/1KB)) KB   Arten gesamt: $($species.Count)"
+Write-Host "-> src/data/gamedata.json  $([Math]::Round($json.Length/1KB)) KB   Arten gesamt: $($species.Count)"

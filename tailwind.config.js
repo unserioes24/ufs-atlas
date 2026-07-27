@@ -1,6 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './src/**/*.{ts,tsx}'],
+  // The legacy view code is still plain JavaScript, so .js has to be scanned
+  // as well — otherwise its Tailwind classes would be dropped from the build.
+  content: ['./index.html', './src/**/*.{ts,tsx,js,jsx}'],
   theme: {
     extend: {
       // Die Oberfläche lebt von einem sehr dunklen Blaugrün mit Cyan als

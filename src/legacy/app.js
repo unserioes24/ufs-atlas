@@ -1,18 +1,19 @@
-/* UFS Atlas – Ultimate Fishing Simulator Guide
+/*
+ * The original single-file app, now an ES module.
  *
- * Zwei Datenquellen:
- *   window.UFS_DATA  – recherchierter Community-Guide (data.json)
- *   window.UFS_GAME  – direkt aus den Spieldateien extrahiert (gamedata.js)
- *
- * Bewusst ohne Build-Schritt: React kommt als UMD-Bundle, diese Datei ist die
- * lesbare Quelle. h() ist React.createElement.
+ * It still builds its views with React.createElement instead of JSX; that was
+ * the price of running without a build step. Nothing here is meant to stay:
+ * piece by piece these views move into typed components under src/components,
+ * and this file shrinks until it disappears.
  */
+import React from 'react'
+import { GAME, GUIDE } from '../data'
 
-const { useCallback, useEffect, useMemo, useRef, useState } = React;
-const h = React.createElement;
+const { useCallback, useEffect, useMemo, useRef, useState } = React
+const h = React.createElement
 
-const D = window.UFS_DATA;
-const G = window.UFS_GAME || { species: {}, fisheries: {}, glossary: {} };
+const D = GUIDE
+const G = GAME
 const SPECIES = G.species || {};
 const FISHERIES = G.fisheries || {};
 
@@ -3791,4 +3792,4 @@ function App() {
         }) : null);
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(h(App, null));
+export default App

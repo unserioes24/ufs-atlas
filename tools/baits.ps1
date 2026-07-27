@@ -95,8 +95,8 @@ $sf.Close()
 New-Item -ItemType Directory -Force $Work | Out-Null
 ($result | ConvertTo-Json -Depth 6) | Set-Content -Encoding utf8 (Join-Path $Work 'baits.json')
 
-"Köder-Prefabs gefunden : $($keys.Count)"
-"davon mit Fischtabelle : $($result.Count)"
+"Bait prefabs found     : $($keys.Count)"
+"with a species table   : $($result.Count)"
 ""
 $result.GetEnumerator() | Select-Object -First 12 | ForEach-Object {
     $top = ($_.Value.fish.GetEnumerator() | Sort-Object { -$_.Value } | Select-Object -First 5 |

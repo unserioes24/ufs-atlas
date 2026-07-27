@@ -19,8 +19,13 @@ export const LANG_NAMES: Record<Lang, string> = {
   en: 'English',
 }
 
-export type Dict = typeof de
-type Key = keyof Dict
+/**
+ * German is written `as const` so the keys are known exactly. The dictionary
+ * type widens the values back to plain strings — otherwise a translation would
+ * have to repeat the German wording to satisfy the compiler.
+ */
+export type Key = keyof typeof de
+export type Dict = Record<Key, string>
 
 const DICTS: Record<Lang, Partial<Dict>> = { de, en }
 

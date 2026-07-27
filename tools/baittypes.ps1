@@ -84,9 +84,9 @@ $sf.Close()
 New-Item -ItemType Directory -Force $Work | Out-Null
 ($result | ConvertTo-Json -Depth 4) | Set-Content -Encoding utf8 (Join-Path $Work 'baittypes.json')
 
-"Köder-Prefabs         : $($keys.Count)"
-"davon mit Bait-Baustein: $($result.Count)"
-"ohne (= Naturköder)    : $($keys.Count - $result.Count)"
+"Bait prefabs          : $($keys.Count)"
+"with a Bait component : $($result.Count)"
+"without (= natural)   : $($keys.Count - $result.Count)"
 ""
 $result.GetEnumerator() | Group-Object { $_.Value.type } | Sort-Object Count -Descending |
     ForEach-Object { '  {0,-12} {1}' -f $_.Name, $_.Count }

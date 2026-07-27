@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$Work = (Join-Path $PSScriptRoot '_work'),
     [string]$Proj = (Split-Path $PSScriptRoot -Parent)
 )
@@ -143,7 +143,7 @@ $out = [ordered]@{}
 
 foreach ($fy in $FISH) {
     $lf = "$sp\fisheries\level$($fy.lvl).json"
-    if (-not (Test-Path $lf)) { Write-Host "skip $($fy.k)"; continue }
+    if (-not (Test-Path $lf)) { Write-Host "skipping $($fy.k)"; continue }
     $L = ConvertFrom-Json ([IO.File]::ReadAllText($lf))
 
     # Passende Kartentafel wählen: Winterreviere nutzen MapParentIce, sonst MapParentNormal.
@@ -306,7 +306,7 @@ foreach ($fy in $FISH) {
         species  = $sl
         spawners = $spw
     }
-    Write-Host ("{0,-16} spots={1,-3} arten={2,-3} punkte={3,-5} fitErr={4:F4} score={5:F1}" -f $fy.k, $spots.Count, $sl.Count, $spw.Count, $bestErr, $bestScore)
+    Write-Host ("{0,-16} spots={1,-3} species={2,-3} points={3,-5} fitErr={4:F4} score={5:F1}" -f $fy.k, $spots.Count, $sl.Count, $spw.Count, $bestErr, $bestScore)
 }
 
 New-Item -ItemType Directory -Force "$sp\out" | Out-Null
@@ -315,4 +315,4 @@ foreach ($k in $out.Keys) {
     $j = $out[$k] | ConvertTo-Json -Depth 8 -Compress
     [IO.File]::WriteAllText("$sp\out\$k.json", $j)
 }
-Write-Host "-> $($out.Keys.Count) Revierdateien in out\"
+Write-Host "-> $($out.Keys.Count) fishery files in out\"
