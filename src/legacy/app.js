@@ -46,6 +46,16 @@ const D = GUIDE
 const G = GAME
 
 
+/**
+ * Überschriften der Kartengruppen. Der Guide führt sie unter deutschen Namen,
+ * die Anzeige nimmt den Wörterbucheintrag – unbekannte Gruppen bleiben stehen.
+ */
+const MAP_GROUPS = {
+    'Basis': 'map.groupBase', 'Variante': 'map.groupVariant',
+    'DLC': 'map.groupDlc', 'Angekündigt': 'map.groupAnnounced'
+};
+function groupLabel(g, t) { return MAP_GROUPS[g] ? t(MAP_GROUPS[g]) : g; }
+
 const accent = {
     cyan: 'from-cyan-400/20 via-blue-500/10 to-transparent', sky: 'from-sky-400/20 via-cyan-500/10 to-transparent',
     amber: 'from-amber-400/20 via-orange-500/10 to-transparent', emerald: 'from-emerald-400/20 via-teal-500/10 to-transparent',
@@ -252,7 +262,7 @@ function ProfilePage(props) {
 
     if (!API_AVAILABLE) {
         return h('div', { className: 'ufs-note' },
-            'Profile brauchen den Server. Öffne den Guide über ', h('code', null, 'https://ufs-atlas.de'), '.');
+            t('profile.needsServer', { url: 'https://ufs-atlas.de' }));
     }
 
     // Menüpunkte: was es beim fremden Profil nicht zu sehen gibt, fällt weg.
@@ -275,7 +285,7 @@ function ProfilePage(props) {
     if (!data) {
         return h('div', null,
             h('div', { className: 'ufs-row no-print', style: { marginBottom: '.9rem' } },
-                h('button', { className: 'ufs-btn', onClick: props.onBack }, '← Zurück')),
+                h('button', { className: 'ufs-btn', onClick: props.onBack }, t('app.back'))),
             err ? h('div', { className: 'ufs-note' }, err) : h('p', { className: 'ufs-muted' }, 'Wird geladen …'));
     }
 
@@ -307,7 +317,7 @@ function ProfilePage(props) {
                             disabled: busy, onClick: toggleFollow
                         }, data.following ? t('profile.following') : t('profile.follow'))
                         : null,
-                    h('button', { className: 'ufs-btn', style: { width: '100%' }, onClick: props.onBack }, '← Zurück')))),
+                    h('button', { className: 'ufs-btn', style: { width: '100%' }, onClick: props.onBack }, t('app.back'))))),
 
         h('div', { className: 'min-w-0' },
             err ? h('div', { className: 'ufs-note', style: { marginBottom: '.9rem' } }, err) : null,
@@ -467,7 +477,7 @@ function ProfileDetails(props) {
 
         tab === 'uebersicht' && owned.length
             ? h('div', { className: 'ufs-spotcard', style: { marginBottom: '.9rem' } },
-                h('h3', null, 'Gekaufte Ausrüstung'),
+                h('h3', null, t('stats.ownedGear')),
                 h('div', { className: 'ufs-row', style: { gap: '.35rem', flexWrap: 'wrap' } },
                     owned.map(function (c) {
                         return h('span', { key: c, className: 'ufs-chip' }, categoryLabel(c, t) + ': ' + p.owned[c]);
@@ -623,18 +633,18 @@ function ProfileDuel(props) {
                         h('td', { className: cn('num', duelClass(tally.leadW, tally.behindW)) }, tally.leadW),
                         h('td', { className: 'sub' }, tally.tieW)),
                     h('tr', null,
-                        h('td', { className: 'n' }, 'Längerer Fisch'),
+                        h('td', { className: 'n' }, t('duel.longerFish')),
                         h('td', { className: cn('num', duelClass(tally.behindL, tally.leadL)) }, tally.behindL),
                         h('td', { className: cn('num', duelClass(tally.leadL, tally.behindL)) }, tally.leadL),
                         h('td', { className: 'sub' }, tally.both - tally.leadL - tally.behindL)),
                     h('tr', null,
-                        h('td', { className: 'n' }, 'Mehr Stück'),
+                        h('td', { className: 'n' }, t('duel.morePieces')),
                         h('td', { className: cn('num', duelClass(tally.behindC, tally.leadC)) }, tally.behindC),
                         h('td', { className: cn('num', duelClass(tally.leadC, tally.behindC)) }, tally.leadC),
                         h('td', { className: 'sub' }, tally.both - tally.leadC - tally.behindC))))),
 
         h('div', { className: 'ufs-spotcard', style: { marginTop: '.9rem' } },
-            h('h3', null, 'Revier für Revier'),
+            h('h3', null, t('duel.fisheryByFishery')),
             h('div', { className: 'ufs-scroll' },
                 h('table', { className: 'ufs-rec ufs-duel' },
                     h('thead', null,
@@ -672,7 +682,7 @@ function ProfileDuel(props) {
 
         h('div', { className: 'ufs-spotcard', style: { marginTop: '.9rem' } },
             h('div', { className: 'ufs-row', style: { justifyContent: 'space-between', marginBottom: '.7rem', flexWrap: 'wrap' } },
-                h('h3', { style: { margin: 0 } }, 'Art für Art'),
+                h('h3', { style: { margin: 0 } }, t('duel.speciesBySpecies')),
                 h('div', { className: 'ufs-row no-print', style: { gap: '.35rem', flexWrap: 'wrap' } },
                     DUEL_FILTERS.map(function (f) {
                         return h(Toggle, {
@@ -844,8 +854,7 @@ function AccountPanel(props) {
 
         h('h3', null, 'Spielstand automatisch hochladen'),
         h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', lineHeight: 1.6, margin: '.2rem 0 .6rem' } },
-            'Mit diesem Befehl lädst du deinen Spielstand ohne Anmeldung hoch – etwa aus der ' +
-            'Windows-Aufgabenplanung nach jeder Angelsession. Jeder Upload ersetzt dein Profil vollständig.'),
+            t('account.tokenHint')),
         h('pre', { className: 'ufs-cmd' }, cmd),
         h('div', { className: 'ufs-row' },
             h('button', {
@@ -1038,11 +1047,11 @@ function App() {
                     f: {
                         id: map.id + '-game-' + g.s.toLowerCase(), mapId: map.id,
                         name: sp.en || g.s, de: sp.de || sp.en || g.s,
-                        spots: g.spots && g.spots.length ? 'Spots ' + g.spots.join(', ') : 'siehe Karte',
-                        hook: 'an die Fischgröße anpassen', bait: '—', groundbait: '—',
-                        depth: 'Schwarmtiefe im Spiel prüfen', method: 'nicht im Guide erfasst',
+                        spots: g.spots && g.spots.length ? t('gameOnly.spots', { list: g.spots.join(', ') }) : t('gameOnly.seeMap'),
+                        hook: t('gameOnly.hook'), bait: '—', groundbait: '—',
+                        depth: t('gameOnly.depth'), method: t('gameOnly.method'),
                         retrieve: '—', time: 'Keine feste Zeit belegt',
-                        notes: 'Diese Art steht in den Spieldateien dieses Reviers, aber noch nicht im recherchierten Guide.',
+                        notes: t('gameOnly.notes'),
                         confidence: 'hoch', sources: [], dlc: null, tags: []
                     }
                 });
@@ -1184,7 +1193,7 @@ function App() {
                     }, h(Icon, { name: 'scale' }), h('span', { className: 'lbl' }, t('nav.stats'))),
                     API_AVAILABLE ? h('button', {
                         className: cn('ufs-btn', (view === 'angler' || view === 'anmelden') && 'primary'),
-                        title: me ? 'Dein Profil – die Adresse lässt sich weitergeben' : 'Anmelden',
+                        title: me ? t('map.profileTitle') : t('nav.login'),
                         onClick: function () {
                             if (me) { setAngler(me.name); setAnglerTab('uebersicht'); setView('angler'); }
                             else setView('anmelden');
@@ -1202,7 +1211,7 @@ function App() {
             // Kartenliste nur in der Revieransicht
             view !== 'map' ? null : h('aside', { className: 'no-print hidden self-start lg:sticky lg:top-24 lg:block' },
                 h('div', { className: 'glass scrollbar max-h-[calc(100vh-7rem)] overflow-y-auto rounded-3xl border border-white/10 p-3 shadow-2xl' },
-                    h('div', { className: 'px-3 pb-2 pt-2 text-xs font-bold uppercase tracking-[.18em] text-slate-500' }, 'Karten'),
+                    h('div', { className: 'px-3 pb-2 pt-2 text-xs font-bold uppercase tracking-[.18em] text-slate-500' }, t('map.maps')),
                     h('button', {
                         onClick: function () { setSelectedMap('__all__'); },
                         className: cn('group mb-3 flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition',
@@ -1210,13 +1219,13 @@ function App() {
                     },
                         h('span', { className: 'h-2.5 w-2.5 rounded-full bg-cyan-300/70' }),
                         h('span', { className: 'min-w-0 flex-1' },
-                            h('span', { className: 'block truncate text-sm font-semibold text-slate-200' }, 'Gesamtübersicht'),
+                            h('span', { className: 'block truncate text-sm font-semibold text-slate-200' }, t('map.overview')),
                             h('span', { style: { display: 'block', marginTop: '3px' } },
                                 h(Bar, { value: allDone, total: allKeys.length, thin: true }))),
                         h('span', { className: 'text-[10px] tabular-nums text-slate-600' }, allDone + '/' + allKeys.length)),
                     Object.keys(grouped).map(function (group) {
                         return h('div', { key: group, className: 'mb-4' },
-                            h('div', { className: 'px-3 py-2 text-[10px] font-bold uppercase tracking-[.18em] text-slate-600' }, group),
+                            h('div', { className: 'px-3 py-2 text-[10px] font-bold uppercase tracking-[.18em] text-slate-600' }, groupLabel(group, t)),
                             h('div', { className: 'space-y-1' }, grouped[group].map(function (m) {
                                 const fy = FISHERIES[m.id];
                                 const keys = {};
@@ -1246,11 +1255,11 @@ function App() {
 
             h('main', { className: 'min-w-0' },
                 syncNote ? h('div', { className: 'ufs-note ok no-print', style: { marginBottom: '.9rem' } },
-                    'Stand aus deinem Konto übernommen (' + fmtWhen(syncNote) + ').',
+                    t('map.syncNote', { when: fmtWhen(syncNote) }),
                     h('button', {
                         className: 'ufs-btn', style: { marginLeft: '.6rem', padding: '.15rem .6rem' },
                         onClick: function () { setSyncNote(null); }
-                    }, 'Ok')) : null,
+                    }, t('app.ok'))) : null,
                 view === 'map' && !isGlobal || view === 'angler' || view === 'start' ? null : h('h1', { className: 'mb-4 text-2xl font-black tracking-tight text-white' },
                     view === 'bait' ? t('nav.baits')
                         : view === 'arten' ? t('nav.species')
@@ -1322,13 +1331,11 @@ function App() {
                                 h(Mini, { label: t('map.spotsFromFiles'), value: fishery && fishery.spots.length ? String(fishery.spots.length) : DASH })),
                             mapKeys.length ? h('div', { style: { marginTop: '.9rem', maxWidth: '520px' } }, h(Bar, { value: mapDone, total: mapKeys.length })) : null),
                         h('div', { className: 'rounded-3xl border border-white/10 bg-black/20 p-5 backdrop-blur-xl' },
-                            h('div', { className: 'flex items-center gap-2 text-sm font-bold text-cyan-100' }, h(Icon, { name: 'info' }), 'So liest du die Angaben'),
+                            h('div', { className: 'flex items-center gap-2 text-sm font-bold text-cyan-100' }, h(Icon, { name: 'info' }), t('map.readHead')),
                             h('p', { className: 'mt-3 text-sm leading-6 text-slate-400' },
-                                'Spots, Artenlisten, Gewicht, Länge, Beißzeiten und die Köderinteressen kommen direkt aus ' +
-                                'den Spieldateien – die Prozentwerte im Block „Aus den Spieldateien“ sind die Zahlen des Spiels. ' +
-                                'Hakengröße, Führung und Tiefenangabe darüber sind Community-Erfahrungswerte.'),
+                                t('map.readNote')),
                             h('div', { className: 'mt-4 rounded-2xl border border-amber-300/20 bg-amber-300/[.07] p-3 text-xs leading-5 text-amber-100/80' },
-                                'Fische bewegen sich. Bei leerem Spot: Hunter Vision bzw. Fischfinder nutzen, Hakengröße reduzieren oder die Karte neu laden.')))),
+                                t('map.emptySpotNote'))))),
 
                 fishery ? h('section', { className: 'no-print mt-5 ufs-maplayout' },
                     h(FisheryMap, {
@@ -1339,7 +1346,7 @@ function App() {
                         spotObj
                             ? h(SpotPanel, { spot: spotObj, caught: caught })
                             : h('div', { className: 'ufs-spotcard' },
-                                h('h3', null, 'Arten in diesem Revier'),
+                                h('h3', null, t('map.speciesHere')),
                                 h('div', { className: 'ufs-splist' },
                                     panelList.slice(0, 18).map(function (g) {
                                         return h('div', {
@@ -1353,10 +1360,10 @@ function App() {
                                             h('span', { className: cn('n', caught[g.s] && 'done') },
                                                 (caught[g.s] ? '✓ ' : '') + speciesName(g.s, lang)),
                                             h('span', { className: 'q' },
-                                                g.guideOnly ? 'nur Guide' : (g.dlc ? 'DLC-Art' : g.fish + ' Fische')),
+                                                g.guideOnly ? t('map.guideOnly') : (g.dlc ? t('map.dlcSpecies') : t('map.fishHere', { n: g.fish }))),
                                             h('span', { className: 'd' },
                                                 g.guideOnly ? (g.hint || '–')
-                                                    : (g.spots.length ? 'Spot ' + g.spots.slice(0, 4).join(', ')
+                                                    : (g.spots.length ? t('map.spotList', { list: g.spots.slice(0, 4).join(', ') })
                                                         : (g.dlc ? 'frei verteilt' : '–'))));
                                     })),
                                 panelList.length > 18
@@ -1365,9 +1372,7 @@ function App() {
                                     : null,
                                 panelList.some(function (g) { return g.guideOnly; })
                                     ? h('div', { className: 'ufs-muted', style: { fontSize: '10.5px', marginTop: '.5rem', lineHeight: 1.5 } },
-                                        '„nur Guide“ heißt: Die Szene des Spiels enthält für diese Art keine Spawnpunkte. ' +
-                                        'Das betrifft vor allem die Arten aus dem New-Fish-Species-DLC, die das Spiel erst zur Laufzeit ergänzt. ' +
-                                        'Spotangabe stammt dann aus der Community-Recherche.')
+                                        t('map.guideOnlyNote'))
                                     : null),
                         !fishery.fitOk
                             ? h('div', { className: 'ufs-note', style: { fontSize: '11.5px' } },
@@ -1380,30 +1385,36 @@ function App() {
 
                 h('section', { className: 'no-print mt-5 rounded-3xl border border-white/10 bg-white/[.025] p-4' },
                     h('div', { className: 'flex flex-wrap items-center gap-3' },
-                        h('div', { className: 'flex items-center gap-2 text-xs font-bold uppercase tracking-[.15em] text-slate-500' }, h(Icon, { name: 'filter' }), 'Filter'),
-                        h(Select, { value: method, onChange: setMethod, options: methods }),
+                        h('div', { className: 'flex items-center gap-2 text-xs font-bold uppercase tracking-[.15em] text-slate-500' }, h(Icon, { name: 'filter' }), t('map.filter')),
+                        h(Select, { value: method, onChange: setMethod, options: methods, labels: { Alle: t('map.filterAll') } }),
                         h(Select, {
                             value: confidence, onChange: setConfidence, options: ['Alle', 'hoch', 'mittel', 'niedrig'],
-                            labels: { hoch: 'hohes Vertrauen', mittel: 'mittleres Vertrauen', niedrig: 'abgeleitete Werte' }
+                            labels: {
+                                Alle: t('map.filterAll'), hoch: t('map.filterConfHigh'),
+                                mittel: t('map.filterConfMedium'), niedrig: t('map.filterConfLow')
+                            }
                         }),
                         h(Select, {
                             value: catchFilter, onChange: setCatchFilter, options: ['Alle', 'offen', 'gefangen'],
-                            labels: { Alle: 'alle Arten', offen: 'nur fehlende', gefangen: 'nur gefangene' }
+                            labels: {
+                                Alle: t('map.filterAllSpecies'), offen: t('map.filterOpen'),
+                                gefangen: t('map.filterCaught')
+                            }
                         }),
                         h(Toggle, { active: lang === 'de', onClick: function () { i18n.setLang(lang === 'de' ? 'en' : 'de'); } },
-                            lang === 'de' ? 'Köder & Führung: Deutsch' : 'Köder & Führung: Englisch'),
+                            lang === 'de' ? t('map.termsDe') : t('map.termsEn')),
                         h(Toggle, { active: showOverlay, onClick: function () { setShowOverlay(!showOverlay); } }, 'New-Species-DLC'),
-                        h(Toggle, { active: onlyFav, onClick: function () { setOnlyFav(!onlyFav); } }, h(Icon, { name: 'star' }), 'Favoriten'),
-                        h(Toggle, { active: compact, onClick: function () { setCompact(!compact); } }, 'Kompakt'),
-                        selectedSpot ? h(Toggle, { active: true, onClick: function () { setSelectedSpot(null); } }, 'nur Spot ' + selectedSpot) : null,
-                        pinned ? h(Toggle, { active: true, onClick: function () { setPinned(null); } }, 'nur ' + speciesName(pinned, lang)) : null,
-                        h('span', { className: 'ml-auto text-xs tabular-nums text-slate-500' }, filtered.length + ' von ' + rows.length))),
+                        h(Toggle, { active: onlyFav, onClick: function () { setOnlyFav(!onlyFav); } }, h(Icon, { name: 'star' }), t('map.favorites')),
+                        h(Toggle, { active: compact, onClick: function () { setCompact(!compact); } }, t('map.compact')),
+                        selectedSpot ? h(Toggle, { active: true, onClick: function () { setSelectedSpot(null); } }, t('map.onlySpot', { n: selectedSpot })) : null,
+                        pinned ? h(Toggle, { active: true, onClick: function () { setPinned(null); } }, t('map.onlySpecies', { name: speciesName(pinned, lang) })) : null,
+                        h('span', { className: 'ml-auto text-xs tabular-nums text-slate-500' }, t('map.filterCount', { shown: filtered.length, total: rows.length })))),
 
                 map.status === 'announced'
                     ? h('div', { className: 'mt-6 rounded-3xl border border-white/10 bg-white/[.03] p-10 text-center text-slate-400' },
                         h('div', { className: 'text-4xl' }, '◌'),
-                        h('h2', { className: 'mt-3 text-xl font-bold text-white' }, 'Noch keine belastbaren Guide-Daten'),
-                        h('p', { className: 'mt-2' }, 'Italy DLC ist auf Steam angekündigt, aber ohne veröffentlichten Termin und ohne spielbare Spotdaten.'))
+                        h('h2', { className: 'mt-3 text-xl font-bold text-white' }, t('map.announcedTitle')),
+                        h('p', { className: 'mt-2' }, t('map.announcedText')))
                     : h('section', { className: cn('mt-6 grid gap-4', compact ? 'xl:grid-cols-2' : 'grid-cols-1') },
                         filtered.map(function (r) {
                             return h(FishCard, {
@@ -1419,16 +1430,13 @@ function App() {
                         }),
                         !filtered.length
                             ? h('div', { className: 'rounded-3xl border border-dashed border-white/15 p-12 text-center text-slate-500' },
-                                'Keine Treffer. Filter zurücksetzen oder einen kleineren Suchbegriff verwenden.')
+                                t('map.noHits'))
                             : null),
 
                 h('section', { className: 'mt-8 rounded-3xl border border-white/10 bg-white/[.025] p-6 text-sm leading-7 text-slate-400' },
-                    h('h2', { className: 'text-lg font-bold text-white' }, 'Hakenwahl und leere Spots'),
+                    h('h2', { className: 'text-lg font-bold text-white' }, t('map.hookAdviceTitle')),
                     h('p', { className: 'mt-2' },
-                        'Die Hakenangaben sind Community-Bereiche und oft auf große Exemplare ausgelegt. Meldet das Spiel „Haken zu groß“, ' +
-                        'beginne zwei bis vier Stufen kleiner – die Längen- und Gewichtsspanne im Spieldaten-Block ist dafür der beste Anhaltspunkt. ' +
-                        'Vergrößere erst, nachdem du die Zielart am Spot sicher gefangen hast. Bei Naturködern erhöhen drei Köderstücke den Anziehungsradius; ' +
-                        'bei Kunstködern zählen Geschwindigkeit und Rollenübersetzung zusammen.')),
+                        t('map.hookAdvice'))),
 
                 h('footer', { className: 'py-10 text-center text-xs text-slate-600' },
                     'UFS Atlas · Guide-Stand ' + D.generated + ' · Spieldaten ' + (G.generated || '–') +
