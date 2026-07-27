@@ -1,5 +1,5 @@
 #!/bin/sh
-# Wartet auf die Datenbank, spielt Migrationen ein und wärmt den Cache.
+# Waits for the database, applies the migrations and warms the cache.
 set -e
 
 cd /var/www/html
@@ -16,15 +16,15 @@ if [ -n "$DATABASE_URL" ]; then
         sleep 2
     done
 
-    # Muss vor den Migrationen laufen: der eindeutige Index auf den
-    # Benutzernamen entsteht erst, wenn keine Dubletten mehr existieren.
+    # Has to run before the migrations: the unique index on the user names can
+    # only be created once no duplicates are left.
     php bin/console app:names:fix --no-interaction || true
 
     php bin/console doctrine:migrations:sync-metadata-storage --no-interaction >/dev/null 2>&1 || true
 
-    # Bestehende Datenbanken sind vor Einführung der Migrationen entstanden.
-    # Steht app_user schon da, gilt der Ausgangsstand als eingespielt und wird
-    # nur verbucht. Ist er bereits verbucht, schlägt der Befehl fehl - egal.
+    # Existing databases were created before the migrations came in. Where
+    # app_user is already there, the baseline counts as applied and is only
+    # recorded. If it is recorded already the command fails - never mind.
     if php bin/console dbal:run-sql "SELECT 1 FROM app_user LIMIT 1" >/dev/null 2>&1; then
         php bin/console doctrine:migrations:version \
             --add 'DoctrineMigrations\Version20260727090000' --no-interaction \

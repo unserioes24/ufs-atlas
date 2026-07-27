@@ -1,10 +1,10 @@
-# Anwendungsstack für ufs-atlas.de.
-# Wird von der CI (Job `deploy`) auf das gemeinsame `web`-Netz gelegt.
-# TLS und Host-Routing macht Traefik auf demselben Host wie fuewa.systems.
+# The application stack for ufs-atlas.de.
+# The CI (job `deploy`) puts it onto the shared `web` network.
+# TLS and host routing are Traefik's job, on the same host as fuewa.systems.
 #
-# fish.tobee94.de war die erste Adresse und bleibt erreichbar: ein eigener
-# Router schickt sie dauerhaft (301) auf ufs-atlas.de weiter, damit alte
-# Links und Lesezeichen nicht ins Leere laufen.
+# fish.tobee94.de was the first address and stays reachable: a router of its
+# own sends it on to ufs-atlas.de for good (301), so old links and bookmarks
+# do not run into nothing.
 name: fish
 services:
   web:
@@ -24,8 +24,8 @@ services:
       TRUSTED_PROXIES: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
     volumes:
       - sessions:/var/www/html/var/sessions
-    # Prüft nur, ob der Webserver ausliefert. Ein Fehler in PHP soll den
-    # Deploy nicht blockieren – der zeigt sich in den Logs, nicht hier.
+    # Only checks that the web server answers. A PHP error should not block the
+    # deploy – that shows up in the logs, not here.
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost/robots.txt >/dev/null || exit 1"]
       interval: 15s
@@ -42,7 +42,7 @@ services:
       - "traefik.http.routers.fish-web.entrypoints=websecure"
       - "traefik.http.routers.fish-web.tls.certresolver=le"
       - "traefik.http.services.fish-web.loadbalancer.server.port=80"
-      # Alte Adresse: dauerhaft auf die neue umleiten, Pfad bleibt erhalten.
+      # Old address: redirect to the new one for good, keeping the path.
       - "traefik.http.routers.fish-old.rule=Host(`fish.tobee94.de`)"
       - "traefik.http.routers.fish-old.entrypoints=websecure"
       - "traefik.http.routers.fish-old.tls.certresolver=le"
