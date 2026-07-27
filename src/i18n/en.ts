@@ -168,6 +168,32 @@ export const en: Partial<Dict> = {
   'stats.colTotal': 'Sum',
   'stats.colRecordFishery': 'Record fishery',
 
+  // ------------------------------------------------------- Save-file import
+  'import.title': 'Read a save file',
+  'import.lead':
+    'The guide reads your save file and ticks off every species you have already caught. The file stays in the browser and is sent nowhere.',
+  'import.whereLead': 'You find it here:',
+  'import.slots':
+    'PROFILE_0 and PROFILE_1 are the two profile slots. The files deliberately have no extension.',
+  'import.reading': 'Reading …',
+  'import.pick': 'Choose a PROFILE file',
+  'import.noCounters':
+    'No catch counters found. Please choose PROFILE_0 or PROFILE_1 (files without an extension).',
+  'import.done': '{who}{n} species caught taken over, personal records included.',
+  'import.alsoServer': 'Stored in your account as well.',
+  'import.serverFailed': '(upload to the server failed: {error})',
+  'import.unreadable': 'The file could not be read: {error}',
+  'import.unreadablePlain': 'The file could not be read.',
+  'import.byHand': 'You can also tick species by hand – the state is kept in the browser.',
+  'import.resetAsk': 'Really remove every tick and all imported records?',
+  'import.reset': 'Reset the catch list',
+
+  // ---------------------------------------------------------------- Sources
+  'sources.eyebrow': 'What this is built on',
+  'sources.title': 'Sources & data quality',
+  'sources.note':
+    'Spots, species lists, weight and length ranges, bite curves and the bait interests come straight from the installed game files (Unity scenes, fish and bait prefabs, localisation table). Hook and retrieve recommendations stay community experience; anything rated low is marked as a starting point on purpose.',
+
   // ----------------------------------------------------------- All fisheries
   'overview.caught': 'Species caught',
   'overview.caughtSub': '{pct} % of the species list',

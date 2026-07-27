@@ -28,6 +28,8 @@ import StatsPage from '../components/stats/StatsPage'
 import { Stat } from '../components/primitives'
 import GlobalOverview from '../components/stats/GlobalOverview'
 import { FisheryMap, SpotPanel } from '../components/map/FisheryMap'
+import ImportDialog from '../components/save/ImportDialog'
+import SourcesPanel from '../components/SourcesPanel'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
@@ -185,105 +187,6 @@ function Bar(props) {
 
 /* ------------------------------------------------- Köder- und Wetterblöcke */
 
-
-/* -------------------------------------------------------- Spielstand-Import */
-
-function ImportDialog(props) {
-    const [msg, setMsg] = useState(null);
-    const [busy, setBusy] = useState(false);
-    const inputRef = useRef(null);
-
-    function onFile(e) {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-        setBusy(true); setMsg(null);
-        const rd = new FileReader();
-        rd.onload = function () {
-            try {
-                const res = profileToCatches(parseProfile(rd.result));
-                if (!res.total) {
-                    setMsg({ bad: true, text: 'Keine Fangzähler gefunden. Bitte PROFILE_0 oder PROFILE_1 wählen (Dateien ohne Endung).' });
-                    setBusy(false);
-                    return;
-                }
-                props.onImport(res);
-                const who = (res.player && res.player.name) ? res.player.name + ': ' : '';
-                const local = who + res.total + ' gefangene Arten übernommen, inklusive persönlicher Rekorde.';
-
-                // Angemeldet? Dann dieselbe Datei zusätzlich ans Konto schicken.
-                if (props.me && API_AVAILABLE) {
-                    api('/profile/upload', { method: 'POST', body: rd.result })
-                        .then(function () { setMsg({ bad: false, text: local + ' Auch im Konto gespeichert.' }); })
-                        .catch(function (e) { setMsg({ bad: false, text: local + ' (Serverupload fehlgeschlagen: ' + e.message + ')' }); })
-                        .then(function () { setBusy(false); });
-                    return;
-                }
-                setMsg({ bad: false, text: local });
-            } catch (err) {
-                setMsg({ bad: true, text: 'Datei konnte nicht gelesen werden: ' + err.message });
-            }
-            setBusy(false);
-        };
-        rd.onerror = function () { setMsg({ bad: true, text: 'Datei konnte nicht gelesen werden.' }); setBusy(false); };
-        rd.readAsArrayBuffer(file);
-    }
-
-    return h('div', {
-        className: 'ufs-modal-bg',
-        onMouseDown: function (e) { if (e.target === e.currentTarget) props.onClose(); }
-    }, h('div', { className: 'ufs-modal' },
-        h('h2', null, 'Spielstand einlesen'),
-        h('p', null, 'Der Guide liest deinen Spielstand aus und hakt alle bereits gefangenen Arten ab. Die Datei bleibt lokal im Browser und wird nirgendwohin gesendet.'),
-        h('p', null, 'Zu finden unter:'),
-        h('p', null, h('code', null, '%UserProfile%\\AppData\\LocalLow\\PlayWay\\UltimateFishing\\PROFILE_0')),
-        h('p', { style: { color: '#64748b' } }, 'PROFILE_0 und PROFILE_1 sind die beiden Profilslots. Die Dateien haben bewusst keine Endung.'),
-        h('div', { className: 'ufs-row', style: { marginTop: '1rem' } },
-            h('input', { ref: inputRef, type: 'file', className: 'ufs-file', onChange: onFile }),
-            h('button', { className: 'ufs-btn primary', onClick: function () { inputRef.current.click(); } },
-                h(Icon, { name: 'import' }), busy ? 'Lese …' : 'PROFILE-Datei wählen'),
-            h('button', { className: 'ufs-btn', onClick: props.onClose }, 'Schließen')),
-        msg ? h('div', {
-            className: 'ufs-note',
-            style: msg.bad ? null : { borderColor: 'rgba(52,211,153,.3)', background: 'rgba(16,185,129,.08)', color: '#a7f3d0' }
-        }, msg.text) : null,
-        h('div', { className: 'ufs-sep' }),
-        h('p', null, 'Alternativ hakst du Arten von Hand ab – der Stand wird im Browser gespeichert.'),
-        h('button', {
-            className: 'ufs-btn danger',
-            onClick: function () { if (confirm('Wirklich alle Haken und importierten Rekorde entfernen?')) props.onReset(); }
-        }, 'Fangliste zurücksetzen')));
-}
-
-
-function Sources(props) {
-    return h('div', {
-        className: 'fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm',
-        onMouseDown: function (e) { if (e.target === e.currentTarget) props.onClose(); }
-    }, h('div', { className: 'scrollbar h-full w-full max-w-2xl overflow-y-auto border-l border-white/10 bg-[#08141c] p-5 shadow-2xl sm:p-8' },
-        h('div', { className: 'flex items-center justify-between' },
-            h('div', null,
-                h('div', { className: 'text-xs font-bold uppercase tracking-[.18em] text-cyan-300' }, 'Recherchebasis'),
-                h('h2', { className: 'mt-1 text-2xl font-black text-white' }, 'Quellen & Datenqualität')),
-            h('button', { onClick: props.onClose, className: 'rounded-xl border border-white/10 p-2 text-slate-400 hover:bg-white/[.06]' }, h(Icon, { name: 'close' }))),
-        h('div', { className: 'mt-5 rounded-2xl border border-amber-300/20 bg-amber-300/[.06] p-4 text-sm leading-6 text-amber-100/80' },
-            'Spots, Artenlisten, Gewichts- und Längenspannen, Beißzeitkurven und die Köderinteressen stammen direkt aus den ' +
-            'installierten Spieldateien (Unity-Szenen, Fisch- und Köder-Prefabs, Lokalisierungstabelle). Haken- und ' +
-            'Führungsempfehlungen bleiben Community-Erfahrungswerte; niedrig bewertete Angaben sind bewusst als Startpunkt markiert.'),
-        h('div', { className: 'mt-6 space-y-3' },
-            Object.keys(D.sources).map(function (id) {
-                const s = D.sources[id];
-                return h('a', {
-                    key: id, href: s.url, target: '_blank', rel: 'noreferrer',
-                    className: 'block rounded-2xl border border-white/10 bg-white/[.03] p-4 transition hover:border-cyan-400/30 hover:bg-white/[.05]'
-                },
-                    h('div', { className: 'flex items-start justify-between gap-4' },
-                        h('div', null,
-                            h('div', { className: 'font-bold text-slate-100' }, s.title),
-                            h('div', { className: 'mt-1 text-xs text-cyan-300' }, s.type)),
-                        h(Icon, { name: 'source', className: 'text-slate-500' })),
-                    h('p', { className: 'mt-3 text-sm leading-6 text-slate-400' }, s.note));
-            }))));
-}
 
 
 /* ----------------------------------------------------------- Rekordseite */
@@ -1964,7 +1867,7 @@ function App() {
                     'UFS Atlas · Guide-Stand ' + D.generated + ' · Spieldaten ' + (G.generated || '–') +
                     ' · Fan-Projekt, nicht offiziell mit den Entwicklern verbunden.')))),
 
-        sourceOpen ? h(Sources, { onClose: function () { setSourceOpen(false); } }) : null,
+        sourceOpen ? h(SourcesPanel, { onClose: function () { setSourceOpen(false); } }) : null,
         importOpen ? h(ImportDialog, {
             me: me,
             onClose: function () { setImportOpen(false); },

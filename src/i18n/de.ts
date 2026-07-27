@@ -170,6 +170,33 @@ export const de = {
   'stats.colTotal': 'Gesamt',
   'stats.colRecordFishery': 'Rekordrevier',
 
+  // ------------------------------------------------------ Spielstand-Import
+  'import.title': 'Spielstand einlesen',
+  'import.lead':
+    'Der Guide liest deinen Spielstand aus und hakt alle bereits gefangenen Arten ab. Die Datei bleibt lokal im Browser und wird nirgendwohin gesendet.',
+  'import.whereLead': 'Zu finden unter:',
+  'import.slots':
+    'PROFILE_0 und PROFILE_1 sind die beiden Profilslots. Die Dateien haben bewusst keine Endung.',
+  'import.reading': 'Lese …',
+  'import.pick': 'PROFILE-Datei wählen',
+  'import.noCounters':
+    'Keine Fangzähler gefunden. Bitte PROFILE_0 oder PROFILE_1 wählen (Dateien ohne Endung).',
+  'import.done': '{who}{n} gefangene Arten übernommen, inklusive persönlicher Rekorde.',
+  'import.alsoServer': 'Auch im Konto gespeichert.',
+  'import.serverFailed': '(Serverupload fehlgeschlagen: {error})',
+  'import.unreadable': 'Datei konnte nicht gelesen werden: {error}',
+  'import.unreadablePlain': 'Datei konnte nicht gelesen werden.',
+  'import.byHand':
+    'Alternativ hakst du Arten von Hand ab – der Stand wird im Browser gespeichert.',
+  'import.resetAsk': 'Wirklich alle Haken und importierten Rekorde entfernen?',
+  'import.reset': 'Fangliste zurücksetzen',
+
+  // ---------------------------------------------------------------- Quellen
+  'sources.eyebrow': 'Recherchebasis',
+  'sources.title': 'Quellen & Datenqualität',
+  'sources.note':
+    'Spots, Artenlisten, Gewichts- und Längenspannen, Beißzeitkurven und die Köderinteressen stammen direkt aus den installierten Spieldateien (Unity-Szenen, Fisch- und Köder-Prefabs, Lokalisierungstabelle). Haken- und Führungsempfehlungen bleiben Community-Erfahrungswerte; niedrig bewertete Angaben sind bewusst als Startpunkt markiert.',
+
   // ------------------------------------------------------- Gesamtübersicht
   'overview.caught': 'Arten gefangen',
   'overview.caughtSub': '{pct} % der Artenliste',
