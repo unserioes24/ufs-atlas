@@ -392,21 +392,23 @@
 
 /* --------------------------------------------------------------- Kopfzeile
 
-   Auf dem Handy passen Suche und Menü nicht in eine Zeile. Die Suche nimmt
-   dann die volle Breite, das Menü wandert darunter und lässt sich seitlich
-   schieben – sichtbar bleibt es dadurch immer. */
-.ufs-headrow { display: flex; align-items: center; gap: 1rem; }
-.ufs-headnav { display: flex; align-items: center; gap: .5rem; flex-wrap: nowrap; }
+   Suche und Menü passen nicht auf jeder Breite in eine Zeile. Statt einen
+   Umschaltpunkt zu raten, darf die Zeile immer umbrechen und das Menü immer
+   seitlich schieben – sichtbar bleibt es dadurch bei jeder Fensterbreite.
+   Auf dem Handy nimmt die Suche zusätzlich die ganze Zeile. */
+.ufs-headrow { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.ufs-headnav {
+  display: flex; align-items: center; gap: .5rem; flex-wrap: nowrap;
+  min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch; padding-bottom: 2px;
+}
+.ufs-headnav::-webkit-scrollbar { display: none; }
+.ufs-headnav .ufs-btn { flex: none; }
 
 @media (max-width: 900px) {
-  .ufs-headrow { flex-wrap: wrap; gap: .6rem; }
+  .ufs-headrow { gap: .6rem; }
   .ufs-headrow .ufs-search { order: 3; width: 100%; max-width: none; margin-left: 0; }
-  .ufs-headnav {
-    order: 2; margin-left: auto; overflow-x: auto; scrollbar-width: none;
-    -webkit-overflow-scrolling: touch; max-width: 100%; padding-bottom: 2px;
-  }
-  .ufs-headnav::-webkit-scrollbar { display: none; }
-  .ufs-headnav .ufs-btn { flex: none; }
+  .ufs-headnav { order: 2; margin-left: auto; }
 }
 @media (max-width: 560px) {
   /* Beschriftungen weglassen, die Zeichen tragen die Bedeutung schon */
