@@ -39,6 +39,8 @@ import ImportDialog from '../components/save/ImportDialog'
 import SourcesPanel from '../components/SourcesPanel'
 import LoginPanel from '../components/auth/LoginPanel'
 import ProfilePage from '../components/profile/ProfilePage'
+import { storedStamp, useLocalState } from '../lib/localState'
+import { buildHash, parseHash } from '../lib/route'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
@@ -75,30 +77,6 @@ const accent = {
 
 
 
-
-
-/* --------------------------------------------------------- Profilspeicher */
-
-/**
- * Es gibt genau einen lokalen Stand. Ältere Fassungen speicherten mehrere
- * Profile – davon wird einmalig das zuletzt aktive übernommen.
- */
-function loadLocal() {
-    try {
-        const p = JSON.parse(localStorage.getItem('ufs-profiles') || 'null');
-        if (p && p.list && p.list.length) {
-            const act = p.list.filter(function (x) { return x.id === p.active; })[0] || p.list[0];
-            localStorage.removeItem('ufs-profiles');
-            return { caught: act.caught || {}, bests: act.bests || {}, stats: act.stats || null };
-        }
-    } catch (e) { /* auf die Einzelschlüssel zurückfallen */ }
-    let caught = {}, bests = {}, stats = null;
-    try { caught = JSON.parse(localStorage.getItem('ufs-caught') || '{}'); } catch (e) { }
-    try { bests = JSON.parse(localStorage.getItem('ufs-bests') || '{}'); } catch (e) { }
-    try { stats = JSON.parse(localStorage.getItem('ufs-stats') || 'null'); } catch (e) { }
-    const at = localStorage.getItem('ufs-updated') || null;
-    return { caught: caught, bests: bests, stats: stats, updatedAt: at };
-}
 
 
 
@@ -140,7 +118,7 @@ function App() {
                 if (!st || !st.updatedAt) return;
                 // Gegen den gespeicherten Zeitpunkt vergleichen, nicht gegen den
                 // Zustand beim Aufruf: die Antwort kommt erst später zurück.
-                if (!newerThan(st.updatedAt, localStorage.getItem('ufs-updated'))) return;
+                if (!newerThan(st.updatedAt, storedStamp())) return;
                 setLocal({
                     caught: st.caught || {}, bests: st.bests || {},
                     stats: st.stats || null, updatedAt: st.updatedAt
@@ -157,27 +135,13 @@ function App() {
     const [favorites, setFavorites] = useState(function () {
         try { return JSON.parse(localStorage.getItem('ufs-favs') || '[]'); } catch (e) { return []; }
     });
-    const [local, setLocal] = useState(loadLocal);
+    const { local, setLocal, patchLocal, reset: resetLocal } = useLocalState();
     const caught = local.caught || {};
     const bests = local.bests || {};
     const saveStats = local.stats || null;
-    function patchLocal(patch) {
-        // Jede eigene Änderung bekommt einen Zeitstempel, damit beim nächsten
-        // Laden entschieden werden kann, welcher Stand der neuere ist.
-        const stamped = Object.assign({ updatedAt: new Date().toISOString() }, patch);
-        setLocal(function (l) { return Object.assign({}, l, stamped); });
-    }
     const searchRef = useRef(null);
 
     useEffect(function () { localStorage.setItem('ufs-favs', JSON.stringify(favorites)); }, [favorites]);
-    useEffect(function () {
-        localStorage.setItem('ufs-caught', JSON.stringify(local.caught || {}));
-        localStorage.setItem('ufs-bests', JSON.stringify(local.bests || {}));
-        localStorage.setItem('ufs-stats', JSON.stringify(local.stats || null));
-        if (local.updatedAt) localStorage.setItem('ufs-updated', local.updatedAt);
-        else localStorage.removeItem('ufs-updated');
-    }, [local]);
-
     useEffect(function () {
         function fn(e) {
             if (e.key === '/' && ['INPUT', 'TEXTAREA'].indexOf((document.activeElement || {}).tagName) < 0) {
@@ -190,40 +154,22 @@ function App() {
     }, []);
     useEffect(function () { setSelectedSpot(null); setHighlight(null); setPinned(null); }, [selectedMap]);
 
-    /* Adressleiste als Zustand: #koeder, #arten, #revier/<id>, #revier/<id>/spot3 */
+    /* Adressleiste als Zustand; gelesen und geschrieben wird in src/lib/route.ts. */
     const routeReady = useRef(false);
     const histReady = useRef(false);
     useEffect(function () {
         function apply() {
-            const parts = decodeURIComponent((location.hash || '').replace(/^#/, '')).split('/');
-            const head = (parts[0] || '').toLowerCase();
-            // Die Startseite stellt den Dienst vor; ohne Server gibt es
-            // nichts vorzustellen, dann beginnt der Guide bei den Revieren.
-            if (head === 'start' && API_AVAILABLE) { setView('start'); return; }
-            if (head === '' && API_AVAILABLE) { setView('start'); return; }
-            if (head === 'koeder') { setView('bait'); return; }
-            if (head === 'angler' && parts[1]) {
-                setAngler(parts[1]);
-                setAnglerTab(parts[2] || 'uebersicht');
-                setView('angler');
-                return;
+            const r = parseHash(location.hash, API_AVAILABLE);
+            setView(r.view);
+            if (r.map) setSelectedMap(r.map);
+            if (r.angler) { setAngler(r.angler); setAnglerTab(r.anglerTab || 'uebersicht'); }
+            if (r.view === 'gruppen') setGroupId(r.groupId ?? null);
+            if (r.view === 'stats') setStatsTab(r.statsTab || 'reviere');
+            if (r.view === 'arten') setOpenSpecies(r.species ?? null);
+            // Der Spot erst nach dem Kartenwechsel: der setzt ihn selbst zurueck.
+            if (r.view === 'map' && r.map) {
+                setTimeout(function () { setSelectedSpot(r.spot ?? null); }, 0);
             }
-            if (head === 'gruppen') { setView('gruppen'); setGroupId(parts[1] ? Number(parts[1]) : null); return; }
-            if (head === 'anmelden') { setView('anmelden'); return; }
-            if (head === 'statistik') { setView('stats'); setStatsTab(parts[1] || 'reviere'); return; }
-            if (head === 'arten') { setView('arten'); setOpenSpecies(parts[1] ? parts[1].toUpperCase() : null); return; }
-            if (head === 'gesamt') { setView('map'); setSelectedMap('__all__'); return; }
-            if (head === 'revier' && parts[1]) {
-                const m = D.maps.filter(function (x) { return x.id === parts[1]; })[0];
-                if (m) {
-                    setView('map');
-                    setSelectedMap(m.id);
-                    const sp = /^spot(\d+)$/i.exec(parts[2] || '');
-                    setTimeout(function () { setSelectedSpot(sp ? parseInt(sp[1], 10) : null); }, 0);
-                    return;
-                }
-            }
-            setView('map');
         }
         apply();
         routeReady.current = true;
@@ -232,26 +178,17 @@ function App() {
     }, []);
     useEffect(function () {
         if (!routeReady.current) return;
-        let hash = selectedMap === '__all__'
-            ? '#gesamt'
-            : '#revier/' + selectedMap + (selectedSpot ? '/spot' + selectedSpot : '');
-        if (view === 'start') hash = '#start';
-        else if (view === 'bait') hash = '#koeder';
-        else if (view === 'angler' && angler) {
-            hash = '#angler/' + encodeURIComponent(angler)
-                + (anglerTab && anglerTab !== 'uebersicht' ? '/' + anglerTab : '');
-        }
-        else if (view === 'gruppen') hash = '#gruppen' + (groupId ? '/' + groupId : '');
-        else if (view === 'anmelden') hash = '#anmelden';
-        else if (view === 'stats') hash = '#statistik';
-        else if (view === 'arten') hash = '#arten' + (openSpecies ? '/' + openSpecies : '');
-        // Jeder Wechsel ist ein eigener Schritt im Verlauf, damit „Zurück“ im
+        const hash = buildHash({
+            view: view, map: selectedMap, spot: selectedSpot, species: openSpecies,
+            angler: angler, anglerTab: anglerTab, groupId: groupId
+        });
+        // Jeder Wechsel ist ein eigener Schritt im Verlauf, damit "Zurueck" im
         // Browser tut, was man erwartet. Der erste Aufruf ersetzt nur, sonst
-        // läge beim Öffnen sofort ein zusätzlicher Eintrag im Verlauf.
+        // laege beim Oeffnen sofort ein zusaetzlicher Eintrag im Verlauf.
         if (location.hash === hash) return;
         if (histReady.current) history.pushState(null, '', hash);
         else { history.replaceState(null, '', hash); histReady.current = true; }
-    }, [view, selectedMap, selectedSpot, openSpecies, angler, anglerTab]);
+    }, [view, selectedMap, selectedSpot, openSpecies, angler, anglerTab, groupId]);
 
     const isGlobal = selectedMap === '__all__';
     const map = D.maps.filter(function (m) { return m.id === selectedMap; })[0] || playable[0];
@@ -521,7 +458,7 @@ function App() {
                     me: me,
                     onOpenCommunity: function () { setView('anmelden'); },
                     onReset: function () {
-                        setLocal({ caught: {}, bests: {}, stats: null, updatedAt: new Date().toISOString() });
+                        resetLocal();
                         setSyncNote(null);
                     },
                     onImport: function () { setImportOpen(true); },
@@ -679,7 +616,7 @@ function App() {
             onClose: function () { setImportOpen(false); },
             onImport: applyImport,
             onReset: function () {
-                setLocal({ caught: {}, bests: {}, stats: null, updatedAt: new Date().toISOString() });
+                resetLocal();
             }
         }) : null);
 }
