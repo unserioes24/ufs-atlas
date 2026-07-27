@@ -29,6 +29,10 @@ namespace Ufs
             SerializedFile sf = new SerializedFile(file);
             var goName = new Dictionary<long, string>();
             var goComps = new Dictionary<long, long[]>();
+            // Raw bytes of the small MonoBehaviours. The number a map button
+            // shows sits in a UnityEngine.UI.Text under it, and without type
+            // trees the only way to it is to look at the bytes.
+            var mbData = new Dictionary<long, byte[]>();
             var trById = new Dictionary<long, Tr>();
             var trByGo = new Dictionary<long, Tr>();
 
@@ -49,6 +53,10 @@ namespace Ufs
                         goComps[o.PathId] = comps;
                     }
                     catch { }
+                }
+                else if (o.ClassId == 114 && o.ByteSize < 4000)
+                {
+                    try { mbData[o.PathId] = sf.Read(o); } catch { }
                 }
                 else if (o.ClassId == 4 || o.ClassId == 224)
                 {
@@ -263,6 +271,8 @@ namespace Ufs
                     if (n > 0) j.Append(',');
                     n++;
                     j.Append("{\"n\":").Append(n).Append(",\"name\":\"").Append(Extractor.Esc(goName[bgo])).Append('"');
+                    string lbl = ButtonLabel(bgo, trByGo, trById, goComps, mbData);
+                    if (lbl != null) j.Append(",\"label\":\"").Append(lbl).Append('"');
                     if (t != null) { j.Append(",\"ax\":").Append(F(t.Ax)).Append(",\"ay\":").Append(F(t.Ay)); }
                     long q;
                     if (btnTarget.TryGetValue(bgo, out q))
@@ -454,6 +464,74 @@ namespace Ufs
             j.Append('}');
             sf.Close();
             return j.ToString();
+        }
+        /// <summary>
+        /// The label a map button shows. The game draws it with a
+        /// UnityEngine.UI.Text under the button; the builds carry no type tree,
+        /// so the block is scanned for length-prefixed strings and the short
+        /// numeric ones are kept. A button that yields exactly one number has
+        /// been read correctly - the caller checks that the numbers of a board
+        /// form a complete run.
+        /// </summary>
+        static string ButtonLabel(long bgo,
+                                  Dictionary<long, Tr> trByGo,
+                                  Dictionary<long, Tr> trById,
+                                  Dictionary<long, long[]> goComps,
+                                  Dictionary<long, byte[]> mbData)
+        {
+            Tr t;
+            if (!trByGo.TryGetValue(bgo, out t) || t.Children == null) return null;
+
+            var found = new List<string>();
+            var seen = new HashSet<long>();
+            var queue = new Queue<long>();
+            foreach (long c in t.Children) queue.Enqueue(c);
+
+            while (queue.Count > 0)
+            {
+                long trId = queue.Dequeue();
+                if (!seen.Add(trId)) continue;
+                Tr ct;
+                if (!trById.TryGetValue(trId, out ct)) continue;
+                if (ct.Children != null)
+                    foreach (long g in ct.Children) queue.Enqueue(g);
+
+                long[] comps;
+                if (!goComps.TryGetValue(ct.Go, out comps)) continue;
+                foreach (long compId in comps)
+                {
+                    byte[] data;
+                    if (!mbData.TryGetValue(compId, out data)) continue;
+                    foreach (string s in ShortStrings(data))
+                        if (!found.Contains(s)) found.Add(s);
+                }
+            }
+            return found.Count == 1 ? found[0] : null;
+        }
+
+        /// <summary>
+        /// Every length-prefixed ASCII string in the block that is one to three
+        /// digits. The prefix is an int32, so a wrong offset almost never
+        /// produces a plausible length followed by digits.
+        /// </summary>
+        static List<string> ShortStrings(byte[] b)
+        {
+            var outp = new List<string>();
+            for (int p = 0; p + 4 <= b.Length; p += 4)
+            {
+                int n = BitConverter.ToInt32(b, p);
+                if (n < 1 || n > 3 || p + 4 + n > b.Length) continue;
+                bool digits = true;
+                for (int i = 0; i < n; i++)
+                {
+                    byte c = b[p + 4 + i];
+                    if (c < (byte)'0' || c > (byte)'9') { digits = false; break; }
+                }
+                if (!digits) continue;
+                string s = Encoding.ASCII.GetString(b, p + 4, n);
+                if (!outp.Contains(s)) outp.Add(s);
+            }
+            return outp;
         }
     }
 }

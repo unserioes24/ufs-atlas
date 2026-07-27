@@ -168,12 +168,29 @@ foreach ($fy in $FISH) {
     $imgW = $mi.w * $mi.scale
     $imgH = $mi.h * $mi.scale
 
+    # --- spot numbers
+    # The game draws a number on every map button; that is what a player reads
+    # off the map, and it is not the order the buttons sit in the hierarchy. At
+    # Saint Zeno the two run 1..8 against 8,6,3,1,4,7,2,5.
+    # The labels are only trusted where they form a complete run for the board:
+    # a single misread value would otherwise renumber a whole fishery.
+    $labels = @($panel.spots | ForEach-Object { $_.label })
+    $useLabels = $false
+    if (($labels | Where-Object { $_ }).Count -eq $panel.spots.Count -and $panel.spots.Count -gt 0) {
+        $nums = @($labels | ForEach-Object { [int]$_ } | Sort-Object)
+        $want = @(1..$panel.spots.Count)
+        $useLabels = -not (Compare-Object $nums $want)
+    }
+    if (-not $useLabels -and $panel.spots.Count -gt 0) {
+        Write-Host ("  {0}: button labels do not form a run, keeping hierarchy order" -f $fy.k)
+    }
+
     # --- spots -> uv
     # Without a map image the uv values would point at nothing, so a fishery
     # that shows no board keeps its spot numbers and drops the coordinates.
     $spots = @()
     foreach ($s in $panel.spots) {
-        $e = [ordered]@{ n = $s.n }
+        $e = [ordered]@{ n = $(if ($useLabels) { [int]$s.label } else { $s.n }) }
         if ($fy.map -and $imgW -gt 0 -and $imgH -gt 0 -and $null -ne $s.ax) {
             $e.u = 0.5 + ($s.ax - $mi.ax) / $imgW
             $e.v = 0.5 - ($s.ay - $mi.ay) / $imgH
