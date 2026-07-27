@@ -103,48 +103,48 @@ const plain = function (v) { return fmtNum(v); };
 
 /**
  * Kennzahlen, die im Vergleich Zeile für Zeile gegenübergestellt werden.
- * Der vierte Eintrag ist die Erklärung, damit auch abgeleitete Werte
- * nachvollziehbar bleiben.
+ * Erster Eintrag ist der Wörterbuchschlüssel der Zeile, letzter der Schlüssel
+ * der Erklärung – die bleibt bei abgeleiteten Werten wichtig. Leer heißt: keine.
  */
 const DUEL_GROUPS = [
-    ['Fortschritt', [
-        ['Arten gefangen', function (p) { return p.speciesCount; }, plain, ''],
-        ['Reviere komplett', function (p) { return p.fisheriesComplete; }, plain, 'alle Arten des Reviers gefangen'],
-        ['Reviere bereist', function (p) { return Object.keys(p.fisheries || {}).length; }, plain, 'mindestens ein Biss'],
-        ['Level', function (p) { return p.level; }, plain, ''],
-        ['Punkte', function (p) { return p.score; }, plain, '']
+    ['duel.progress', [
+        ['duel.speciesCaught', function (p) { return p.speciesCount; }, plain, ''],
+        ['stats.fisheriesComplete', function (p) { return p.fisheriesComplete; }, plain, 'overview.completeSub'],
+        ['duel.fisheriesVisited', function (p) { return Object.keys(p.fisheries || {}).length; }, plain, 'duel.atLeastOneBite'],
+        ['stats.level', function (p) { return p.level; }, plain, ''],
+        ['stats.points', function (p) { return p.score; }, plain, '']
     ]],
-    ['Ausbeute', [
-        ['Fänge', function (p) { return p.totals.fish; }, plain, ''],
-        ['Bisse', function (p) { return p.totals.bites; }, plain, ''],
-        ['Masse gesamt', function (p) { return p.totals.weight; }, kg1, ''],
-        ['Angelzeit', function (p) { return p.totals.time; }, fmtTime, '']
+    ['duel.yield', [
+        ['stats.catches', function (p) { return p.totals.fish; }, plain, ''],
+        ['stats.bites', function (p) { return p.totals.bites; }, plain, ''],
+        ['stats.totalWeight', function (p) { return p.totals.weight; }, kg1, ''],
+        ['stats.time', function (p) { return p.totals.time; }, fmtTime, '']
     ]],
-    ['Rekorde', [
-        ['Schwerster Fisch', function (p) { return p.biggest.weight; }, kg2, ''],
-        ['Längster Fisch', function (p) { return p.biggest.length; },
-            function (v) { return v ? Math.round(v * 100) + ' cm' : '–'; }, ''],
-        ['Masse einer Art', function (p) { return p.topSpecies.weight; }, kg1, 'Summe der schwersten Art']
+    ['duel.records', [
+        ['duel.heaviestFish', function (p) { return p.biggest.weight; }, kg2, ''],
+        ['duel.longestFish', function (p) { return p.biggest.length; },
+            function (v) { return v ? Math.round(v * 100) + ' cm' : DASH; }, ''],
+        ['duel.weightOneSpecies', function (p) { return p.topSpecies.weight; }, kg1, 'duel.sumStrongest']
     ]],
-    ['Effizienz', [
-        ['Verwertete Bisse', function (p) { return p.totals.bites ? p.totals.fish / p.totals.bites * 100 : 0; },
-            function (v) { return fmtNum(v, 1) + ' %'; }, 'Fänge je Biss'],
-        ['Fänge je Stunde', function (p) { return p.totals.time ? p.totals.fish / (p.totals.time / 3600) : 0; },
+    ['duel.efficiency', [
+        ['duel.bitesUsed', function (p) { return p.totals.bites ? p.totals.fish / p.totals.bites * 100 : 0; },
+            function (v) { return fmtNum(v, 1) + ' %'; }, 'duel.catchesPerBite'],
+        ['duel.catchesPerHour', function (p) { return p.totals.time ? p.totals.fish / (p.totals.time / 3600) : 0; },
             function (v) { return fmtNum(v, 1); }, ''],
-        ['Masse je Fang', function (p) { return p.totals.fish ? p.totals.weight / p.totals.fish : 0; }, kg2, ''],
-        ['Punkte je Stunde', function (p) { return p.totals.time ? p.score / (p.totals.time / 3600) : 0; },
+        ['duel.weightPerCatch', function (p) { return p.totals.fish ? p.totals.weight / p.totals.fish : 0; }, kg2, ''],
+        ['duel.pointsPerHour', function (p) { return p.totals.time ? p.score / (p.totals.time / 3600) : 0; },
             function (v) { return fmtNum(v, 0); }, '']
     ]]
 ];
 
 const DUEL_FILTERS = [
-    ['alle', 'Alle'],
-    ['diff', 'Unterschiede'],
-    ['both', 'Beide gefangen'],
-    ['his', 'Nur er'],
-    ['mine', 'Nur ich'],
-    ['lead', 'Ich führe'],
-    ['behind', 'Er führt']
+    ['alle', 'duel.filterAll'],
+    ['diff', 'duel.filterDiff'],
+    ['both', 'duel.filterBoth'],
+    ['his', 'duel.filterHis'],
+    ['mine', 'duel.filterMine'],
+    ['lead', 'duel.filterLead'],
+    ['behind', 'duel.filterBehind']
 ];
 
 /**
@@ -181,6 +181,7 @@ function duelClass(a, b) {
  * Anmeldung stellt sie beide Profile Wert für Wert gegenüber.
  */
 function ProfilePage(props) {
+    const { t, lang } = useI18n();
     const [data, setData] = useState(null);
     const [err, setErr] = useState(null);
     const [copied, setCopied] = useState(false);
@@ -216,9 +217,9 @@ function ProfilePage(props) {
 
         return Object.keys(keys).map(function (k) {
             const a = p.species[k] || null, b = mine.species[k] || null;
-            return { k: k, name: speciesName(k, props.lang), a: a, b: b };
+            return { k: k, name: speciesName(k, lang), a: a, b: b };
         }).sort(function (x, y) { return x.name.localeCompare(y.name, 'de'); });
-    }, [duel, p, mine, props.lang]);
+    }, [duel, p, mine, lang]);
 
     const shown = rows.filter(function (r) {
         const aw = r.a ? r.a.best : 0, bw = r.b ? r.b.best : 0;
@@ -237,8 +238,8 @@ function ProfilePage(props) {
     function copy() {
         const url = profileUrl(data ? data.user.name : props.name);
         const done = function () { setCopied(true); setTimeout(function () { setCopied(false); }, 2000); };
-        if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, function () { prompt('Adresse zum Kopieren:', url); });
-        else prompt('Adresse zum Kopieren:', url);
+        if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, function () { prompt(t('profile.copyPrompt'), url); });
+        else prompt(t('profile.copyPrompt'), url);
     }
     function toggleFollow() {
         if (!data || !props.me) return;
@@ -257,17 +258,17 @@ function ProfilePage(props) {
     // Menüpunkte: was es beim fremden Profil nicht zu sehen gibt, fällt weg.
     const self = !!(data && data.self);
     const items = [
-        { k: 'uebersicht', t: 'Übersicht', s: p ? fmtNum(p.speciesCount) + ' Arten' : 'ohne Spielstand' },
-        p ? { k: 'reviere', t: 'Reviere', s: fmtNum(p.fisheriesComplete) + ' komplett' } : null,
-        p ? { k: 'arten', t: 'Arten', s: fmtNum(Object.keys(p.species).length) + ' Rekorde' } : null,
-        p ? { k: 'offen', t: 'Was noch fehlt', s: (data.meta.totalSpecies - p.speciesCount) + ' Arten' } : null,
-        duel ? { k: 'vergleich', t: 'Vergleich mit dir', s: rows.length + ' Arten' } : null,
+        { k: 'uebersicht', t: t('profile.overview'), s: p ? t('profile.nSpecies', { n: fmtNum(p.speciesCount) }) : t('profile.noSaveYet') },
+        p ? { k: 'reviere', t: t('nav.fisheries'), s: t('profile.nComplete', { n: fmtNum(p.fisheriesComplete) }) } : null,
+        p ? { k: 'arten', t: t('nav.species'), s: t('profile.nRecords', { n: fmtNum(Object.keys(p.species).length) }) } : null,
+        p ? { k: 'offen', t: t('profile.missing'), s: t('profile.nSpecies', { n: data.meta.totalSpecies - p.speciesCount }) } : null,
+        duel ? { k: 'vergleich', t: t('profile.duel'), s: t('profile.nSpecies', { n: rows.length }) } : null,
         {
-            k: 'follower', t: 'Follower',
+            k: 'follower', t: t('profile.followers'),
             s: (data ? (data.followers || 0) : 0) + ' folgen · folgt ' + (data ? (data.follows || 0) : 0)
         },
-        { k: 'gruppen', t: 'Gruppen', s: (data && data.groups ? data.groups.length : 0) + ' Stück' },
-        self ? { k: 'konto', t: 'Einstellungen', s: 'Name, Token, Abmelden' } : null
+        { k: 'gruppen', t: t('profile.groups'), s: t('profile.nPieces', { n: data && data.groups ? data.groups.length : 0 }) },
+        self ? { k: 'konto', t: t('profile.settings'), s: t('profile.settingsSub') } : null
     ].filter(Boolean);
     const active = items.some(function (x) { return x.k === tab; }) ? tab : 'uebersicht';
 
@@ -285,7 +286,7 @@ function ProfilePage(props) {
         h('aside', { className: 'no-print self-start lg:sticky lg:top-24' },
             h('div', { className: 'glass scrollbar max-h-[calc(100vh-7rem)] overflow-y-auto rounded-3xl border border-white/10 p-3 shadow-2xl' },
                 h('div', { className: 'px-3 pb-2 pt-2 text-xs font-bold uppercase tracking-[.18em] text-slate-500' },
-                    self ? 'Dein Profil' : 'Profil'),
+                    self ? t('profile.yours') : t('profile.other')),
                 h('div', { className: 'space-y-1' }, items.map(function (it) {
                     return h('button', {
                         key: it.k, onClick: function () { setTab(it.k); },
@@ -299,12 +300,12 @@ function ProfilePage(props) {
                 })),
                 h('div', { className: 'ufs-menuactions' },
                     h('button', { className: 'ufs-btn', style: { width: '100%' }, onClick: copy },
-                        copied ? '✓ Kopiert' : 'Link kopieren'),
+                        copied ? t('app.copied') : t('profile.copyLink')),
                     props.me && !self
                         ? h('button', {
                             className: cn('ufs-btn', data.following && 'primary'), style: { width: '100%' },
                             disabled: busy, onClick: toggleFollow
-                        }, data.following ? '✓ Du folgst' : 'Folgen')
+                        }, data.following ? t('profile.following') : t('profile.follow'))
                         : null,
                     h('button', { className: 'ufs-btn', style: { width: '100%' }, onClick: props.onBack }, '← Zurück')))),
 
@@ -314,13 +315,13 @@ function ProfilePage(props) {
                 h('div', null,
                     h('h1', { className: 'text-2xl font-black tracking-tight text-white', style: { margin: 0 } }, data.user.name),
                     h('p', { className: 'ufs-muted', style: { fontSize: '12px', margin: '.25rem 0 0' } },
-                        p ? 'Angler ' + (p.anglerName || data.user.name)
+                        p ? t('profile.anglerLine', { name: p.anglerName || data.user.name })
                             + (p.version ? ' · Spielstand ' + p.version : '')
-                            : 'Noch kein Spielstand hochgeladen.')),
+                            : t('profile.noSave'))),
                 h('div', { className: 'ufs-row', style: { gap: '.5rem' } },
-                    h('span', { className: 'ufs-chip', title: 'Angler, die diesem Profil folgen' },
+                    h('span', { className: 'ufs-chip', title: t('account.followersOf') },
                         'Follower ', h('b', null, fmtNum(data.followers || 0))),
-                    h('span', { className: 'ufs-chip', title: 'Profile, denen dieses Konto folgt' },
+                    h('span', { className: 'ufs-chip', title: t('account.followsOf') },
                         'Folgt ', h('b', null, fmtNum(data.follows || 0))),
                     p ? h('span', { className: 'ufs-stand' },
                         h('span', { className: 'lbl' }, 'Stand des Spielstands'),
@@ -344,45 +345,39 @@ function ProfilePage(props) {
                 })
                 : active === 'vergleich' && duel
                 ? h(ProfileDuel, {
-                    data: data, p: p, mine: mine, lang: props.lang,
+                    data: data, p: p, mine: mine,
                     rows: shown, all: rows, filter: filter, onFilter: setFilter
                 })
                 : !p
                 ? h('div', { className: 'ufs-note' }, 'Dieser Angler hat noch keinen Spielstand hochgeladen.')
-                : h(ProfileDetails, { p: p, data: data, lang: props.lang, tab: active }),
+                : h(ProfileDetails, { p: p, data: data, tab: active }),
 
             active === 'uebersicht' && !props.me
                 ? h('div', { className: 'ufs-note no-print', style: { marginTop: '.9rem' } },
-                    'Melde dich an, dann wird dein Profil hier Wert für Wert gegen ' + data.user.name + ' gestellt.')
+                    t('profile.duelSignIn', { name: data.user.name }))
                 : null,
             active === 'uebersicht' && props.me && p && !mine && !self
                 ? h('div', { className: 'ufs-note', style: { marginTop: '.9rem' } },
-                    'Für den Vergleich fehlt dein eigener Spielstand. Lade ihn unter „Einstellungen“ hoch.')
+                    t('profile.duelNoSave'))
                 : null));
 }
 
 
-const OWNED_LABEL = {
-    ROD: 'Ruten', ICE_ROD: 'Eisruten', REEL: 'Rollen', LINE: 'Schnüre', FLOAT: 'Posen',
-    HOOK: 'Haken', BOILIE: 'Boilies', FEEDER: 'Feeder', FEEDER_BAIT: 'Feederköder',
-    ROD_STAND: 'Rutenständer', BITE_INDICATOR: 'Bissanzeiger', BAIT: 'Köder', LURE: 'Kunstköder',
-    BOAT: 'Boote', SONST: 'Sonstiges'
-};
-
 /** Die Gruppen eines Profils; verwaltet werden sie auf der Gruppenseite. */
 function ProfileGroupList(props) {
+    const { t, lang } = useI18n();
     const groups = props.groups;
     return h('div', { className: 'ufs-spotcard' },
         h('div', { className: 'ufs-row', style: { justifyContent: 'space-between', marginBottom: '.6rem' } },
-            h('h3', { style: { margin: 0 } }, props.self ? 'Deine Gruppen' : 'Gruppen'),
+            h('h3', { style: { margin: 0 } }, props.self ? t('profile.yourGroups') : t('profile.groups')),
             props.self
-                ? h('button', { className: 'ufs-btn', onClick: props.onOpenGroups }, 'Gruppen verwalten')
+                ? h('button', { className: 'ufs-btn', onClick: props.onOpenGroups }, t('account.manageGroups'))
                 : null),
         !groups.length
             ? h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', margin: 0 } },
                 props.self
-                    ? 'Du bist noch in keiner Gruppe.'
-                    : 'Dieser Angler ist in keiner öffentlichen Gruppe.')
+                    ? t('account.notInGroup')
+                    : t('profile.noPublicGroup'))
             : h('div', { className: 'ufs-splist' }, groups.map(function (g) {
                 return h('div', { key: g.id, className: 'ufs-grouprow' },
                     h('div', { className: 'main' },
@@ -397,7 +392,8 @@ function ProfileGroupList(props) {
  * je Revier, die Bestenliste seiner Arten und was ihm noch fehlt.
  */
 function ProfileDetails(props) {
-    const p = props.p, lang = props.lang;
+    const { t, lang } = useI18n();
+    const p = props.p;
     const tab = props.tab || 'uebersicht';
     const [sort, setSort] = useState('sum');
 
@@ -431,39 +427,39 @@ function ProfileDetails(props) {
     const avg = p.totals.fish ? p.totals.weight / p.totals.fish : 0;
     const owned = Object.keys(p.owned || {}).sort(function (a, b) { return p.owned[b] - p.owned[a]; });
 
-    const SORTS = [['sum', 'Masse gesamt'], ['best', 'Bestmasse'], ['length', 'Länge'], ['count', 'Stück'], ['name', 'Name']];
+    const SORTS = [['sum', 'profile.sortSum'], ['best', 'profile.sortBest'], ['length', 'profile.sortLength'], ['count', 'profile.sortCount'], ['name', 'profile.sortName']];
 
     return h('div', null,
         tab !== 'uebersicht' ? null : h('div', { className: 'ufs-statgrid' },
-            h(Stat, { label: 'Level', value: fmtNum(p.level), sub: fmtNum(p.score) + ' Punkte' }),
+            h(Stat, { label: t('stats.level'), value: fmtNum(p.level), sub: fmtNum(p.score) + ' ' + t('stats.points') }),
             h(Stat, {
-                label: 'Arten', value: fmtNum(p.speciesCount) + ' / ' + props.data.meta.totalSpecies,
+                label: t('nav.species'), value: fmtNum(p.speciesCount) + ' / ' + props.data.meta.totalSpecies,
                 sub: Math.round(p.speciesCount / (props.data.meta.totalSpecies || 1) * 100) + ' % der Artenliste'
             }),
             h(Stat, {
-                label: 'Reviere komplett', value: fmtNum(p.fisheriesComplete) + ' / ' + props.data.meta.totalFisheries,
+                label: t('stats.fisheriesComplete'), value: fmtNum(p.fisheriesComplete) + ' / ' + props.data.meta.totalFisheries,
                 sub: Object.keys(p.fisheries || {}).length + ' Reviere bereist'
             }),
-            h(Stat, { label: 'Fänge', value: fmtNum(p.totals.fish), sub: fmtNum(p.totals.bites) + ' Bisse' }),
-            h(Stat, { label: 'Masse gesamt', value: fmtNum(p.totals.weight, 1) + ' kg', sub: 'Ø ' + fmtNum(avg, 2) + ' kg je Fang' }),
-            h(Stat, { label: 'Angelzeit', value: fmtTime(p.totals.time), sub: fmtNum(perHour, 1) + ' Fänge je Stunde' }),
+            h(Stat, { label: t('stats.catches'), value: fmtNum(p.totals.fish), sub: t('stats.bitesN', { n: fmtNum(p.totals.bites) }) }),
+            h(Stat, { label: t('stats.totalWeight'), value: fmtNum(p.totals.weight, 1) + ' kg', sub: t('profile.avgPerCatch', { n: fmtNum(avg, 2) }) }),
+            h(Stat, { label: t('stats.time'), value: fmtTime(p.totals.time), sub: t('profile.catchesPerHourSub', { n: fmtNum(perHour, 1) }) }),
             h(Stat, {
-                label: 'Schwerster', value: p.biggest.weight ? p.biggest.weight.toFixed(2) + ' kg' : '–',
+                label: t('stats.heaviest'), value: p.biggest.weight ? p.biggest.weight.toFixed(2) + ' kg' : DASH,
                 sub: p.biggest.weightSpecies ? speciesName(p.biggest.weightSpecies, lang) : ''
             }),
             h(Stat, {
-                label: 'Längster', value: p.biggest.length ? Math.round(p.biggest.length * 100) + ' cm' : '–',
+                label: t('stats.longest'), value: p.biggest.length ? Math.round(p.biggest.length * 100) + ' cm' : DASH,
                 sub: p.biggest.lengthSpecies ? speciesName(p.biggest.lengthSpecies, lang) : ''
             }),
             h(Stat, {
-                label: 'Stärkste Art', value: p.topSpecies.weight ? fmtNum(p.topSpecies.weight, 1) + ' kg' : '–',
+                label: t('profile.topSpecies'), value: p.topSpecies.weight ? fmtNum(p.topSpecies.weight, 1) + ' kg' : DASH,
                 sub: p.topSpecies.key ? speciesName(p.topSpecies.key, lang) : ''
             }),
-            h(Stat, { label: 'Verwertete Bisse', value: fmtNum(quote, 1) + ' %', sub: 'Fänge je Biss' }),
-            p.money ? h(Stat, { label: 'Geld', value: fmtNum(p.money), sub: fmtNum(p.exp) + ' Erfahrung' }) : null,
+            h(Stat, { label: t('duel.bitesUsed'), value: fmtNum(quote, 1) + ' %', sub: t('duel.catchesPerBite') }),
+            p.money ? h(Stat, { label: t('stats.money'), value: fmtNum(p.money), sub: t('profile.experience', { n: fmtNum(p.exp) }) }) : null,
             p.luck || p.strength ? h(Stat, {
-                label: 'Fähigkeiten', value: 'Glück ' + fmtNum(p.luck, 1),
-                sub: 'Stärke ' + fmtNum(p.strength, 1)
+                label: t('profile.skills'), value: t('profile.luck', { n: fmtNum(p.luck, 1) }),
+                sub: t('profile.strength', { n: fmtNum(p.strength, 1) })
             }) : null),
 
         tab !== 'uebersicht' ? null : h('div', { style: { margin: '1rem 0' } },
@@ -474,7 +470,7 @@ function ProfileDetails(props) {
                 h('h3', null, 'Gekaufte Ausrüstung'),
                 h('div', { className: 'ufs-row', style: { gap: '.35rem', flexWrap: 'wrap' } },
                     owned.map(function (c) {
-                        return h('span', { key: c, className: 'ufs-chip' }, (OWNED_LABEL[c] || c) + ': ' + p.owned[c]);
+                        return h('span', { key: c, className: 'ufs-chip' }, categoryLabel(c, t) + ': ' + p.owned[c]);
                     })))
             : null,
 
@@ -483,9 +479,9 @@ function ProfileDetails(props) {
             h('div', { className: 'ufs-scroll' },
                 h('table', { className: 'ufs-rec' },
                     h('thead', null, h('tr', null,
-                        h('th', null, 'Revier'), h('th', null, 'Arten'), h('th', null, 'Fortschritt'),
-                        h('th', null, 'Fänge'), h('th', null, 'Bisse'), h('th', null, 'Masse'),
-                        h('th', null, 'Zeit'), h('th', null, 'Punkte'), h('th', null, 'Schwerster'), h('th', null, 'Längster'))),
+                        h('th', null, t('stats.colFishery')), h('th', null, t('nav.species')), h('th', null, t('overview.colProgress')),
+                        h('th', null, t('stats.catches')), h('th', null, t('stats.bites')), h('th', null, t('profile.colWeight')),
+                        h('th', null, t('stats.colTime')), h('th', null, t('stats.points')), h('th', null, t('stats.heaviest')), h('th', null, t('stats.longest')))),
                     h('tbody', null, fish.map(function (f) {
                         return h('tr', { key: f.id },
                             h('td', { className: cn('n', f.total && f.done === f.total && 'done') },
@@ -511,9 +507,9 @@ function ProfileDetails(props) {
             h('div', { className: 'ufs-scroll' },
                 h('table', { className: 'ufs-rec' },
                     h('thead', null, h('tr', null,
-                        h('th', null, '#'), h('th', null, 'Art'), h('th', null, 'Stück'),
-                        h('th', null, 'Bestmasse'), h('th', null, 'Beste Länge'),
-                        h('th', null, 'Masse gesamt'), h('th', null, 'Ø je Stück'), h('th', null, 'Rekord aus'))),
+                        h('th', null, '#'), h('th', null, t('stats.colSpecies')), h('th', null, t('profile.sortCount')),
+                        h('th', null, t('profile.sortBest')), h('th', null, t('profile.colBestLength')),
+                        h('th', null, t('stats.totalWeight')), h('th', null, t('profile.colAvgPerPiece')), h('th', null, t('profile.colRecordFrom')))),
                     h('tbody', null, rows.map(function (r, i) {
                         return h('tr', { key: r.k },
                             h('td', { className: 'sub' }, i + 1),
@@ -542,28 +538,28 @@ function ProfileDetails(props) {
  * Reviere und schließlich jede Art einzeln mit Anzahl und Rekorden.
  */
 function ProfileDuel(props) {
+    const { t, lang } = useI18n();
     const p = props.p, mine = props.mine;
     const them = props.data.user.name, me = props.data.me.user.name;
-    const lang = props.lang;
 
     /* Bilanz über alle Arten: wer hat sie, und wer hält den schwereren Fisch. */
     const tally = useMemo(function () {
-        const t = { both: 0, his: 0, mine: 0, leadW: 0, behindW: 0, tieW: 0, leadL: 0, behindL: 0, leadC: 0, behindC: 0 };
+        const n = { both: 0, his: 0, mine: 0, leadW: 0, behindW: 0, tieW: 0, leadL: 0, behindL: 0, leadC: 0, behindC: 0 };
         props.all.forEach(function (r) {
-            if (r.a && r.b) t.both++;
-            else if (r.a) t.his++;
-            else t.mine++;
+            if (r.a && r.b) n.both++;
+            else if (r.a) n.his++;
+            else n.mine++;
             if (!r.a || !r.b) return;
-            if (r.b.best > r.a.best + 0.0005) t.leadW++;
-            else if (r.a.best > r.b.best + 0.0005) t.behindW++;
-            else t.tieW++;
-            if (r.b.length > r.a.length + 0.0005) t.leadL++;
-            else if (r.a.length > r.b.length + 0.0005) t.behindL++;
-            if (r.b.count > r.a.count) t.leadC++;
-            else if (r.a.count > r.b.count) t.behindC++;
+            if (r.b.best > r.a.best + 0.0005) n.leadW++;
+            else if (r.a.best > r.b.best + 0.0005) n.behindW++;
+            else n.tieW++;
+            if (r.b.length > r.a.length + 0.0005) n.leadL++;
+            else if (r.a.length > r.b.length + 0.0005) n.behindL++;
+            if (r.b.count > r.a.count) n.leadC++;
+            else if (r.a.count > r.b.count) n.behindC++;
         });
 
-        return t;
+        return n;
     }, [props.all]);
 
     const fishA = useMemo(function () { return fisheryStats(p); }, [p]);
@@ -576,11 +572,11 @@ function ProfileDuel(props) {
 
     function line(label, a, b, fmt, hint) {
         return h('tr', { key: label },
-            h('td', { className: 'n' }, label, hint ? h('span', { className: 'hint' }, hint) : null),
+            h('td', { className: 'n' }, t(label), hint ? h('span', { className: 'hint' }, t(hint)) : null),
             h('td', { className: cn('num', duelClass(a, b)) }, fmt(a)),
             h('td', { className: cn('num', duelClass(b, a)) }, fmt(b)),
             h('td', { className: 'sub' },
-                (a || 0) === (b || 0) ? 'gleichauf' : ((b > a ? '▲ du ' : '▼ er ') + fmt(Math.abs(b - a)))));
+                (a || 0) === (b || 0) ? t('duel.level') : ((b > a ? t('duel.youLead') : t('duel.theyLead')) + ' ' + fmt(Math.abs(b - a)))));
     }
 
     return h('div', null,
@@ -600,26 +596,26 @@ function ProfileDuel(props) {
             h('h3', null, 'Kennzahlen'),
             h('table', { className: 'ufs-rec ufs-duel' },
                 h('thead', null, h('tr', null,
-                    h('th', null, ''), h('th', null, them), h('th', null, me), h('th', null, 'Differenz'))),
+                    h('th', null, ''), h('th', null, them), h('th', null, me), h('th', null, t('profile.colDifference')))),
                 DUEL_GROUPS.map(function (grp) {
                     return h('tbody', { key: grp[0] },
-                        h('tr', { className: 'grp' }, h('td', { colSpan: 4 }, grp[0])),
+                        h('tr', { className: 'grp' }, h('td', { colSpan: 4 }, t(grp[0]))),
                         grp[1].map(function (row) {
                             return line(row[0], row[1](p) || 0, row[1](mine) || 0, row[2], row[3]);
                         }));
                 }))),
 
         h('div', { className: 'ufs-spotcard', style: { marginTop: '.9rem' } },
-            h('h3', null, 'Artenbilanz'),
+            h('h3', null, t('profile.speciesBalance')),
             h('div', { className: 'ufs-row', style: { gap: '.4rem', flexWrap: 'wrap' } },
-                h('span', { className: 'ufs-chip' }, 'Beide: ' + tally.both),
-                h('span', { className: 'ufs-chip' }, 'Nur ' + them + ': ' + tally.his),
+                h('span', { className: 'ufs-chip' }, t('profile.bothHave', { n: tally.both })),
+                h('span', { className: 'ufs-chip' }, t('profile.onlyName', { name: them, n: tally.his })),
                 h('span', { className: 'ufs-chip' }, 'Nur du: ' + tally.mine),
                 h('span', { className: 'ufs-chip' }, 'Noch keiner: '
                     + Math.max(0, props.data.meta.totalSpecies - props.all.length))),
             h('table', { className: 'ufs-rec ufs-duel', style: { marginTop: '.7rem' } },
                 h('thead', null, h('tr', null,
-                    h('th', null, 'Gemeinsame Arten'), h('th', null, them), h('th', null, me), h('th', null, 'unentschieden'))),
+                    h('th', null, t('profile.colCommonSpecies')), h('th', null, them), h('th', null, me), h('th', null, t('profile.colDraw')))),
                 h('tbody', null,
                     h('tr', null,
                         h('td', { className: 'n' }, 'Schwererer Fisch'),
@@ -643,12 +639,12 @@ function ProfileDuel(props) {
                 h('table', { className: 'ufs-rec ufs-duel' },
                     h('thead', null,
                         h('tr', null,
-                            h('th', null, 'Revier'),
-                            h('th', { colSpan: 2 }, 'Arten'),
-                            h('th', { colSpan: 2 }, 'Fänge'),
-                            h('th', { colSpan: 2 }, 'Masse'),
-                            h('th', { colSpan: 2 }, 'Zeit'),
-                            h('th', { colSpan: 2 }, 'Schwerster')),
+                            h('th', null, t('stats.colFishery')),
+                            h('th', { colSpan: 2 }, t('nav.species')),
+                            h('th', { colSpan: 2 }, t('stats.catches')),
+                            h('th', { colSpan: 2 }, t('profile.colWeight')),
+                            h('th', { colSpan: 2 }, t('stats.colTime')),
+                            h('th', { colSpan: 2 }, t('stats.heaviest'))),
                         h('tr', { className: 'sub2' },
                             h('th', null, ''),
                             h('th', null, them), h('th', null, me),
@@ -672,7 +668,7 @@ function ProfileDuel(props) {
                             h('td', { className: cn('num', duelClass(b.bigW, a.bigW)) }, b.bigW ? b.bigW.toFixed(2) : '–'));
                     })))),
             h('p', { className: 'ufs-muted', style: { fontSize: '11.5px', marginTop: '.6rem' } },
-                'Masse in kg. „Arten“ zählt die Artenliste des Reviers, die Zahlen daneben stammen aus der Revierstatistik des Spielstands.')),
+                t('profile.fisheryNote'))),
 
         h('div', { className: 'ufs-spotcard', style: { marginTop: '.9rem' } },
             h('div', { className: 'ufs-row', style: { justifyContent: 'space-between', marginBottom: '.7rem', flexWrap: 'wrap' } },
@@ -682,17 +678,17 @@ function ProfileDuel(props) {
                         return h(Toggle, {
                             key: f[0], active: props.filter === f[0],
                             onClick: function () { props.onFilter(f[0]); }
-                        }, f[1]);
+                        }, t(f[1]));
                     }))),
             h('div', { className: 'ufs-scroll' },
                 h('table', { className: 'ufs-rec ufs-duel' },
                     h('thead', null,
                         h('tr', null,
-                            h('th', null, 'Art'),
-                            h('th', { colSpan: 2 }, 'Stück'),
-                            h('th', { colSpan: 2 }, 'Bestmasse'),
-                            h('th', { colSpan: 2 }, 'Beste Länge'),
-                            h('th', { colSpan: 2 }, 'Masse gesamt'),
+                            h('th', null, t('stats.colSpecies')),
+                            h('th', { colSpan: 2 }, t('profile.sortCount')),
+                            h('th', { colSpan: 2 }, t('profile.sortBest')),
+                            h('th', { colSpan: 2 }, t('profile.colBestLength')),
+                            h('th', { colSpan: 2 }, t('stats.totalWeight')),
                             h('th', null, '')),
                         h('tr', { className: 'sub2' },
                             h('th', null, ''),
@@ -700,7 +696,7 @@ function ProfileDuel(props) {
                             h('th', null, them), h('th', null, me),
                             h('th', null, them), h('th', null, me),
                             h('th', null, them), h('th', null, me),
-                            h('th', null, 'Vorsprung'))),
+                            h('th', null, t('profile.colLead')))),
                     h('tbody', null, props.rows.map(function (r) {
                         const a = r.a || { count: 0, best: 0, length: 0, sum: 0 };
                         const b = r.b || { count: 0, best: 0, length: 0, sum: 0 };
@@ -718,21 +714,22 @@ function ProfileDuel(props) {
                             h('td', { className: cn('num', duelClass(a.sum, b.sum)) }, a.sum ? fmtNum(a.sum, 1) : '–'),
                             h('td', { className: cn('num', duelClass(b.sum, a.sum)) }, b.sum ? fmtNum(b.sum, 1) : '–'),
                             h('td', { className: 'sub' },
-                                Math.abs(d) < 0.0005 ? '–' : (d > 0 ? '▲ ' : '▼ ') + Math.abs(d).toFixed(2) + ' kg'));
+                                Math.abs(d) < 0.0005 ? DASH : (d > 0 ? '▲ ' : '▼ ') + Math.abs(d).toFixed(2) + ' kg'));
                     })))),
             !props.rows.length ? h('p', { className: 'ufs-muted', style: { fontSize: '12px' } }, 'Keine Art in dieser Auswahl.') : null,
             h('p', { className: 'ufs-muted', style: { fontSize: '11.5px', marginTop: '.6rem' } },
                 props.rows.length + ' von ' + props.all.length + ' Arten, die mindestens einer von euch gefangen hat. '
-                + 'Bestmasse und Gesamtmasse in kg, Länge in cm.')),
+                + t('profile.speciesNote'))),
 
         /* Was dem jeweils anderen noch fehlt – der nützlichste Teil des Vergleichs. */
         h('div', { className: 'ufs-two', style: { marginTop: '.9rem' } },
-            h(MissList, { title: 'Die hat nur ' + them, rows: props.all.filter(function (r) { return r.a && !r.b; }), lang: lang }),
-            h(MissList, { title: 'Die hast nur du', rows: props.all.filter(function (r) { return r.b && !r.a; }), lang: lang })));
+            h(MissList, { title: t('profile.onlyThem', { name: them }), rows: props.all.filter(function (r) { return r.a && !r.b; }) }),
+            h(MissList, { title: t('profile.onlyYou'), rows: props.all.filter(function (r) { return r.b && !r.a; }) })));
 }
 
 /** Kurze Artenliste für „das fehlt dem anderen“. */
 function MissList(props) {
+    const { t, lang } = useI18n();
     return h('div', { className: 'ufs-spotcard' },
         h('h3', null, props.title, ' ', h('span', { className: 'ufs-muted' }, '(' + props.rows.length + ')')),
         props.rows.length
@@ -740,12 +737,13 @@ function MissList(props) {
                 props.rows.map(function (r) {
                     return h('span', { key: r.k, className: 'ufs-chip' }, r.name);
                 }))
-            : h('p', { className: 'ufs-muted', style: { fontSize: '12px', margin: 0 } }, 'Keine – ihr seid gleichauf.'));
+            : h('p', { className: 'ufs-muted', style: { fontSize: '12px', margin: 0 } }, t('profile.tie')));
 }
 
 /** Vergleich mit den Profilen, denen man folgt. */
 
 function AccountPanel(props) {
+    const { t, lang } = useI18n();
     const me = props.me;
     const local = props.local || { caught: {}, bests: {}, stats: null };
     const [token, setToken] = useState(me.apiToken);
@@ -763,13 +761,13 @@ function AccountPanel(props) {
         if (!wish || wish === me.name) return;
         setBusy(true);
         api('/profile/name', { method: 'POST', json: { name: wish } })
-            .then(function (d) { props.onMe(d.user); setName(d.user.name); say('Name gespeichert.'); })
+            .then(function (d) { props.onMe(d.user); setName(d.user.name); say(t('account.nameSaved')); })
             .catch(fail)
             .then(function () { setBusy(false); });
     }
     function importLocal() {
         if (!localCount) return;
-        if (!confirm('Der lokale Stand ersetzt dein Profil im Konto vollständig. Fortfahren?')) return;
+        if (!confirm(t('account.pushAsk'))) return;
         setBusy(true);
         api('/profile/import', {
             method: 'POST',
@@ -777,7 +775,7 @@ function AccountPanel(props) {
         })
             .then(function (d) {
                 props.onMe(d.user);
-                say('Übernommen: ' + (d.profile ? d.profile.speciesCount : 0) + ' Arten im Konto.');
+                say(t('account.pushed', { n: d.profile ? d.profile.speciesCount : 0 }));
             })
             .catch(fail)
             .then(function () { setBusy(false); });
@@ -794,10 +792,9 @@ function AccountPanel(props) {
         err ? h('div', { className: 'ufs-note', style: { marginBottom: '.8rem' } }, err) : null,
         msg ? h('div', { className: 'ufs-note ok', style: { marginBottom: '.8rem' } }, msg) : null,
 
-        h('h3', null, 'Benutzername'),
+        h('h3', null, t('account.userName')),
         h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', lineHeight: 1.6, margin: '.2rem 0 .6rem' } },
-            'Unter diesem Namen finden dich andere in der Suche und in Gruppen. Er ist einmalig – ' +
-            'wenn ihn schon jemand hat, musst du dir einen anderen aussuchen.'),
+            t('account.nameHint')),
         h('div', { className: 'ufs-row', style: { marginBottom: '1.1rem' } },
             h('input', {
                 value: name, maxLength: 32, placeholder: 'dein Name',
@@ -809,12 +806,11 @@ function AccountPanel(props) {
             h('button', {
                 className: 'ufs-btn primary', disabled: busy || !name.trim() || name.trim() === me.name,
                 onClick: saveName
-            }, 'Namen speichern')),
+            }, t('account.saveName'))),
 
         h('h3', null, 'Dein Profil teilen'),
         h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', lineHeight: 1.6, margin: '.2rem 0 .6rem' } },
-            'Diese Adresse zeigt dein Profil. Wer angemeldet ist und sie öffnet, sieht seinen eigenen Stand ' +
-            'daneben – Kennzahl für Kennzahl, Revier für Revier und Art für Art.'),
+            t('account.linkHint')),
         h('div', { className: 'ufs-row', style: { marginBottom: '1.1rem' } },
             h('input', {
                 readOnly: true, value: profileUrl(me.name),
@@ -826,26 +822,25 @@ function AccountPanel(props) {
                 className: 'ufs-btn',
                 onClick: function () {
                     const url = profileUrl(me.name);
-                    if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { say('Adresse kopiert.'); }, function () { });
+                    if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { say(t('account.addressCopied')); }, function () { });
                     else say(url);
                 }
-            }, 'Kopieren'),
+            }, t('app.copy')),
             h('button', {
                 className: 'ufs-btn primary',
                 onClick: function () { props.onOpenUser(me.name); }
-            }, 'Profil ansehen')),
+            }, t('account.viewProfile'))),
 
-        h('h3', null, 'Lokalen Stand übernehmen'),
+        h('h3', null, t('account.push')),
         h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', lineHeight: 1.6, margin: '.2rem 0 .6rem' } },
             localCount
-                ? 'In diesem Browser sind ' + localCount + ' Arten abgehakt' +
-                  (local.stats && local.stats.player ? ' – dazu die Werte des zuletzt geladenen Spielstands' : '') +
-                  '. Damit lässt sich das Profil im Konto füllen, ohne die PROFILE-Datei erneut zu laden.'
-                : 'In diesem Browser ist nichts gespeichert. Hake unter „Reviere“ Arten ab oder lade unter „Statistik“ einen Spielstand.'),
+                ? t('account.localHas', { n: localCount }) +
+                  (local.stats && local.stats.player ? ' ' + t('account.localWithSave') : '')
+                : t('account.localEmpty')),
         h('div', { className: 'ufs-row', style: { marginBottom: '1.1rem' } },
             h('button', {
                 className: 'ufs-btn', disabled: busy || !localCount, onClick: importLocal
-            }, h(Icon, { name: 'import' }), 'Lokalen Stand ins Konto übernehmen')),
+            }, h(Icon, { name: 'import' }), t('account.push'))),
 
         h('h3', null, 'Spielstand automatisch hochladen'),
         h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', lineHeight: 1.6, margin: '.2rem 0 .6rem' } },
@@ -856,15 +851,15 @@ function AccountPanel(props) {
             h('button', {
                 className: 'ufs-btn',
                 onClick: function () { navigator.clipboard && navigator.clipboard.writeText(cmd); }
-            }, 'Befehl kopieren'),
+            }, t('account.copyCommand')),
             h('button', {
                 className: 'ufs-btn danger',
                 onClick: function () {
-                    if (!confirm('Neuen Token erzeugen? Der alte funktioniert danach nicht mehr.')) return;
+                    if (!confirm(t('account.newTokenAsk'))) return;
                     api('/auth/token/new', { method: 'POST' }).then(function (d) { setToken(d.token); });
                 }
-            }, 'Token erneuern'),
-            h('button', { className: 'ufs-btn', onClick: props.onLogout }, 'Abmelden')));
+            }, t('account.newToken')),
+            h('button', { className: 'ufs-btn', onClick: props.onLogout }, t('auth.logout'))));
 }
 
 /* ------------------------------------------------------------------- App */
