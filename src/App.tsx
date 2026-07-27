@@ -219,7 +219,12 @@ export default function App() {
   )
 
   const headline =
-    (view === 'map' && !isGlobal) || view === 'angler' || view === 'start'
+    // A detail page carries its own name, so the section heading stays away.
+    (view === 'map' && !isGlobal) ||
+    view === 'angler' ||
+    view === 'start' ||
+    (view === 'arten' && openSpecies) ||
+    (view === 'bait' && openBait)
       ? null
       : view === 'bait'
         ? t('nav.baits')

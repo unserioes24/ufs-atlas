@@ -25,6 +25,7 @@ const TABS = {
   sets: 'sets',
   vergleich: 'vergleich',
   reviere: 'reviere',
+  skills: 'skills',
 } as const
 
 export interface StatsPageProps {
@@ -182,6 +183,9 @@ export function StatsPage({
         <Toggle active={tab === 'sets'} onClick={() => setTab('sets')}>
           {t('stats.tabSets')}
         </Toggle>
+        <Toggle active={tab === 'skills'} onClick={() => setTab('skills')}>
+          {t('skills.title')}
+        </Toggle>
       </div>
 
       {tab === 'sets' ? (
@@ -211,9 +215,10 @@ export function StatsPage({
               </div>
             </div>
           ) : null}
-          <Skills skills={p.skills ?? []} points={p.skillPoints ?? 0} />
         </div>
       ) : null}
+
+      {tab === 'skills' ? <Skills skills={p.skills ?? []} points={p.skillPoints ?? 0} /> : null}
 
       {tab === 'reviere' ? (
         <div className="ufs-spotcard">
