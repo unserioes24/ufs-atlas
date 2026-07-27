@@ -22,8 +22,10 @@ import {
 } from '../components/species/facts'
 import SpeciesPage from '../components/species/SpeciesPage'
 import { FishCard } from '../components/species/FishCard'
-import { RodSets } from '../components/profile/RodSets'
-import { categoryLabel } from '../lib/gear'
+
+
+import StatsPage from '../components/stats/StatsPage'
+import { Stat } from '../components/primitives'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
@@ -492,156 +494,7 @@ function fmtWhen(iso) {
     });
 }
 
-function StatsPage(props) {
-    const t = useI18n().t;
-    const stats = props.stats;
-    const TABS = { fische: 'arten', arten: 'arten', sets: 'sets', vergleich: 'vergleich', reviere: 'reviere' };
-    const [tab, setTab] = useState(TABS[props.tab] || 'reviere');
 
-    // Spielstand und Konto sitzen hier, nicht mehr im Kopf.
-    const bar = h('div', { className: 'ufs-row', style: { marginBottom: '1rem' } },
-        h('button', { className: 'ufs-btn primary', onClick: props.onImport },
-            h(Icon, { name: 'import' }), 'Spielstand laden'),
-        stats && stats.player
-            ? h('button', { className: 'ufs-btn danger', onClick: function () {
-                if (confirm('Lokalen Stand samt Haken zurücksetzen?')) props.onReset();
-            } }, 'Zurücksetzen')
-            : null,
-        API_AVAILABLE
-            ? (props.me
-                ? h('span', { className: 'ufs-chip' }, '◔ angemeldet als ' + props.me.name)
-                : h('button', { className: 'ufs-btn', onClick: props.onOpenCommunity }, h(Icon, { name: 'star' }), 'Anmelden'))
-            : null);
-
-    if (!stats || !stats.player) {
-        return h('div', null, bar, h('div', { className: 'ufs-spotcard' },
-            h('h3', null, 'Noch kein Spielstand geladen'),
-            h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', lineHeight: 1.6, margin: '.3rem 0 .9rem' } },
-                'Diese Seite wird vollständig aus deinem Spielstand gefüllt: Fänge je Revier, Bisse, ' +
-                'Angelzeit, Punkte und dein größter Fisch je Art. Es wird nichts hochgeladen, die Datei ' +
-                'wird nur im Browser gelesen.'),
-            API_AVAILABLE && !props.me
-                ? h('p', { className: 'ufs-muted', style: { fontSize: '12px', marginTop: '.9rem' } },
-                    'Mit einem Konto liegt der Stand zusätzlich auf dem Server – dann kannst du dich in Gruppen vergleichen.')
-                : null));
-    }
-
-    const p = stats.player;
-    const fRows = Object.keys(stats.fisheries).map(function (id) {
-        const m = D.maps.filter(function (x) { return x.id === id; })[0];
-        return { id: id, name: m ? m.name : id, st: stats.fisheries[id] };
-    }).sort(function (a, b) { return b.st.fish - a.st.fish; });
-
-    const totals = fRows.reduce(function (a, r) {
-        a.fish += r.st.fish; a.bites += r.st.bites; a.time += r.st.time;
-        a.weight += r.st.weight; a.score += r.st.score;
-        return a;
-    }, { fish: 0, bites: 0, time: 0, weight: 0, score: 0 });
-
-    const sRows = Object.keys(stats.bests).map(function (k) {
-        const sp = SPECIES[k] || {};
-        const b = stats.bests[k];
-        return { key: k, sp: sp, b: b, pct: (b.weight && sp.wMax) ? Math.min(1, b.weight / sp.wMax) : 0 };
-    }).sort(function (a, b) { return (b.b.weight || 0) - (a.b.weight || 0); });
-
-    return h('div', null,
-        bar,
-        h('div', { className: 'ufs-statgrid' },
-            h(Stat, { label: 'Angler', value: p.name || '–', sub: 'Level ' + p.level }),
-            h(Stat, { label: 'Punkte', value: fmtNum(p.score), sub: fmtNum(p.exp) + ' EP' }),
-            h(Stat, { label: 'Geld', value: fmtNum(p.money), sub: 'Glück ' + Math.round(p.luck * 100) + ' % · Kraft ' + Math.round(p.strength * 100) + ' %' }),
-            h(Stat, { label: 'Fänge gesamt', value: fmtNum(totals.fish), sub: fmtNum(totals.bites) + ' Bisse' }),
-            h(Stat, { label: 'Gefangenes Gewicht', value: fmtNum(totals.weight, 1) + ' kg', sub: totals.bites ? Math.round(totals.fish / totals.bites * 100) + ' % Trefferquote' : '–' }),
-            h(Stat, { label: 'Angelzeit', value: fmtTime(totals.time), sub: stats.total + ' Arten gefangen' })),
-
-        h('div', { className: 'ufs-row', style: { margin: '1rem 0 .8rem' } },
-            h(Toggle, { active: tab === 'reviere', onClick: function () { setTab('reviere'); } }, 'Reviere'),
-            h(Toggle, { active: tab === 'arten', onClick: function () { setTab('arten'); } }, 'Größte Fische'),
-            h(Toggle, { active: tab === 'sets', onClick: function () { setTab('sets'); } }, 'Rutensets')),
-
-        tab === 'sets'
-            ? h('div', null,
-                h(RodSets, { sets: p.sets }),
-                !p.sets || !p.sets.length
-                    ? h('div', { className: 'ufs-note' }, 'Der Spielstand enthält keine gespeicherten Rutensets.')
-                    : h('div', { className: 'ufs-muted', style: { fontSize: '11.5px', marginTop: '.7rem', lineHeight: 1.55 } },
-                        'Die fünf Sets aus dem Spiel mit Rute, Rolle, Schnur, Pose, Haken, Ködern und Montage. ' +
-                        'Hakenstufe, Tiefe und Schrot sind die zuletzt eingestellten Werte des jeweiligen Sets.'),
-                p.owned && Object.keys(p.owned).length
-                    ? h('div', { className: 'ufs-spotcard', style: { marginTop: '.9rem' } },
-                        h('h3', null, 'Gekaufte Ausrüstung'),
-                        h('div', { className: 'ufs-row' },
-                            Object.keys(p.owned).sort(function (a, b) { return p.owned[b] - p.owned[a]; })
-                                .map(function (c) {
-                                    return h('span', { key: c, className: 'ufs-chip' }, categoryLabel(c, t) + ': ' + p.owned[c]);
-                                })))
-                    : null)
-            : null,
-
-        tab === 'reviere'
-            ? h('div', { className: 'ufs-spotcard', key: 'rev' },
-                h('table', { className: 'ufs-rec' },
-                    h('thead', null, h('tr', null,
-                        h('th', null, 'Revier'), h('th', null, 'Fische'), h('th', null, 'Bisse'),
-                        h('th', null, 'Quote'), h('th', null, 'Zeit'), h('th', null, 'Gewicht'),
-                        h('th', null, 'Größter Fang'), h('th', null, 'Punkte'))),
-                    h('tbody', null, fRows.map(function (r) {
-                        const s = r.st;
-                        return h('tr', {
-                            key: r.id, style: { cursor: 'pointer' },
-                            onClick: function () { props.onOpenMap(r.id); }
-                        },
-                            h('td', { className: 'n' }, r.name),
-                            h('td', { className: 'num' }, fmtNum(s.fish)),
-                            h('td', { className: 'num' }, fmtNum(s.bites)),
-                            h('td', { className: 'num' }, s.bites ? Math.round(s.fish / s.bites * 100) + ' %' : '–'),
-                            h('td', { className: 'num' }, fmtTime(s.time)),
-                            h('td', { className: 'num' }, fmtNum(s.weight, 1) + ' kg'),
-                            h('td', { className: 'num' }, s.bigW ? s.bigW.toFixed(2) + ' kg · ' + Math.round(s.bigL * 100) + ' cm' : '–'),
-                            h('td', { className: 'num' }, fmtNum(s.score)));
-                    }),
-                        h('tr', null,
-                            h('td', { className: 'n' }, 'Summe'),
-                            h('td', { className: 'num' }, fmtNum(totals.fish)),
-                            h('td', { className: 'num' }, fmtNum(totals.bites)),
-                            h('td', { className: 'num' }, totals.bites ? Math.round(totals.fish / totals.bites * 100) + ' %' : '–'),
-                            h('td', { className: 'num' }, fmtTime(totals.time)),
-                            h('td', { className: 'num' }, fmtNum(totals.weight, 1) + ' kg'),
-                            h('td', { className: 'num' }, ''),
-                            h('td', { className: 'num' }, fmtNum(totals.score))))))
-            : tab === 'arten' ? h('div', { className: 'ufs-spotcard' },
-                h('table', { className: 'ufs-rec' },
-                    h('thead', null, h('tr', null,
-                        h('th', null, 'Art'), h('th', null, 'Dein Rekord'), h('th', null, 'Möglich'),
-                        h('th', null, 'Ausschöpfung'), h('th', null, 'Fänge'), h('th', null, 'Gesamt'),
-                        h('th', null, 'Rekordrevier'))),
-                    h('tbody', null, sRows.map(function (r) {
-                        return h('tr', {
-                            key: r.key, style: { cursor: 'pointer' },
-                            onClick: function () { props.onOpenSpecies(r.key); }
-                        },
-                            h('td', { className: 'n done' }, speciesName(r.key, props.lang)),
-                            h('td', { className: 'num' },
-                                (r.b.weight ? r.b.weight.toFixed(2) + ' kg' : '–') +
-                                (r.b.length ? ' · ' + Math.round(r.b.length * 100) + ' cm' : '')),
-                            h('td', { className: 'num' }, r.sp.wMax ? r.sp.wMax + ' kg' : '–'),
-                            h('td', null, r.pct
-                                ? h('div', { className: 'ufs-recbar', title: Math.round(r.pct * 100) + ' %' },
-                                    h('span', { style: { width: (r.pct * 100) + '%' } }))
-                                : h('span', { className: 'sub' }, '–')),
-                            h('td', { className: 'num' }, fmtNum(r.b.count)),
-                            h('td', { className: 'num' }, r.b.sum ? fmtNum(r.b.sum, 1) + ' kg' : '–'),
-                            h('td', { className: 'sub' }, fisheryLabel(r.b.fishery) || '–'));
-                    }))))
-            : null);
-}
-
-function Stat(props) {
-    return h('div', { className: 'ufs-stat' },
-        h('div', { className: 'lb' }, props.label),
-        h('div', { className: 'vl' }, props.value),
-        props.sub ? h('div', { className: 'sb' }, props.sub) : null);
-}
 
 /* ---------------------------------------------------- Gesamtübersicht */
 
@@ -2094,7 +1947,7 @@ function App() {
                 : view === 'anmelden' ? h('div', { style: { maxWidth: '520px' } },
                     h(LoginPanel, { onLogin: function (u) { setMe(u); setView('start'); } }))
                 : view === 'stats' ? h(StatsPage, {
-                    stats: saveStats, lang: lang, tab: statsTab,
+                    stats: saveStats, tab: statsTab, apiAvailable: API_AVAILABLE,
                     me: me,
                     onOpenCommunity: function () { setView('anmelden'); },
                     onReset: function () {
