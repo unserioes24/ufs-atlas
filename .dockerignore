@@ -2,10 +2,14 @@
 .gitlab-ci.yml
 tools
 README.md
-DEPLOY.md
 .vscode
 *.log
 
 # werden im Image erzeugt
 server/vendor
 server/var
+
+# vom Build erzeugt
+node_modules
+dist
+dist-offline

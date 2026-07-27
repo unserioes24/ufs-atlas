@@ -56,6 +56,7 @@ class GroupController extends AbstractController
             'visibility' => $g->getVisibility(),
             'members' => \count($g->getMembers()),
             'owner' => $me !== null && $g->getOwner()->getId() === $me->getId(),
+            'ownerId' => $g->getOwner()->getId(),
             'ownerName' => $g->getOwner()->getName(),
             'member' => $member,
         ];
@@ -225,6 +226,10 @@ class GroupController extends AbstractController
         return $this->json(['ok' => true, 'group' => self::groupPayload($group, $me)]);
     }
 
+    /**
+     * Austreten. Wer die Gruppe angelegt hat, nimmt sie mit: ohne Besitzer
+     * gäbe es niemanden mehr, der sie verwalten kann.
+     */
     #[Route('/{id}/leave', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function leave(int $id): JsonResponse
     {
@@ -233,11 +238,42 @@ class GroupController extends AbstractController
             return $this->json(['error' => 'Nicht angemeldet.'], 401);
         }
         $group = $this->em->getRepository(FishGroup::class)->find($id);
-        $member = $group ? $this->em->getRepository(GroupMember::class)->findOneBy(['group' => $group, 'user' => $me]) : null;
+        if ($group === null) {
+            return $this->json(['ok' => true, 'deleted' => false]);
+        }
+        if ($group->getOwner()->getId() === $me->getId()) {
+            $this->em->remove($group);
+            $this->em->flush();
+
+            return $this->json(['ok' => true, 'deleted' => true]);
+        }
+
+        $member = $this->em->getRepository(GroupMember::class)->findOneBy(['group' => $group, 'user' => $me]);
         if ($member !== null) {
             $this->em->remove($member);
             $this->em->flush();
         }
+
+        return $this->json(['ok' => true, 'deleted' => false]);
+    }
+
+    /** Gruppe auflösen. Nur der Besitzer darf das, und es ist endgültig. */
+    #[Route('/{id}', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    public function delete(int $id): JsonResponse
+    {
+        $me = $this->requireUser();
+        if ($me === null) {
+            return $this->json(['error' => 'Nicht angemeldet.'], 401);
+        }
+        $group = $this->em->getRepository(FishGroup::class)->find($id);
+        if ($group === null) {
+            return $this->json(['ok' => true]);
+        }
+        if ($group->getOwner()->getId() !== $me->getId()) {
+            return $this->json(['error' => 'Nur wer die Gruppe angelegt hat, darf sie auflösen.'], 403);
+        }
+        $this->em->remove($group);
+        $this->em->flush();
 
         return $this->json(['ok' => true]);
     }
@@ -268,6 +304,7 @@ class GroupController extends AbstractController
                 'id' => $u->getId(),
                 'name' => $u->getName(),
                 'self' => $u->getId() === $me->getId(),
+                'admin' => $u->getId() === $group->getOwner()->getId(),
                 'hasProfile' => $p !== null,
                 'fish' => $p?->getTotalFish() ?? 0,
                 'bites' => $p?->getTotalBites() ?? 0,

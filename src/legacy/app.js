@@ -8,6 +8,8 @@
  */
 import React from 'react'
 import { GAME, GUIDE } from '../data'
+import GroupsPage from '../components/groups/GroupsPage'
+import { Follows } from '../components/profile/Follows'
 
 const { useCallback, useEffect, useMemo, useRef, useState } = React
 const h = React.createElement
@@ -2045,68 +2047,6 @@ function LoginPanel(props) {
         }, msg.t) : null);
 }
 
-/* ---------------------------------------------------------- Gruppenansicht */
-
-const BOARDS = [
-    ['biggestFish', 'Schwerster Fisch', 'kg'],
-    ['longestFish', 'Längster Fisch', 'cm'],
-    ['totalWeight', 'Meiste Masse gesamt', 'kg'],
-    ['topSpeciesWeight', 'Meiste Masse einer Art', 'kg'],
-    ['species', 'Meiste Arten', ''],
-    ['fisheriesComplete', 'Komplette Reviere', ''],
-    ['fish', 'Meiste Fänge', ''],
-    ['time', 'Meiste Angelzeit', 'h']
-];
-
-function boardValue(key, v) {
-    if (key === 'longestFish') return Math.round(v * 100) + ' cm';
-    if (key === 'time') return fmtTime(v);
-    if (key === 'biggestFish' || key === 'totalWeight' || key === 'topSpeciesWeight') return fmtNum(v, 2) + ' kg';
-    return fmtNum(v);
-}
-
-function GroupView(props) {
-    const g = props.data;
-    const names = (g.meta && g.meta.speciesNames) || {};
-    return h('div', null,
-        h('div', { className: 'ufs-row', style: { marginBottom: '.8rem' } },
-            h('h3', { style: { margin: 0, fontSize: '15px', fontWeight: 800, color: '#e2e8f0' } }, g.group.name),
-            h('span', { className: 'ufs-chip ufs-mono', title: 'Beitrittscode' }, 'Code ' + g.group.code),
-            h('span', { className: 'ufs-muted', style: { fontSize: '11.5px' } }, g.members.length + ' Mitglieder'),
-            h('button', { className: 'ufs-btn', onClick: props.onLeave }, 'Verlassen')),
-        h('div', { className: 'ufs-boardgrid' }, BOARDS.map(function (b) {
-            const rows = (g.boards[b[0]] || []).slice(0, 5);
-            return h('div', { key: b[0], className: 'ufs-spotcard' },
-                h('h3', null, b[1]),
-                rows.length
-                    ? h('div', { className: 'ufs-splist' }, rows.map(function (r, i) {
-                        return h('div', { key: r.id, className: cn('ufs-spline', r.self && 'pin') },
-                            h('span', { className: 'n' }, (i + 1) + '. ' + r.name),
-                            h('span', { className: 'q' }, boardValue(b[0], r.value)),
-                            h('span', { className: 'd' }, r.label ? (names[r.label] || r.label) : ''));
-                    }))
-                    : h('div', { className: 'ufs-muted', style: { fontSize: '12px' } }, 'Noch keine Daten'));
-        })),
-        h('div', { className: 'ufs-spotcard', style: { marginTop: '.9rem' } },
-            h('h3', null, 'Mitglieder'),
-            h('table', { className: 'ufs-rec' },
-                h('thead', null, h('tr', null,
-                    h('th', null, 'Angler'), h('th', null, 'Arten'), h('th', null, 'Reviere komplett'),
-                    h('th', null, 'Fänge'), h('th', null, 'Masse'), h('th', null, 'Schwerster'), h('th', null, 'Stand'))),
-                h('tbody', null, g.members.map(function (m) {
-                    return h('tr', {
-                        key: m.id, style: { cursor: 'pointer' },
-                        onClick: function () { props.onOpenUser(m.name); }
-                    },
-                        h('td', { className: cn('n', m.self && 'done') }, (m.self ? '▸ ' : '') + m.name),
-                        h('td', { className: 'num' }, fmtNum(m.species)),
-                        h('td', { className: 'num' }, fmtNum(m.fisheriesComplete)),
-                        h('td', { className: 'num' }, fmtNum(m.fish)),
-                        h('td', { className: 'num' }, fmtNum(m.weight, 1) + ' kg'),
-                        h('td', { className: 'num' }, m.bigW ? m.bigW.toFixed(2) + ' kg' : '–'),
-                        h('td', { className: 'sub' }, m.updatedAt ? m.updatedAt.slice(0, 10) : 'kein Profil'));
-                })))));
-}
 
 /* ------------------------------------------------- Teilbares Anglerprofil */
 
@@ -2280,6 +2220,10 @@ function ProfilePage(props) {
         p ? { k: 'arten', t: 'Arten', s: fmtNum(Object.keys(p.species).length) + ' Rekorde' } : null,
         p ? { k: 'offen', t: 'Was noch fehlt', s: (data.meta.totalSpecies - p.speciesCount) + ' Arten' } : null,
         duel ? { k: 'vergleich', t: 'Vergleich mit dir', s: rows.length + ' Arten' } : null,
+        {
+            k: 'follower', t: 'Follower',
+            s: (data ? (data.followers || 0) : 0) + ' folgen · folgt ' + (data ? (data.follows || 0) : 0)
+        },
         { k: 'gruppen', t: 'Gruppen', s: (data && data.groups ? data.groups.length : 0) + ' Stück' },
         self ? { k: 'konto', t: 'Einstellungen', s: 'Name, Token, Abmelden' } : null
     ].filter(Boolean);
@@ -2342,9 +2286,14 @@ function ProfilePage(props) {
                         h('span', { className: 'sub' }, fmtAgo(p.updatedAt))) : null)),
 
             active === 'gruppen'
-                ? h(ProfileGroups, {
-                    data: data, self: self, me: props.me,
-                    onChange: function () { load(); }, onOpenUser: props.onOpenUser
+                ? h(ProfileGroupList, {
+                    groups: data.groups || [], self: self,
+                    onOpenGroups: props.onOpenGroups
+                })
+                : active === 'follower'
+                ? h(Follows, {
+                    userId: data.user.id, name: data.user.name, self: self,
+                    onOpenUser: props.onOpenUser
                 })
                 : active === 'konto' && props.me
                 ? h(AccountPanel, {
@@ -2370,182 +2319,6 @@ function ProfilePage(props) {
                 : null));
 }
 
-/* --------------------------------------------------------- Gruppen im Profil */
-
-const VIS = {
-    'public': { t: 'Öffentlich', s: 'steht im Verzeichnis, jeder darf beitreten' },
-    'unlisted': { t: 'Nicht gelistet', s: 'nur über Link oder Code zu finden, Beitritt frei' },
-    'private': { t: 'Privat', s: 'nur Mitglieder sehen sie, Beitritt nur mit Code' }
-};
-
-/** Gruppen eines Profils; im eigenen Profil zugleich die Verwaltung. */
-function ProfileGroups(props) {
-    const self = props.self;
-    const groups = props.data.groups || [];
-    const [msg, setMsg] = useState(null);
-    const [err, setErr] = useState(null);
-    const [busy, setBusy] = useState(false);
-    const [name, setName] = useState('');
-    const [vis, setVis] = useState('private');
-    const [code, setCode] = useState('');
-    const [dir, setDir] = useState(null);
-    const [q, setQ] = useState('');
-    const [edit, setEdit] = useState(null);
-
-    function run(p) {
-        setBusy(true); setErr(null);
-        return p.then(function (d) { props.onChange(); return d; })
-            .catch(function (e) { setErr(e.message); })
-            .then(function (d) { setBusy(false); return d; });
-    }
-    function loadDir() {
-        api('/groups/public' + (q ? '?q=' + encodeURIComponent(q) : ''))
-            .then(function (d) { setDir(d.groups); })
-            .catch(function (e) { setErr(e.message); });
-    }
-    useEffect(function () { if (self) loadDir(); }, [self]);
-
-    function create() {
-        if (!name.trim()) return;
-        run(api('/groups', { method: 'POST', json: { name: name.trim(), visibility: vis } }))
-            .then(function () { setName(''); setMsg('Gruppe angelegt.'); loadDir(); });
-    }
-    function join() {
-        if (!code.trim()) return;
-        run(api('/groups/join', { method: 'POST', json: { code: code.trim() } }))
-            .then(function () { setCode(''); setMsg('Beigetreten.'); });
-    }
-    function joinOpen(id) {
-        run(api('/groups/join', { method: 'POST', json: { id: id } })).then(function () { loadDir(); });
-    }
-    function save(g, patch) {
-        run(api('/groups/' + g.id, { method: 'POST', json: patch })).then(function () { setEdit(null); loadDir(); });
-    }
-    function leave(g) {
-        if (!confirm('Die Gruppe „' + g.name + '“ wirklich verlassen?')) return;
-        run(api('/groups/' + g.id + '/leave', { method: 'POST' })).then(function () { loadDir(); });
-    }
-
-    return h('div', null,
-        err ? h('div', { className: 'ufs-note', style: { marginBottom: '.8rem' } }, err) : null,
-        msg ? h('div', { className: 'ufs-note ok', style: { marginBottom: '.8rem' } }, msg) : null,
-
-        h('div', { className: 'ufs-spotcard' },
-            h('h3', null, self ? 'Deine Gruppen' : 'Gruppen'),
-            !groups.length
-                ? h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', margin: 0 } },
-                    self ? 'Du bist noch in keiner Gruppe.' : 'Dieser Angler ist in keiner öffentlichen Gruppe.')
-                : h('div', { className: 'ufs-splist' }, groups.map(function (g) {
-                    const v = VIS[g.visibility] || VIS['private'];
-                    return h('div', { key: g.id, className: 'ufs-grouprow' },
-                        h('div', { className: 'main' },
-                            h('span', { className: 'nm' }, g.name),
-                            h('span', { className: 'sub' },
-                                v.t + ' · ' + g.members + ' Mitglieder'
-                                + (g.owner ? ' · von dir angelegt' : ' · von ' + g.ownerName)
-                                + (g.code ? ' · Code ' + g.code : ''))),
-                        self ? h('div', { className: 'ufs-row no-print', style: { gap: '.35rem' } },
-                            g.owner ? h('button', {
-                                className: 'ufs-btn', disabled: busy,
-                                onClick: function () { setEdit(edit === g.id ? null : g.id); }
-                            }, edit === g.id ? 'Fertig' : 'Bearbeiten') : null,
-                            h('button', { className: 'ufs-btn', disabled: busy, onClick: function () { leave(g); } }, 'Verlassen'))
-                            : null,
-                        self && edit === g.id
-                            ? h(GroupEdit, { g: g, busy: busy, onSave: save })
-                            : null);
-                }))),
-
-        !self ? null : h('div', { className: 'ufs-spotcard', style: { marginTop: '.9rem' } },
-            h('h3', null, 'Neue Gruppe'),
-            h('div', { className: 'ufs-row' },
-                h('input', {
-                    value: name, maxLength: 60, placeholder: 'Name der Gruppe',
-                    onChange: function (e) { setName(e.target.value); },
-                    onKeyDown: function (e) { if (e.key === 'Enter') create(); },
-                    className: 'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50',
-                    style: { minWidth: '220px' }
-                }),
-                h(Select, {
-                    value: vis, onChange: setVis,
-                    options: ['private', 'unlisted', 'public'],
-                    labels: { 'private': 'Privat', 'unlisted': 'Nicht gelistet', 'public': 'Öffentlich' }
-                }),
-                h('button', { className: 'ufs-btn primary', disabled: busy || !name.trim(), onClick: create }, 'Anlegen')),
-            h('p', { className: 'ufs-muted', style: { fontSize: '11.5px', lineHeight: 1.6, marginTop: '.5rem' } },
-                VIS[vis].t + ': ' + VIS[vis].s + '.')),
-
-        !self ? null : h('div', { className: 'ufs-spotcard', style: { marginTop: '.9rem' } },
-            h('h3', null, 'Mit Code beitreten'),
-            h('div', { className: 'ufs-row' },
-                h('input', {
-                    value: code, maxLength: 6, placeholder: 'ABC123',
-                    onChange: function (e) { setCode(e.target.value.toUpperCase()); },
-                    onKeyDown: function (e) { if (e.key === 'Enter') join(); },
-                    className: 'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50',
-                    style: { width: '150px', letterSpacing: '.2em' }
-                }),
-                h('button', { className: 'ufs-btn', disabled: busy || !code.trim(), onClick: join }, 'Beitreten'))),
-
-        !self ? null : h('div', { className: 'ufs-spotcard', style: { marginTop: '.9rem' } },
-            h('div', { className: 'ufs-row', style: { justifyContent: 'space-between', marginBottom: '.6rem' } },
-                h('h3', { style: { margin: 0 } }, 'Öffentliche Gruppen'),
-                h('div', { className: 'ufs-row' },
-                    h('input', {
-                        value: q, placeholder: 'suchen …',
-                        onChange: function (e) { setQ(e.target.value); },
-                        onKeyDown: function (e) { if (e.key === 'Enter') loadDir(); },
-                        className: 'rounded-2xl border border-white/10 bg-white/[.045] py-1.5 px-3 text-sm outline-none focus:border-cyan-400/50',
-                        style: { width: '170px' }
-                    }),
-                    h('button', { className: 'ufs-btn', onClick: loadDir }, 'Suchen'))),
-            !dir ? h('p', { className: 'ufs-muted', style: { fontSize: '12px' } }, 'Wird geladen …')
-                : !dir.length ? h('p', { className: 'ufs-muted', style: { fontSize: '12px' } }, 'Keine öffentliche Gruppe gefunden.')
-                : h('div', { className: 'ufs-splist' }, dir.map(function (g) {
-                    return h('div', { key: g.id, className: 'ufs-grouprow' },
-                        h('div', { className: 'main' },
-                            h('span', { className: 'nm' }, g.name),
-                            h('span', { className: 'sub' }, g.members + ' Mitglieder · von ' + g.ownerName)),
-                        g.member
-                            ? h('span', { className: 'ufs-chip' }, '✓ dabei')
-                            : h('button', {
-                                className: 'ufs-btn', disabled: busy,
-                                onClick: function () { joinOpen(g.id); }
-                            }, 'Beitreten'));
-                }))));
-}
-
-/** Zeile zum Ändern von Name, Sichtbarkeit und Beitrittscode. */
-function GroupEdit(props) {
-    const g = props.g;
-    const [name, setName] = useState(g.name);
-    const [vis, setVis] = useState(g.visibility);
-
-    return h('div', { className: 'edit' },
-        h('div', { className: 'ufs-row' },
-            h('input', {
-                value: name, maxLength: 60,
-                onChange: function (e) { setName(e.target.value); },
-                className: 'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50',
-                style: { minWidth: '200px' }
-            }),
-            h(Select, {
-                value: vis, onChange: setVis,
-                options: ['private', 'unlisted', 'public'],
-                labels: { 'private': 'Privat', 'unlisted': 'Nicht gelistet', 'public': 'Öffentlich' }
-            }),
-            h('button', {
-                className: 'ufs-btn primary', disabled: props.busy,
-                onClick: function () { props.onSave(g, { name: name, visibility: vis }); }
-            }, 'Speichern'),
-            h('button', {
-                className: 'ufs-btn', disabled: props.busy,
-                title: 'Der alte Code gilt danach nicht mehr',
-                onClick: function () { props.onSave(g, { newCode: true }); }
-            }, 'Neuer Code')),
-        h('p', { className: 'ufs-muted', style: { fontSize: '11.5px', lineHeight: 1.6, margin: '.4rem 0 0' } },
-            VIS[vis].t + ': ' + VIS[vis].s + '.'));
-}
 
 const OWNED_LABEL = {
     ROD: 'Ruten', ICE_ROD: 'Eisruten', REEL: 'Rollen', LINE: 'Schnüre', FLOAT: 'Posen',
@@ -2553,6 +2326,29 @@ const OWNED_LABEL = {
     ROD_STAND: 'Rutenständer', BITE_INDICATOR: 'Bissanzeiger', BAIT: 'Köder', LURE: 'Kunstköder',
     BOAT: 'Boote', SONST: 'Sonstiges'
 };
+
+/** Die Gruppen eines Profils; verwaltet werden sie auf der Gruppenseite. */
+function ProfileGroupList(props) {
+    const groups = props.groups;
+    return h('div', { className: 'ufs-spotcard' },
+        h('div', { className: 'ufs-row', style: { justifyContent: 'space-between', marginBottom: '.6rem' } },
+            h('h3', { style: { margin: 0 } }, props.self ? 'Deine Gruppen' : 'Gruppen'),
+            props.self
+                ? h('button', { className: 'ufs-btn', onClick: props.onOpenGroups }, 'Gruppen verwalten')
+                : null),
+        !groups.length
+            ? h('p', { className: 'ufs-muted', style: { fontSize: '12.5px', margin: 0 } },
+                props.self
+                    ? 'Du bist noch in keiner Gruppe.'
+                    : 'Dieser Angler ist in keiner öffentlichen Gruppe.')
+            : h('div', { className: 'ufs-splist' }, groups.map(function (g) {
+                return h('div', { key: g.id, className: 'ufs-grouprow' },
+                    h('div', { className: 'main' },
+                        h('span', { className: 'nm' }, g.name),
+                        h('span', { className: 'sub' },
+                            g.members + ' Mitglieder' + (g.owner ? ' · du bist Admin' : ' · von ' + g.ownerName))));
+            })));
+}
 
 /**
  * Das Profil eines einzelnen Anglers in voller Breite: Kennzahlen, Fortschritt
@@ -2905,193 +2701,7 @@ function MissList(props) {
             : h('p', { className: 'ufs-muted', style: { fontSize: '12px', margin: 0 } }, 'Keine – ihr seid gleichauf.'));
 }
 
-/* ------------------------------------------------------- Community-Seite */
-
-function CommunityPage(props) {
-    const me = props.me;
-    const [tab, setTab] = useState('gruppen');
-    const [groups, setGroups] = useState([]);
-    const [openGroup, setOpenGroup] = useState(null);
-    const [groupData, setGroupData] = useState(null);
-    const [follows, setFollows] = useState([]);
-    const [search, setSearch] = useState([]);
-    const [q, setQ] = useState('');
-    const [err, setErr] = useState(null);
-    const [busy, setBusy] = useState(false);
-
-    function loadGroups() {
-        api('/groups').then(function (d) { setGroups(d.groups); }).catch(function (e) { setErr(e.message); });
-    }
-    function loadFollowing() {
-        api('/following').then(function (d) { setFollows(d.entries); }).catch(function (e) { setErr(e.message); });
-    }
-    useEffect(function () {
-        if (!me) return;
-        loadGroups();
-        loadFollowing();
-    }, [me && me.id]);
-    useEffect(function () {
-        if (!openGroup) { setGroupData(null); return; }
-        api('/groups/' + openGroup).then(setGroupData).catch(function (e) { setErr(e.message); });
-    }, [openGroup]);
-
-    if (!API_AVAILABLE) {
-        return h('div', { className: 'ufs-note' },
-            'Konten und Gruppen brauchen den Server. Öffne den Guide dafür über ',
-            h('code', null, 'https://ufs-atlas.de'),
-            ' statt als lokale Datei.');
-    }
-    if (!me) {
-        return h(LoginPanel, { onLogin: props.onLogin });
-    }
-
-    return h('div', null,
-        h('div', { className: 'ufs-row', style: { marginBottom: '.9rem' } },
-            h(Toggle, { active: tab === 'gruppen', onClick: function () { setTab('gruppen'); } }, 'Gruppen'),
-            h(Toggle, { active: tab === 'folgen', onClick: function () { setTab('folgen'); } }, 'Folgen & Vergleich'),
-            h(Toggle, { active: tab === 'konto', onClick: function () { setTab('konto'); } }, 'Konto'),
-            h('span', { className: 'ufs-muted', style: { marginLeft: 'auto', fontSize: '12px' } },
-                'angemeldet als ', h('b', { style: { color: '#cbd5e1' } }, me.name))),
-        err ? h('div', { className: 'ufs-note', style: { marginBottom: '.8rem' } }, err) : null,
-
-        tab === 'gruppen' ? h('div', null,
-            openGroup && groupData
-                ? h('div', null,
-                    h('button', { className: 'ufs-btn', style: { marginBottom: '.8rem' }, onClick: function () { setOpenGroup(null); } }, '← Alle Gruppen'),
-                    h(GroupView, {
-                        data: groupData,
-                        onOpenUser: props.onOpenUser,
-                        onLeave: function () {
-                            api('/groups/' + openGroup + '/leave', { method: 'POST' })
-                                .then(function () { setOpenGroup(null); loadGroups(); });
-                        }
-                    }))
-                : h('div', null,
-                    h('div', { className: 'ufs-spotcard', style: { marginBottom: '.9rem' } },
-                        h('h3', null, 'Deine Gruppen'),
-                        groups.length
-                            ? h('div', { className: 'ufs-splist' }, groups.map(function (g) {
-                                return h('div', {
-                                    key: g.id, className: 'ufs-spline', style: { cursor: 'pointer' },
-                                    onClick: function () { setOpenGroup(g.id); }
-                                },
-                                    h('span', { className: 'n' }, g.name + (g.owner ? ' (deine)' : '')),
-                                    h('span', { className: 'q' }, g.members + ' Mitglieder'),
-                                    h('span', { className: 'd' }, 'Code ' + g.code));
-                            }))
-                            : h('div', { className: 'ufs-muted', style: { fontSize: '12px' } },
-                                'Noch keine Gruppe. Leg eine an oder tritt mit einem Code bei.')),
-                    h('div', { className: 'ufs-row' },
-                        h('button', {
-                            className: 'ufs-btn primary', disabled: busy,
-                            onClick: function () {
-                                const n = prompt('Name der Gruppe?');
-                                if (!n) return;
-                                setBusy(true);
-                                api('/groups', { method: 'POST', json: { name: n } })
-                                    .then(function () { loadGroups(); })
-                                    .catch(function (e) { setErr(e.message); })
-                                    .then(function () { setBusy(false); });
-                            }
-                        }, '+ Gruppe anlegen'),
-                        h('button', {
-                            className: 'ufs-btn',
-                            onClick: function () {
-                                const c = prompt('Beitrittscode?');
-                                if (!c) return;
-                                api('/groups/join', { method: 'POST', json: { code: c } })
-                                    .then(function () { loadGroups(); })
-                                    .catch(function (e) { setErr(e.message); });
-                            }
-                        }, 'Gruppe beitreten'))))
-            : null,
-
-        tab === 'folgen' ? h('div', null,
-            h('div', { className: 'ufs-row', style: { marginBottom: '.8rem' } },
-                h('input', {
-                    value: q, placeholder: 'Angler suchen …',
-                    onChange: function (e) { setQ(e.target.value); },
-                    onKeyDown: function (e) {
-                        if (e.key !== 'Enter') return;
-                        api('/users?q=' + encodeURIComponent(q)).then(function (d) { setSearch(d.users); });
-                    },
-                    className: 'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50',
-                    style: { minWidth: '220px' }
-                }),
-                h('button', {
-                    className: 'ufs-btn',
-                    onClick: function () { api('/users?q=' + encodeURIComponent(q)).then(function (d) { setSearch(d.users); }); }
-                }, 'Suchen')),
-            search.length ? h('div', { className: 'ufs-spotcard', style: { marginBottom: '.9rem' } },
-                h('h3', null, 'Suchergebnis'),
-                h('div', { className: 'ufs-splist' }, search.map(function (u) {
-                    return h('div', { key: u.id, className: 'ufs-spline' },
-                        h('span', { className: 'n', style: { cursor: 'pointer' }, onClick: function () { props.onOpenUser(u.name); } }, u.name),
-                        h('span', { className: 'q' }, u.species + ' Arten · ' + u.fish + ' Fänge'),
-                        h('button', {
-                            className: 'ufs-chip ufs-chip-btn',
-                            onClick: function () { api('/follow/' + u.id, { method: 'POST' }).then(loadFollowing); }
-                        }, 'folgen'));
-                }))) : null,
-            h(FollowCompare, { entries: follows, lang: props.lang, onOpenUser: props.onOpenUser, onUnfollow: function (id) { api('/follow/' + id, { method: 'DELETE' }).then(loadFollowing); } }))
-            : null,
-
-        tab === 'konto' ? h(AccountPanel, {
-            me: me, local: props.local,
-            onMe: props.onMe, onLogout: props.onLogout, onOpenUser: props.onOpenUser
-        }) : null);
-}
-
 /** Vergleich mit den Profilen, denen man folgt. */
-function FollowCompare(props) {
-    const rows = (props.entries || []).filter(function (e) { return e.profile; }).map(function (e) {
-        const p = e.profile;
-        return {
-            id: e.user.id, name: e.user.name, self: e.self,
-            species: p.speciesCount, complete: p.fisheriesComplete,
-            fish: p.totals.fish, weight: p.totals.weight, time: p.totals.time,
-            bigW: p.biggest.weight, bigWKey: p.biggest.weightSpecies,
-            bigL: p.biggest.length, bigLKey: p.biggest.lengthSpecies,
-            top: p.topSpecies.weight, topKey: p.topSpecies.key
-        };
-    });
-    if (!rows.length) {
-        return h('div', { className: 'ufs-note' },
-            'Du folgst noch niemandem. Suche oben nach einem Angler – danach stehen hier alle Werte nebeneinander.');
-    }
-    const best = {};
-    ['species', 'complete', 'fish', 'weight', 'bigW', 'bigL', 'top'].forEach(function (f) {
-        best[f] = Math.max.apply(null, rows.map(function (r) { return r[f] || 0; }));
-    });
-    function td(r, f, text) {
-        return h('td', { className: cn('num', r[f] > 0 && r[f] === best[f] && 'win') }, (r[f] > 0 && r[f] === best[f] ? '★ ' : '') + text);
-    }
-    return h('div', { className: 'ufs-spotcard' },
-        h('table', { className: 'ufs-rec' },
-            h('thead', null, h('tr', null,
-                h('th', null, 'Angler'), h('th', null, 'Arten'), h('th', null, 'Reviere'),
-                h('th', null, 'Fänge'), h('th', null, 'Masse'), h('th', null, 'Schwerster'),
-                h('th', null, 'Längster'), h('th', null, 'Beste Art'), h('th', null, ''))),
-            h('tbody', null, rows.map(function (r) {
-                return h('tr', { key: r.id },
-                    h('td', {
-                        className: cn('n', r.self && 'done'), style: { cursor: 'pointer' },
-                        onClick: function () { props.onOpenUser(r.name); }
-                    }, (r.self ? '▸ ' : '') + r.name),
-                    td(r, 'species', fmtNum(r.species)),
-                    td(r, 'complete', fmtNum(r.complete)),
-                    td(r, 'fish', fmtNum(r.fish)),
-                    td(r, 'weight', fmtNum(r.weight, 1) + ' kg'),
-                    td(r, 'bigW', r.bigW ? r.bigW.toFixed(2) + ' kg' : '–'),
-                    td(r, 'bigL', r.bigL ? Math.round(r.bigL * 100) + ' cm' : '–'),
-                    td(r, 'top', r.top ? fmtNum(r.top, 1) + ' kg' : '–'),
-                    h('td', { className: 'sub' }, r.self ? '' :
-                        h('button', {
-                            className: 'ufs-chip ufs-chip-btn',
-                            onClick: function () { props.onUnfollow(r.id); }
-                        }, 'entfolgen')));
-            }))));
-}
 
 function AccountPanel(props) {
     const me = props.me;
@@ -3236,6 +2846,7 @@ function App() {
     const [me, setMe] = useState(null);
     const [angler, setAngler] = useState(null);
     const [anglerTab, setAnglerTab] = useState('uebersicht');
+    const [groupId, setGroupId] = useState(null);
 
     const [syncNote, setSyncNote] = useState(null);
 
@@ -3318,7 +2929,8 @@ function App() {
                 setView('angler');
                 return;
             }
-            if (head === 'gruppen' || head === 'community') { setView('community'); return; }
+            if (head === 'gruppen') { setView('gruppen'); setGroupId(parts[1] ? Number(parts[1]) : null); return; }
+            if (head === 'anmelden') { setView('anmelden'); return; }
             if (head === 'statistik') { setView('stats'); setStatsTab(parts[1] || 'reviere'); return; }
             if (head === 'arten') { setView('arten'); setOpenSpecies(parts[1] ? parts[1].toUpperCase() : null); return; }
             if (head === 'gesamt') { setView('map'); setSelectedMap('__all__'); return; }
@@ -3350,7 +2962,8 @@ function App() {
             hash = '#angler/' + encodeURIComponent(angler)
                 + (anglerTab && anglerTab !== 'uebersicht' ? '/' + anglerTab : '');
         }
-        else if (view === 'community') hash = '#gruppen';
+        else if (view === 'gruppen') hash = '#gruppen' + (groupId ? '/' + groupId : '');
+        else if (view === 'anmelden') hash = '#anmelden';
         else if (view === 'stats') hash = '#statistik';
         else if (view === 'arten') hash = '#arten' + (openSpecies ? '/' + openSpecies : '');
         // Jeder Wechsel ist ein eigener Schritt im Verlauf, damit „Zurück“ im
@@ -3531,11 +3144,11 @@ function App() {
                         onClick: function () { setView('stats'); }
                     }, h(Icon, { name: 'scale' }), h('span', { className: 'lbl' }, 'Statistik')),
                     API_AVAILABLE ? h('button', {
-                        className: cn('ufs-btn', (view === 'angler' || view === 'community') && 'primary'),
+                        className: cn('ufs-btn', (view === 'angler' || view === 'anmelden') && 'primary'),
                         title: me ? 'Dein Profil – die Adresse lässt sich weitergeben' : 'Anmelden',
                         onClick: function () {
                             if (me) { setAngler(me.name); setAnglerTab('uebersicht'); setView('angler'); }
-                            else setView('community');
+                            else setView('anmelden');
                         }
                     }, h(Icon, { name: 'user' }), h('span', { className: 'lbl' }, me ? 'Profil' : 'Anmelden')) : null,
                     h('span', { className: 'ufs-chip ufs-mono', title: 'Gefangene Arten insgesamt' }, '✓ ' + allDone + ' / ' + allKeys.length),
@@ -3601,30 +3214,32 @@ function App() {
                 view === 'map' && !isGlobal || view === 'angler' || view === 'start' ? null : h('h1', { className: 'mb-4 text-2xl font-black tracking-tight text-white' },
                     view === 'bait' ? 'Köder & Methoden'
                         : view === 'arten' ? 'Fischarten'
-                        : view === 'community' ? 'Gruppen & Vergleich'
+                        : view === 'gruppen' ? 'Gruppen'
+                        : view === 'anmelden' ? 'Anmelden'
                         : view === 'stats' ? 'Statistik'
                         : 'Gesamtübersicht'),
                 view === 'start' ? h(StartPage, { lang: lang })
                 : view === 'angler' ? h(ProfilePage, {
                     name: angler, me: me, lang: lang, local: local,
                     tab: anglerTab, onTab: setAnglerTab,
-                    onBack: function () { setView('community'); },
+                    onBack: function () { setView('start'); },
                     onMe: function (u) { setMe(u); },
                     onLogout: function () { api('/auth/logout', { method: 'POST' }).then(function () { setMe(null); }); },
-                    onOpenUser: function (n) { setAngler(n); setAnglerTab('uebersicht'); setView('angler'); }
+                    onOpenUser: function (n) { setAngler(n); setAnglerTab('uebersicht'); setView('angler'); },
+                    onOpenGroups: function () { setGroupId(null); setView('gruppen'); }
                 })
                 : view === 'bait' ? h(BaitPage, { lang: lang })
-                : view === 'community' ? h(CommunityPage, {
-                    me: me, lang: lang, local: local,
-                    onMe: function (u) { setMe(u); },
-                    onLogin: function (u) { setMe(u); },
-                    onLogout: function () { api('/auth/logout', { method: 'POST' }).then(function () { setMe(null); }); },
-                    onOpenUser: function (name) { setAngler(name); setView('angler'); }
+                : view === 'gruppen' ? h(GroupsPage, {
+                    me: me, openId: groupId, onOpen: setGroupId,
+                    onOpenUser: function (name) { setAngler(name); setAnglerTab('uebersicht'); setView('angler'); },
+                    onLogin: function () { setView('anmelden'); }
                 })
+                : view === 'anmelden' ? h('div', { style: { maxWidth: '520px' } },
+                    h(LoginPanel, { onLogin: function (u) { setMe(u); setView('start'); } }))
                 : view === 'stats' ? h(StatsPage, {
                     stats: saveStats, lang: lang, tab: statsTab,
                     me: me,
-                    onOpenCommunity: function () { setView('community'); },
+                    onOpenCommunity: function () { setView('anmelden'); },
                     onReset: function () {
                         setLocal({ caught: {}, bests: {}, stats: null, updatedAt: new Date().toISOString() });
                         setSyncNote(null);

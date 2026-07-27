@@ -609,3 +609,10 @@
 @media print {
   .ufs-map-wrap, .ufs-modal-bg, .ufs-catch { display: none !important; }
 }
+
+/* A button that reads as a link */
+.ufs-linkish {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: #67e8f9; font: inherit;
+}
+.ufs-linkish:hover { color: #cffafe; text-decoration: underline; }

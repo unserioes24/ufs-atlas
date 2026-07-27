@@ -163,6 +163,43 @@ class UserController extends AbstractController
         ]);
     }
 
+    /**
+     * Wer folgt diesem Profil, und wem folgt es? Beide Listen sind öffentlich –
+     * sie stehen so auch im Profil selbst.
+     */
+    #[Route('/users/{id}/follows', methods: ['GET'], requirements: ['id' => '\d+'])]
+    public function follows(int $id): JsonResponse
+    {
+        $user = $this->em->getRepository(User::class)->find($id);
+        if ($user === null) {
+            return $this->json(['error' => 'Unbekanntes Profil.'], 404);
+        }
+        $repo = $this->em->getRepository(Follow::class);
+
+        $line = static function (User $u): array {
+            $p = $u->getProfile();
+
+            return [
+                'id' => $u->getId(),
+                'name' => $u->getName(),
+                'species' => $p?->getSpeciesCount() ?? 0,
+                'fish' => $p?->getTotalFish() ?? 0,
+                'updatedAt' => $p?->getUpdatedAt()->format(\DateTimeInterface::ATOM),
+            ];
+        };
+
+        $followers = [];
+        foreach ($repo->findBy(['followed' => $user], ['id' => 'DESC'], 200) as $f) {
+            $followers[] = $line($f->getFollower());
+        }
+        $following = [];
+        foreach ($repo->findBy(['follower' => $user], ['id' => 'DESC'], 200) as $f) {
+            $following[] = $line($f->getFollowed());
+        }
+
+        return $this->json(['followers' => $followers, 'following' => $following]);
+    }
+
     /** Angler suchen, um ihnen zu folgen. */
     #[Route('/users', methods: ['GET'])]
     public function search(Request $request): JsonResponse
