@@ -154,6 +154,7 @@ export const de = {
   'fish.confHigh': 'hoch',
   'fish.confMedium': 'mittel',
   'fish.confLow': 'abgeleitet',
+  'fish.openSpecies': 'Alles zur Art',
 
   // ------------------------------------------------------------- Methods
   'method.fly': 'Fliege',

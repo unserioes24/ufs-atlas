@@ -72,6 +72,7 @@ export interface FisheryViewProps {
   onSources: () => void
   selectedSpot: number | null
   onSelectSpot: (n: number | null) => void
+  onOpenSpecies: (key: string) => void
   /** The strip of maps on narrow screens picks a fishery directly. */
   onPickMap: (id: string) => void
 }
@@ -82,6 +83,7 @@ export function FisheryView({
   caught,
   bests,
   favorites,
+  onOpenSpecies,
   onToggleFav,
   onToggleCatch,
   onSources,
@@ -445,6 +447,7 @@ export function FisheryView({
               onToggleCatch={onToggleCatch}
               selectedSpot={selectedSpot}
               onPickSpot={(n) => onSelectSpot(selectedSpot === n ? null : n)}
+              onOpenSpecies={onOpenSpecies}
             />
           ))}
           {!filtered.length ? (

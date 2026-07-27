@@ -413,6 +413,10 @@ export default function App() {
               onSources={() => setSourceOpen(true)}
               selectedSpot={selectedSpot}
               onSelectSpot={setSelectedSpot}
+              onOpenSpecies={(k) => {
+                setOpenSpecies(k)
+                setView('arten')
+              }}
               onPickMap={setSelectedMap}
             />
           )}

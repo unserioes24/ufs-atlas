@@ -12,20 +12,10 @@ import type { BestCatch, FisherySpecies, GuideFish } from '../../types'
 import { useI18n } from '../../i18n'
 import { translateTerms } from '../../i18n/terms'
 import { fitSteps, gapRange, stepRange } from '../../lib/hooks'
-import { fisheryLabel } from '../../lib/savegame'
 import { cn } from '../../lib/format'
 import { Badge, Icon } from '../primitives'
-import {
-  Activity,
-  BaitTop,
-  BiteFactors,
-  MethodList,
-  RetrieveList,
-  SizeFit,
-  bestHours,
-  methodTop,
-  spinTop,
-} from './facts'
+import { bestHours, methodTop, spinTop } from './facts'
+
 
 /** The guide writes this exact sentence when no time of day stands out. */
 const NO_FIXED_TIME = 'Keine feste Zeit belegt'
@@ -84,6 +74,8 @@ export interface FishCardProps {
   onToggleCatch: (key: string) => void
   selectedSpot: number | null
   onPickSpot: (n: number) => void
+  /** Opens the species' own page, where the curves and tables live. */
+  onOpenSpecies: (key: string) => void
 }
 
 export function FishCard({
@@ -100,6 +92,7 @@ export function FishCard({
   onToggleCatch,
   selectedSpot,
   onPickSpot,
+  onOpenSpecies,
 }: FishCardProps) {
   const { t, lang } = useI18n()
   const sp = speciesKey ? SPECIES[speciesKey] : null
@@ -259,9 +252,11 @@ export function FishCard({
         )}
         <Detail title={t('fish.groundbait')} value={translateTerms(f.groundbait, lang)} />
 
+        {/* Only the plain figures here. Curves, size steps and bait tables sit
+            on the species' own page, one click away, so the fishery list stays
+            readable when it holds sixteen of these. */}
         {sp ? (
-          <div className={cn('ufs-gamebox', compact ? '' : 'lg:col-span-2')}>
-            <div className="hd">{t('fish.fromGameFiles')}</div>
+          <div className={cn('ufs-gamefacts', compact ? '' : 'lg:col-span-2')}>
             <div className="ufs-stats">
               {sp.wMax ? (
                 <span>
@@ -273,89 +268,25 @@ export function FishCard({
                   {t('fish.length')}: <b>{sp.lMin + '–' + sp.lMax + ' cm'}</b>
                 </span>
               ) : null}
-              {gameEntry?.points ? (
-                <span>
-                  {t('fish.shoalPoints')}: <b>{gameEntry.points}</b>
-                </span>
-              ) : null}
               {gameEntry?.fish ? (
                 <span>
                   {t('fish.fishHere')}: <b>{gameEntry.fish}</b>
                 </span>
               ) : null}
-              {gameEntry?.dlc ? (
+              {best?.weight ? (
                 <span>
-                  <b>{t('fish.dlcSpecies')}</b> {t('fish.dlcNote')}
+                  {t('fish.yourRecord')}: <b>{best.weight.toFixed(2) + ' kg'}</b>
                 </span>
               ) : null}
             </div>
-            {sp.act ? (
-              <div style={{ marginTop: '.6rem' }}>
-                <Activity act={sp.act} />
-              </div>
-            ) : null}
-            {HOOKS && sp.wMax ? (
-              <div style={{ marginTop: '.7rem' }}>
-                <div className="hd">{t('fish.sizes')}</div>
-                <SizeFit sp={sp} />
-              </div>
-            ) : null}
-            {sp.m ? (
-              <div style={{ marginTop: '.7rem' }}>
-                <div className="hd">{t('fish.method')}</div>
-                <MethodList m={sp.m} />
-              </div>
-            ) : null}
-            {speciesKey && baits.length ? (
-              <div style={{ marginTop: '.7rem' }}>
-                <div className="hd">{t('fish.baitInterest')}</div>
-                <BaitTop speciesKey={speciesKey} />
-              </div>
-            ) : null}
-            {sp.spin ? (
-              <div style={{ marginTop: '.7rem' }}>
-                <div className="hd">{t('fish.retrieve')}</div>
-                <RetrieveList spin={sp.spin} />
-              </div>
-            ) : null}
-            {sp.bite ? (
-              <div style={{ marginTop: '.7rem' }}>
-                <div className="hd">{t('fish.weather')}</div>
-                <BiteFactors bite={sp.bite} />
-              </div>
-            ) : null}
-            {best ? (
-              <div className="ufs-stats" style={{ marginTop: '.6rem' }}>
-                <span>
-                  {t('fish.yourRecord')}:{' '}
-                  <b>
-                    {(best.weight ? best.weight.toFixed(2) + ' kg' : '–') +
-                      (best.length ? ' · ' + Math.round(best.length * 100) + ' cm' : '')}
-                  </b>
-                </span>
-                {best.count ? (
-                  <span>
-                    {t('fish.catches')}: <b>{best.count}</b>
-                  </span>
-                ) : null}
-                {best.fishery ? (
-                  <span>
-                    {t('fish.recordFishery')}: <b>{fisheryLabel(best.fishery)}</b>
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-            {sp.info ? (
-              <p
-                style={{
-                  margin: '.6rem 0 0',
-                  fontSize: '12px',
-                  lineHeight: 1.65,
-                  color: '#94a3b8',
-                }}
+            {speciesKey ? (
+              <button
+                type="button"
+                className="ufs-chip ufs-chip-btn no-print"
+                onClick={() => onOpenSpecies(speciesKey)}
               >
-                {sp.info}
-              </p>
+                {t('fish.openSpecies')}
+              </button>
             ) : null}
           </div>
         ) : null}

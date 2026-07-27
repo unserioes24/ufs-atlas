@@ -153,6 +153,7 @@ export const en: Partial<Dict> = {
   'fish.confHigh': 'high',
   'fish.confMedium': 'medium',
   'fish.confLow': 'inferred',
+  'fish.openSpecies': 'All about this species',
 
   // ------------------------------------------------------------- Methods
   'method.fly': 'Fly',

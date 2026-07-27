@@ -704,3 +704,13 @@
 .ufs-cookienote p {
   flex: 1 1 320px; margin: 0; font-size: 12.5px; line-height: 1.6; color: #cbd5e1;
 }
+
+/* The plain figures under a fish card. The curves and tables that used to sit
+   here moved to the species page - sixteen cards with all of that made the
+   fishery list unreadable. */
+.ufs-gamefacts {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .6rem .9rem;
+  border: 1px solid rgba(103, 232, 249, .18); background: rgba(34, 211, 238, .05);
+  border-radius: 18px; padding: .7rem .9rem;
+}
+.ufs-gamefacts .ufs-stats { flex: 1 1 260px; }
