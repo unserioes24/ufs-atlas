@@ -10,6 +10,7 @@ import { profileUrl } from '../../lib/profile'
 import type { LocalState } from '../../types'
 import { Icon } from '../primitives'
 import { SaveUpload } from './SaveSync'
+import UploadHowto from './UploadHowto'
 
 /** The signed-in account, as /auth/me returns it. */
 export interface Account {
@@ -215,7 +216,7 @@ export function AccountPanel({ me, local, onMe, onLogout, onOpenUser }: AccountP
         ))}
       </div>
       <pre className="ufs-cmd">{cmd}</pre>
-      <div className="ufs-row">
+      <div className="ufs-row" style={{ marginBottom: '1.1rem' }}>
         <button
           className="ufs-btn"
           onClick={() => {
@@ -224,6 +225,17 @@ export function AccountPanel({ me, local, onMe, onLogout, onOpenUser }: AccountP
         >
           {t('account.copyCommand')}
         </button>
+      </div>
+
+      <h3>{t('howto.title')}</h3>
+      <p className="ufs-muted" style={hint}>
+        {t('howto.lead')}
+      </p>
+      <div style={{ marginBottom: '1.1rem' }}>
+        <UploadHowto token={token} slot={slot} />
+      </div>
+
+      <div className="ufs-row">
         <button
           className="ufs-btn danger"
           onClick={() => {

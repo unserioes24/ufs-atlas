@@ -32,6 +32,7 @@ import SourcesPanel from './components/SourcesPanel'
 import Privacy from './components/legal/Privacy'
 import CookieNote from './components/legal/CookieNote'
 import SiteFooter from './components/legal/SiteFooter'
+import Changelog from './components/legal/Changelog'
 
 /** Every species the guide or the game files know, for the counter in the header. */
 const ALL_KEYS: string[] = (() => {
@@ -76,6 +77,7 @@ export default function App() {
   const [anglerTab, setAnglerTab] = useState(first.anglerTab ?? 'uebersicht')
   const [groupId, setGroupId] = useState<number | null>(first.groupId ?? null)
   const [sourceOpen, setSourceOpen] = useState(false)
+  const [changesOpen, setChangesOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [me, setMe] = useState<Account | null>(null)
   const [syncNote, setSyncNote] = useState<string | null>(null)
@@ -451,8 +453,9 @@ export default function App() {
       </div>
 
 
-      <SiteFooter onPrivacy={() => setView('privacy')} />
+      <SiteFooter onPrivacy={() => setView('privacy')} onChangelog={() => setChangesOpen(true)} />
       <CookieNote onPrivacy={() => setView('privacy')} />
+      {changesOpen ? <Changelog onClose={() => setChangesOpen(false)} /> : null}
       {sheetSpecies ? (
         <SpeciesModal
           speciesKey={sheetSpecies}

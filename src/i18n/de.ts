@@ -245,6 +245,27 @@ export const de = {
   'paths.linux': 'Linux · Proton',
   'paths.copy': 'Ordnerpfad kopieren',
 
+  // Changelog
+  'changelog.title': 'Änderungen',
+  'changelog.lead':
+    'Was sich mit jeder Fassung geändert hat. „Allgemein“ gilt überall, „Offline-Version“ betrifft den Download, „Serverversion“ die Seite mit Konto.',
+  'changelog.general': 'Allgemein',
+  'changelog.offline': 'Offline-Version',
+  'changelog.server': 'Serverversion',
+
+  // Anleitung: Upload von allein
+  'howto.title': 'Von allein hochladen',
+  'howto.lead':
+    'Ein Befehl, alle zwei Stunden ausgeführt – danach ist dein Profil immer auf dem Stand deiner letzten Angelsession. Der Token steckt im Befehl, halte ihn also für dich.',
+  'howto.winNote':
+    'Aufgabenplanung: den Befehl in einer Eingabeaufforderung als Administrator ausführen. Er legt die Aufgabe „UFS Atlas Upload“ an. Windows bringt curl seit Version 1803 selbst mit.',
+  'howto.macNote':
+    'cron: „crontab -e“ im Terminal öffnen und die Zeile eintragen. Beim ersten Lauf fragt macOS nach Zugriff auf den Ordner – einmal erlauben.',
+  'howto.linuxNote':
+    'cron: „crontab -e“ öffnen und die Zeile eintragen. Der Pfad zeigt in das Proton-Prefix von App 468920; bei einer Steam-Bibliothek auf einer anderen Platte liegt er unter deren steamapps/compatdata.',
+  'howto.tail':
+    'Jeder Upload ersetzt dein Profil vollständig. Läuft der Auftrag, während das Spiel gerade speichert, greift der nächste Lauf – es geht nichts verloren.',
+
   // ------------------------------------------------------- Save-file import
   'import.title': 'Spielstand einlesen',
   'import.lead':

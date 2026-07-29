@@ -244,6 +244,27 @@ export const en: Partial<Dict> = {
   'paths.linux': 'Linux · Proton',
   'paths.copy': 'Copy the folder path',
 
+  // Changelog
+  'changelog.title': 'Changes',
+  'changelog.lead':
+    'What changed with each release. “General” holds everywhere, “Offline version” is about the download, “Server version” about the site with an account.',
+  'changelog.general': 'General',
+  'changelog.offline': 'Offline version',
+  'changelog.server': 'Server version',
+
+  // Tutorial: uploading by itself
+  'howto.title': 'Upload by itself',
+  'howto.lead':
+    'One command, run every two hours – your profile then always matches your last session. The token is part of the command, so keep it to yourself.',
+  'howto.winNote':
+    'Task scheduler: run the command in a command prompt as administrator. It creates the task “UFS Atlas Upload”. Windows ships curl itself since version 1803.',
+  'howto.macNote':
+    'cron: open “crontab -e” in the terminal and add the line. On the first run macOS asks for access to the folder – allow it once.',
+  'howto.linuxNote':
+    'cron: open “crontab -e” and add the line. The path points into the Proton prefix of app 468920; with a Steam library on another disk it sits under that disk’s steamapps/compatdata.',
+  'howto.tail':
+    'Every upload replaces your profile entirely. If the job runs while the game is saving, the next run catches up – nothing is lost.',
+
   'import.title': 'Read a save file',
   'import.lead':
     'The guide reads your save file and ticks off every species you have already caught. The file stays in the browser and is sent nowhere.',

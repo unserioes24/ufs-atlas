@@ -14,13 +14,22 @@ import { IMPRINT_URL } from '../../lib/site'
 
 const GITHUB = 'https://github.com/unserioes24/ufs-atlas'
 
-export function SiteFooter({ onPrivacy }: { onPrivacy: () => void }) {
+export function SiteFooter({
+  onPrivacy,
+  onChangelog,
+}: {
+  onPrivacy: () => void
+  onChangelog: () => void
+}) {
   const { t } = useI18n()
 
   return (
     <footer className="ufs-footer no-print">
       <p>{t('map.footer', { guide: GUIDE.generated, game: GAME.generated || DASH })}</p>
       <p className="links">
+        <button type="button" className="ufs-link" onClick={onChangelog}>
+          {t('changelog.title')}
+        </button>
         {/* Privacy and imprint only mean something where there is a server. */}
         {API_AVAILABLE ? (
           <button type="button" className="ufs-link" onClick={onPrivacy}>

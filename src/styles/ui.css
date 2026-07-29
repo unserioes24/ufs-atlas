@@ -278,6 +278,19 @@
 .ufs-baitcard.open { border-color: rgba(103, 232, 249, .5); background: rgba(34, 211, 238, .10); grid-column: 1 / -1; }
 .ufs-baitcard .de { font-size: 13.5px; font-weight: 700; color: #e2e8f0; }
 .ufs-baitcard .en { font-size: 11px; color: #64748b; margin-top: .1rem; }
+/* Changelog: one block per release, split into general, offline and server */
+.ufs-release { border-top: 1px solid var(--ufs-line); padding-top: .8rem; margin-top: .9rem; }
+.ufs-release:first-of-type { border-top: 0; padding-top: 0; }
+.ufs-release h3 { display: flex; align-items: baseline; gap: .6rem; margin: 0 0 .6rem; }
+.ufs-release h3 .v { font-size: 17px; font-weight: 900; color: #cffafe; letter-spacing: -.01em; }
+.ufs-release h3 .dt { font-size: 11px; color: #64748b; font-variant-numeric: tabular-nums; }
+.ufs-release .grp { margin-bottom: .7rem; }
+.ufs-release .grp h4 {
+  margin: 0 0 .25rem; font-size: 10px; font-weight: 800; letter-spacing: .07em;
+  text-transform: uppercase; color: #7dd3fc;
+}
+.ufs-release ul { margin: 0; padding-left: 1.05rem; display: grid; gap: .3rem; }
+.ufs-release li { font-size: 12.5px; line-height: 1.6; color: #cbd5e1; }
 /* Save-file paths per system, each one copyable */
 .ufs-paths { display: grid; gap: .4rem; margin: .2rem 0 .6rem; }
 .ufs-pathrow {
