@@ -278,6 +278,17 @@
 .ufs-baitcard.open { border-color: rgba(103, 232, 249, .5); background: rgba(34, 211, 238, .10); grid-column: 1 / -1; }
 .ufs-baitcard .de { font-size: 13.5px; font-weight: 700; color: #e2e8f0; }
 .ufs-baitcard .en { font-size: 11px; color: #64748b; margin-top: .1rem; }
+/* The state here is newer than the account's: a warning with a way out */
+.ufs-ahead {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .7rem; margin-bottom: .9rem; padding: .7rem .85rem;
+  border: 1px solid rgba(251, 191, 36, .35); border-radius: 12px;
+  background: rgba(251, 191, 36, .08);
+}
+.ufs-ahead .tx { flex: 1 1 320px; font-size: 12.5px; line-height: 1.6; color: #fde68a; }
+.ufs-ahead .tx b { color: #fef3c7; }
+.ufs-ahead .tx .er { color: #fca5a5; }
+
 /* Lure type, straight out of the Bait component */
 .ufs-baitcard .tp {
   display: inline-block; margin-top: .3rem; padding: .05rem .35rem;

@@ -224,17 +224,32 @@ export const de = {
   'stats.colTotal': 'Gesamt',
   'stats.colRecordFishery': 'Rekordrevier',
 
+  // --------------------------------------------- Spielstand und Konto
+  'sync.aheadTitle': 'Hier liegt der neuere Stand.',
+  'sync.aheadText':
+    'In deinem Konto steht ein älterer Spielstand ({when}). Er wurde nicht über diesen hier geschrieben – du kannst den neueren hochladen.',
+  'sync.aheadTextEmpty':
+    'In deinem Konto steht noch kein Spielstand. Du kannst den hier geladenen hochladen.',
+  'sync.upload': 'In mein Konto hochladen',
+  'sync.uploading': 'Wird hochgeladen …',
+  'sync.later': 'Später',
+  'sync.uploadLead':
+    'Die Datei direkt an den Server schicken – sie wird dort gelesen und ersetzt dein Profil. Für den regelmäßigen Upload ohne Klicken steht die Anleitung darunter.',
+  'sync.pickFile': 'PROFILE-Datei hochladen',
+  'sync.uploadedN': 'Übernommen: {n} Arten stehen jetzt in deinem Konto.',
+  'sync.title': 'Spielstand hochladen',
+
   // ------------------------------------------------------- Save-file import
   'import.title': 'Spielstand einlesen',
   'import.lead':
     'Der Guide liest deinen Spielstand aus und hakt alle bereits gefangenen Arten ab. Die Datei bleibt lokal im Browser und wird nirgendwohin gesendet.',
   'import.whereLead': 'Zu finden unter:',
   'import.slots':
-    'PROFILE_0 und PROFILE_1 sind die beiden Profilslots. Die Dateien haben bewusst keine Endung.',
+    'PROFILE_0, PROFILE_1 und PROFILE_2 sind die drei Profilslots des Spiels – nimm den, in dem du spielst. Die Dateien haben bewusst keine Endung.',
   'import.reading': 'Lese …',
   'import.pick': 'PROFILE-Datei wählen',
   'import.noCounters':
-    'Keine Fangzähler gefunden. Bitte PROFILE_0 oder PROFILE_1 wählen (Dateien ohne Endung).',
+    'Keine Fangzähler gefunden. Bitte eine PROFILE-Datei wählen: PROFILE_0, PROFILE_1 oder PROFILE_2, jeweils ohne Endung.',
   'import.done': '{who}{n} gefangene Arten übernommen, inklusive persönlicher Rekorde.',
   'import.alsoServer': 'Auch im Konto gespeichert.',
   'import.serverFailed': '(Serverupload fehlgeschlagen: {error})',
@@ -472,6 +487,8 @@ export const de = {
     'In diesem Browser ist nichts gespeichert. Hake unter „Reviere“ Arten ab oder lade unter „Statistik“ einen Spielstand.',
   'account.tokenHint':
     'Mit diesem Befehl lädst du deinen Spielstand ohne Anmeldung hoch – etwa aus der Windows-Aufgabenplanung nach jeder Angelsession. Jeder Upload ersetzt dein Profil vollständig.',
+  'account.slotLabel': 'Profilslot:',
+  'account.uploadDone': 'Spielstand hochgeladen und in dein Profil übernommen.',
   'account.copyCommand': 'Befehl kopieren',
   'account.newToken': 'Token erneuern',
   'account.newTokenAsk': 'Neuen Token erzeugen? Der alte funktioniert danach nicht mehr.',

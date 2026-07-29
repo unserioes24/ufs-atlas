@@ -9,6 +9,7 @@ import { useI18n } from '../../i18n'
 import { profileUrl } from '../../lib/profile'
 import type { LocalState } from '../../types'
 import { Icon } from '../primitives'
+import { SaveUpload } from './SaveSync'
 
 /** The signed-in account, as /auth/me returns it. */
 export interface Account {
@@ -37,6 +38,7 @@ export function AccountPanel({ me, local, onMe, onLogout, onOpenUser }: AccountP
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [slot, setSlot] = useState(0)
   const localCount = Object.keys(state.caught ?? {}).length
 
   const say = (text: string) => {
@@ -78,10 +80,14 @@ export function AccountPanel({ me, local, onMe, onLogout, onOpenUser }: AccountP
       .then(() => setBusy(false))
   }
 
+  // The game keeps three profile slots, so the command must not decide for
+  // anybody which one they play in.
   const cmd =
     'curl -H "X-Api-Token: ' +
     token +
-    '" --data-binary "@%UserProfile%\\AppData\\LocalLow\\PlayWay\\UltimateFishing\\PROFILE_0" ' +
+    '" --data-binary "@%UserProfile%\\AppData\\LocalLow\\PlayWay\\UltimateFishing\\PROFILE_' +
+    slot +
+    '" ' +
     location.origin +
     '/api/profile/upload'
 
@@ -179,10 +185,35 @@ export function AccountPanel({ me, local, onMe, onLogout, onOpenUser }: AccountP
         </button>
       </div>
 
+      <h3>{t('sync.title')}</h3>
+      <div style={{ marginBottom: '1.1rem' }}>
+        <SaveUpload
+          onDone={() => {
+            say(t('account.uploadDone'))
+            void api<{ user: Account }>('/auth/me').then((d) => onMe(d.user))
+          }}
+        />
+      </div>
+
       <h3>{t('account.autoUpload')}</h3>
       <p className="ufs-muted" style={hint}>
         {t('account.tokenHint')}
       </p>
+      <div className="ufs-row" style={{ gap: '.4rem', marginBottom: '.6rem' }}>
+        <span className="ufs-muted" style={{ fontSize: '12px' }}>
+          {t('account.slotLabel')}
+        </span>
+        {[0, 1, 2].map((n) => (
+          <button
+            key={n}
+            className={'ufs-btn' + (slot === n ? ' primary' : '')}
+            style={{ padding: '.15rem .7rem' }}
+            onClick={() => setSlot(n)}
+          >
+            {'PROFILE_' + n}
+          </button>
+        ))}
+      </div>
       <pre className="ufs-cmd">{cmd}</pre>
       <div className="ufs-row">
         <button

@@ -223,16 +223,31 @@ export const en: Partial<Dict> = {
   'stats.colRecordFishery': 'Record fishery',
 
   // ------------------------------------------------------- Save-file import
+  // --------------------------------------------- Save file and account
+  'sync.aheadTitle': 'The newer state is here.',
+  'sync.aheadText':
+    'Your account holds an older save ({when}). It was not written over this one – you can upload the newer state.',
+  'sync.aheadTextEmpty':
+    'Your account holds no save yet. You can upload the one loaded here.',
+  'sync.upload': 'Upload to my account',
+  'sync.uploading': 'Uploading …',
+  'sync.later': 'Later',
+  'sync.uploadLead':
+    'Send the file straight to the server – it is read there and replaces your profile. For a regular upload without clicking, the instructions are below.',
+  'sync.pickFile': 'Upload a PROFILE file',
+  'sync.uploadedN': 'Taken over: {n} species are now in your account.',
+  'sync.title': 'Upload a save file',
+
   'import.title': 'Read a save file',
   'import.lead':
     'The guide reads your save file and ticks off every species you have already caught. The file stays in the browser and is sent nowhere.',
   'import.whereLead': 'You find it here:',
   'import.slots':
-    'PROFILE_0 and PROFILE_1 are the two profile slots. The files deliberately have no extension.',
+    'PROFILE_0, PROFILE_1 and PROFILE_2 are the three profile slots of the game – take the one you play in. The files deliberately have no extension.',
   'import.reading': 'Reading …',
   'import.pick': 'Choose a PROFILE file',
   'import.noCounters':
-    'No catch counters found. Please choose PROFILE_0 or PROFILE_1 (files without an extension).',
+    'No catch counters found. Please choose a PROFILE file: PROFILE_0, PROFILE_1 or PROFILE_2, each without an extension.',
   'import.done': '{who}{n} species caught taken over, personal records included.',
   'import.alsoServer': 'Stored in your account as well.',
   'import.serverFailed': '(upload to the server failed: {error})',
@@ -469,6 +484,8 @@ export const en: Partial<Dict> = {
     'Nothing is stored in this browser. Tick species under “Fisheries” or load a save file under “Statistics”.',
   'account.tokenHint':
     'With this command you upload your save file without signing in – from the Windows task scheduler after every session, for one. Every upload replaces your profile entirely.',
+  'account.slotLabel': 'Profile slot:',
+  'account.uploadDone': 'Save file uploaded and taken into your profile.',
   'account.copyCommand': 'Copy the command',
   'account.newToken': 'Renew the token',
   'account.newTokenAsk': 'Create a new token? The old one stops working then.',

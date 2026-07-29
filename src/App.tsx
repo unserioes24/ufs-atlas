@@ -25,6 +25,7 @@ import FisheryView from './components/map/FisheryView'
 import GroupsPage from './components/groups/GroupsPage'
 import ProfilePage from './components/profile/ProfilePage'
 import type { Account } from './components/profile/AccountPanel'
+import { AheadNote } from './components/profile/SaveSync'
 import LoginPanel from './components/auth/LoginPanel'
 import ImportDialog from './components/save/ImportDialog'
 import SourcesPanel from './components/SourcesPanel'
@@ -78,6 +79,9 @@ export default function App() {
   const [importOpen, setImportOpen] = useState(false)
   const [me, setMe] = useState<Account | null>(null)
   const [syncNote, setSyncNote] = useState<string | null>(null)
+  // Set when this browser holds a newer state than the account. The value is
+  // the account's own timestamp, or null when the account has nothing at all.
+  const [aheadOfServer, setAheadOfServer] = useState<string | null | undefined>(undefined)
   const [favorites, setFavorites] = useState<string[]>(readFavorites)
   const { local, setLocal, patchLocal, reset: resetLocal } = useLocalState()
   const searchRef = useRef<HTMLInputElement | null>(null)
@@ -95,10 +99,22 @@ export default function App() {
         if (!d.user) return
         return api<{ state?: typeof local }>('/profile/state').then((s) => {
           const st = s?.state
-          if (!st?.updatedAt) return
           // Compare against the stored stamp, not against the state at call
           // time: the answer only comes back later.
-          if (!newerThan(st.updatedAt, storedStamp())) return
+          const mine = storedStamp()
+          if (!st?.updatedAt) {
+            // Nothing in the account yet, but something here: say so instead of
+            // leaving the upload to be found somewhere else.
+            if (mine) setAheadOfServer(null)
+            return
+          }
+          if (!newerThan(st.updatedAt, mine)) {
+            // The state in this browser is the newer one. Overwriting it with
+            // the account would throw away the newer save file, so it stays and
+            // the offer is to push it up.
+            if (newerThan(mine, st.updatedAt)) setAheadOfServer(st.updatedAt)
+            return
+          }
           setLocal({
             caught: st.caught ?? {},
             bests: st.bests ?? {},
@@ -302,6 +318,17 @@ export default function App() {
                 {t('app.ok')}
               </button>
             </div>
+          ) : null}
+
+          {aheadOfServer !== undefined && me ? (
+            <AheadNote
+              serverAt={aheadOfServer}
+              local={local}
+              onDone={(when) => {
+                setAheadOfServer(undefined)
+                patchLocal({ updatedAt: when })
+              }}
+            />
           ) : null}
 
           {headline ? (
