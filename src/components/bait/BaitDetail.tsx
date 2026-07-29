@@ -89,7 +89,7 @@ export function BaitDetail({ baitKey, onBack, onOpenSpecies }: BaitDetailProps) 
 
       <div className="ufs-spotcard" style={{ marginTop: '.8rem' }}>
         <h3>{t('bait.interestTitle')}</h3>
-        <div className="ufs-baitlist">
+        <div className="ufs-baitlist plain">
           {entries.map((e) => (
             <button
               key={e.s}

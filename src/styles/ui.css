@@ -289,8 +289,8 @@
   margin: 0 0 .25rem; font-size: 10px; font-weight: 800; letter-spacing: .07em;
   text-transform: uppercase; color: #7dd3fc;
 }
-.ufs-release ul { margin: 0; padding-left: 1.05rem; display: grid; gap: .3rem; }
-.ufs-release li { font-size: 12.5px; line-height: 1.6; color: #cbd5e1; }
+.ufs-release ul { margin: 0; padding-left: 1.05rem; display: grid; gap: .3rem; list-style: disc outside; }
+.ufs-release li { font-size: 12.5px; line-height: 1.6; color: #cbd5e1; display: list-item; }
 /* Save-file paths per system, each one copyable */
 .ufs-paths { display: grid; gap: .4rem; margin: .2rem 0 .6rem; }
 .ufs-pathrow {
@@ -343,9 +343,13 @@
   padding: .12rem 0;
 }
 .ufs-baitlist .row { grid-template-columns: minmax(0, 1fr) auto 84px 40px; }
+/* The bait page lists species without the kind badge, so one column less –
+   otherwise the bar lands in the auto column and collapses to nothing. */
+.ufs-baitlist.plain .row { grid-template-columns: minmax(0, 1fr) 84px 44px; }
 .ufs-bite .row { grid-template-columns: 78px minmax(0, 1fr) 70px 78px; }
 
-.ufs-baitlist .nm, .ufs-bite .nm { color: #e2e8f0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* text-align, because a row can be a button and those centre their text. */
+.ufs-baitlist .nm, .ufs-bite .nm { color: #e2e8f0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
 .ufs-bite .hint { font-size: 10.5px; color: #64748b; }
 
 .ufs-baitlist .kd {

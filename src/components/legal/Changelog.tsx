@@ -11,7 +11,6 @@ import type { ChangeGroups } from '../../data/changelog'
 import { useI18n } from '../../i18n'
 import type { Key } from '../../i18n'
 import { API_AVAILABLE } from '../../lib/api'
-import { fmtWhen } from '../../lib/format'
 import { Icon } from '../primitives'
 
 const GROUPS: Array<{ id: keyof ChangeGroups; label: Key }> = [
@@ -61,7 +60,13 @@ export function Changelog({ onClose }: { onClose: () => void }) {
               <section key={rel.version} className="ufs-release">
                 <h3>
                   <span className="v">{rel.version}</span>
-                  <span className="dt">{fmtWhen(rel.date)}</span>
+                  <span className="dt">
+                    {new Date(rel.date).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-DE', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </span>
                 </h3>
                 {GROUPS.map((g) => {
                   const items = groups[g.id]
