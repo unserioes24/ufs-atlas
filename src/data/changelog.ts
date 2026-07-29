@@ -31,7 +31,7 @@ export const CHANGELOG: ChangeEntry[] = [
     de: {
       general: [
         'Zwölf Arten wurden aus dem Spielstand nicht erkannt, darunter die Dickkopf-Stachelmakrele: das Spiel zählt sie unter GIANT_TRAVELLY, seinem eigenen Tippfehler. Die Zuordnung ist jetzt vollständig, und Arten, die der Atlas nicht kennt, werden gemeldet statt verschluckt.',
-        'Kunstköder sagen, was sie sind – Spinner, Blinker, Wobbler, Gummi –, mit den Wörtern aus den Spieldateien.',
+        'Kunstköder sagen, was sie sind – Spinner, Blinker, Wobbler, Gummi –, mit den Wörtern aus den Spieldateien. Auch in der Köderliste einer Art, wo bisher nur „Kunstköder“ stand.',
         'Lebendköder gibt es im Spiel in einer Größe, nicht in drei. Der Schnittköder, klein und groß, war gar nicht aufgeführt und steht jetzt drin.',
         'Haken erstellen, Filetieren und Braten werden vom Spiel nie freigeschaltet und sind aus der Fähigkeitenliste raus. „Straight schnell“ gibt es als Führung nicht – das Tutorial des Spiels nennt selbst nur fünf.',
         'Die Ordnerpfade der Spielstände stehen für alle drei Systeme da, jeder mit Kopierknopf, und der Profilslot ist wählbar: 0, 1 oder 2.',
@@ -46,7 +46,7 @@ export const CHANGELOG: ChangeEntry[] = [
     en: {
       general: [
         'Twelve species went unrecognised in the save file, the Giant Trevally among them: the game counts it as GIANT_TRAVELLY, its own typo. The mapping is complete now, and species the atlas does not know are reported instead of dropped.',
-        'Lures say what they are – spinner, spoon, hard lure, soft lure – in the words of the game files.',
+        'Lures say what they are – spinner, spoon, hard lure, soft lure – in the words of the game files. In the bait list of a species too, where it used to just say “lure”.',
         'The game has live bait in one size, not three. Cut bait, small and large, was missing entirely and is in now.',
         'Craft hooks, fillet and fry are never unlocked by the game and are out of the skill list. “Straight fast” does not exist as a retrieve – the game’s own tutorial names five.',
         'The save folder paths are listed for all three systems, each with a copy button, and the profile slot is selectable: 0, 1 or 2.',

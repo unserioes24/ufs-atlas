@@ -5,6 +5,7 @@ import { cn } from '../../lib/format'
 import { fitSteps, gapRange, stepRange } from '../../lib/hooks'
 import type { CurvePoint, Species } from '../../types'
 import { BiteCurve } from '../primitives'
+import { TYPE_LABEL } from '../bait/BaitDetail'
 import { useState } from 'react'
 
 /**
@@ -310,7 +311,13 @@ export function BaitTop({ speciesKey, limit = 8 }: { speciesKey: string; limit?:
         {shown.map((e) => (
           <div key={e.bait.key} className="row">
             <span className="nm">{baitName(e.bait, lang)}</span>
-            <span className={cn('kd', e.bait.kind)}>{t(`method.${e.bait.kind}` as Key)}</span>
+            {/* What kind of lure it is says more than "lure" does; only baits
+                without a Bait component fall back to the method. */}
+            <span className={cn('kd', e.bait.kind)}>
+              {e.bait.type && TYPE_LABEL[e.bait.type]
+                ? t(TYPE_LABEL[e.bait.type]!)
+                : t(`method.${e.bait.kind}` as Key)}
+            </span>
             <span className="bar">
               <span style={{ width: `${Math.round(e.v * 100)}%` }} />
             </span>

@@ -8,6 +8,7 @@
  */
 import type { ReactNode } from 'react'
 import { BAITS_FOR, GUIDE, HOOKS, SPECIES, baitName } from '../../data'
+import { TYPE_LABEL } from '../bait/BaitDetail'
 import type { BestCatch, FisherySpecies, GuideFish } from '../../types'
 import { useI18n } from '../../i18n'
 import { translateTerms } from '../../i18n/terms'
@@ -252,9 +253,18 @@ export function FishCard({
                 <span
                   key={e.bait.key}
                   className={cn('ufs-chip ufs-baitchip', e.bait.kind)}
-                  title={t(BAIT_KIND_KEY[e.bait.kind as keyof typeof BAIT_KIND_KEY] ?? 'fish.baits')}
+                  title={
+                    // The tooltip names the lure type where the game gives one,
+                    // the method otherwise.
+                    e.bait.type && TYPE_LABEL[e.bait.type]
+                      ? t(TYPE_LABEL[e.bait.type]!)
+                      : t(BAIT_KIND_KEY[e.bait.kind as keyof typeof BAIT_KIND_KEY] ?? 'fish.baits')
+                  }
                 >
                   {baitName(e.bait, lang)}
+                  {e.bait.type && TYPE_LABEL[e.bait.type] ? (
+                    <i className="tp">{t(TYPE_LABEL[e.bait.type]!)}</i>
+                  ) : null}
                   <b>{Math.round(e.v * 100) + ' %'}</b>
                 </span>
               ))}
