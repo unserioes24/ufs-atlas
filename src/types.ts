@@ -79,11 +79,19 @@ export interface Bait {
   en: string
   de: string
   kind: BaitKind
+  /** What the game's Bait component calls it: SPINNER, SPOON, WOBBLER, SOFT_BAIT, FLY. */
+  type?: BaitType
+  /** Fly type, only on flies: DRY, WET, NYMPH, STREAMER. */
+  fly?: string
+  /** True where the game files hold no interest table at all. */
+  noTable?: boolean
   /** "index:percent" into the `baitSpecies` list. */
   i: string
 }
 
 export type BaitKind = 'natural' | 'boilie' | 'fly' | 'lure'
+
+export type BaitType = 'SPINNER' | 'SPOON' | 'WOBBLER' | 'SOFT_BAIT' | 'FLY'
 
 /** Vector2 from the game data: [from, to]. */
 export type Range = [number, number]

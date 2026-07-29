@@ -707,6 +707,19 @@ export const de = {
   'bait.countOf': '{shown} von {total} Ködern',
   'bait.speciesCount': '{n} Arten',
   'bait.strongest': 'am stärksten: {list}',
+  // Art des Kunstköders, mit den Wörtern des Spiels
+  'baitType.spinner': 'Spinner',
+  'baitType.spoon': 'Blinker',
+  'baitType.wobbler': 'Wobbler',
+  'baitType.softBait': 'Gummi',
+  'baitType.fly': 'Fliege',
+  'baitType.flyDry': 'Trockenfliege',
+  'baitType.flyWet': 'Nassfliege',
+  'baitType.flyNymph': 'Nymphe',
+  'baitType.flyStreamer': 'Streamer',
+  'bait.noTableShort': 'keine Werte in den Spieldateien',
+  'bait.noTableNote':
+    'Die Spieldateien enthalten für diesen Köder keine Interessenwerte – alle 154 Einträge stehen auf 0. Das Spiel leitet das Interesse offenbar aus dem Fisch ab, aus dem der Schnitt stammt.',
   'bait.naturalNote':
     'Werden am Haken angeboten, mehrere Stücke vergrößern den Anziehungsradius.',
   'bait.boilieNote': 'Für Karpfen und Großfisch, an der Haarmontage.',

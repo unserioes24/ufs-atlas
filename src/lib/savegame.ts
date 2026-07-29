@@ -74,12 +74,43 @@ export function parseProfile(buffer: ArrayBuffer): RawProfile {
 }
 
 /**
+ * The save file counts by the name in Fish.Species; our keys come from the
+ * prefabs, and for twelve species the two disagree. Every entry here was read
+ * out of that enum in Assembly-CSharp.dll — including GIANT_TRAVELLY, which is
+ * the game's own typo for the Giant Trevally and sits beside a retired
+ * old_GIANT_TREVALLY.
+ */
+const SAVE_ALIAS: Record<string, string> = {
+  GIANT_TRAVELLY: 'GIANT_TREVALLY',
+  BLACK_DRUM: 'DRUM_BLACK_D',
+  RED_DRUM: 'RED_DRUM_D',
+  TIGER_SHARK: 'TIGER_SHARK_D',
+  BLACKTIP_SHARK: 'BLACKTIP_SHARK_D',
+  SPINNER_SHARK: 'SPINNER_SHARK_D',
+  ATLANTIC_TARPON: 'ATLANTIC_TARPON_D',
+  GIANT_GROUPER: 'GIANT_GROUPER_D',
+  BLACK_SEABASS: 'BLACK_SEABASS_DM',
+  LITTLE_TUNNY: 'LITTLE_TUNNY_C',
+  BLACKFIN_TUNA: 'BLACKFIN_TUNA_C',
+  GRAY_SNAPPER: 'GRAY_SNAPPER_C',
+}
+
+/**
+ * Craft hooks, fillet and fry sit in SkillsManager.SkillType and the game names
+ * them, but it never unlocks them: they stay false in save files at maximum
+ * level with no points left. Showing a step nobody can take only confuses.
+ */
+const SKILLS_UNUSED = new Set(['CRAFT_HOOKS', 'FILLET', 'FRY'])
+
+/**
  * Some species are counted per model variant (BROWN_TROUT and BROWN_TROUT_B).
  * Fold them onto the base key where one exists — species like TIGER_SHARK_D
  * really are named that way and stay untouched.
  */
 function normSpeciesKey(k: string): string {
   if (SPECIES[k]) return k
+  const alias = SAVE_ALIAS[k]
+  if (alias && SPECIES[alias]) return alias
   const m = /^(.*)_[A-Z]{1,2}$/.exec(k)
   if (m?.[1] && SPECIES[m[1]]) return m[1]
   return k
@@ -138,6 +169,12 @@ export interface SaveSummary {
   fisheries: Record<string, FisheryStats>
   player: PlayerInfo
   total: number
+  /**
+   * Species the save file counts but the guide does not know. Empty in the
+   * normal case; anything in here is worth showing rather than dropping, because
+   * it means the game shipped a species we have no entry for.
+   */
+  unknown: string[]
 }
 
 /** Rod set slots; the label is a dictionary key, not a word. */
@@ -159,6 +196,7 @@ const SLOTS: Array<[string, string]> = [
 export function profileToCatches(raw: RawProfile): SaveSummary {
   const caught: Record<string, boolean> = {}
   const bests: Record<string, BestCatch> = {}
+  const unknown: string[] = []
 
   for (const k of Object.keys(raw)) {
     const m = /^([A-Z0-9_]+)_caughtCount$/.exec(k)
@@ -168,6 +206,7 @@ export function profileToCatches(raw: RawProfile): SaveSummary {
     if (n <= 0) continue
 
     const key = normSpeciesKey(base)
+    if (!SPECIES[key]) unknown.push(key)
     const w = raw[`${base}_weight`]
     const l = raw[`${base}_length`]
     const f = raw[`${base}_fishery`]
@@ -255,6 +294,7 @@ export function profileToCatches(raw: RawProfile): SaveSummary {
   for (const [k, v] of Object.entries(raw)) {
     const m = /^skill_unlocked_(.+)_(\d+)$/.exec(k)
     if (!m?.[1] || !m[2]) continue
+    if (SKILLS_UNUSED.has(m[1])) continue
     ;(steps[m[1]] ??= []).push(v === true ? Number(m[2]) : 0)
   }
   const skills: SkillState[] = Object.entries(steps)
@@ -280,6 +320,7 @@ export function profileToCatches(raw: RawProfile): SaveSummary {
       version: str(raw.gameVersion),
     },
     total: Object.keys(caught).length,
+    unknown: [...new Set(unknown)].sort(),
   }
 }
 

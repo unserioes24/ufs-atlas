@@ -84,6 +84,12 @@ export interface BaitEntry {
   en: string
   de: string
   kind: BaitKind
+  /** Lure type out of the Bait component: SPINNER, SPOON, WOBBLER, SOFT_BAIT, FLY. */
+  type?: string
+  /** Fly type, flies only. */
+  fly?: string
+  /** The game files carry no interest table for this bait. */
+  noTable?: boolean
   /** Interest per species key, 0–1. */
   fish: Record<string, number>
 }
@@ -99,7 +105,16 @@ for (const [key, b] of Object.entries((GAME.baits ?? {}) as Record<string, Bait>
     const species = BAIT_SPECIES[Number(idx)]
     if (species) fish[species] = Number(pct) / 100
   }
-  BAITS[key] = { key, en: b.en, de: b.de, kind: b.kind, fish }
+  BAITS[key] = {
+    key,
+    en: b.en,
+    de: b.de,
+    kind: b.kind,
+    ...(b.type ? { type: b.type } : {}),
+    ...(b.fly ? { fly: b.fly } : {}),
+    ...(b.noTable ? { noTable: true } : {}),
+    fish,
+  }
 }
 
 export interface BaitForSpecies {

@@ -6,6 +6,7 @@ import type { Key } from '../../i18n'
 import { fmtNum } from '../../lib/format'
 import { hookLabel } from '../../lib/hooks'
 import type { BaitKind } from '../../types'
+import { FLY_LABEL, TYPE_LABEL } from './BaitDetail'
 import { Card, Note, Toggle } from '../ui'
 
 /**
@@ -117,13 +118,25 @@ function BaitCard({ bait, onOpen }: { bait: BaitEntry; onOpen: () => void }) {
     .map((e) => speciesName(e.s, lang))
     .join(', ')
 
+  const type = bait.type ? TYPE_LABEL[bait.type] : undefined
+  const fly = bait.fly ? FLY_LABEL[bait.fly] : undefined
+
   return (
     <button type="button" className="ufs-baitcard has" onClick={onOpen}>
       <div className="de">{baitName(bait, lang)}</div>
       <div className="en">{lang === 'en' ? bait.de : bait.en}</div>
+      {type || fly ? (
+        <div className="tp">
+          {type ? t(type) : null}
+          {type && fly ? ' · ' : null}
+          {fly ? t(fly) : null}
+        </div>
+      ) : null}
       <div className="cnt">
-        {t('bait.speciesCount', { n: entries.length })}
-        {top ? ' · ' + t('bait.strongest', { list: top }) : ''}
+        {bait.noTable
+          ? t('bait.noTableShort')
+          : t('bait.speciesCount', { n: entries.length }) +
+            (top ? ' · ' + t('bait.strongest', { list: top }) : '')}
       </div>
     </button>
   )

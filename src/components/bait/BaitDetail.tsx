@@ -17,6 +17,22 @@ const KIND_LABEL: Record<string, Key> = {
   lure: 'method.lure',
 }
 
+/** The names the game itself uses for its lure types. */
+export const TYPE_LABEL: Record<string, Key> = {
+  SPINNER: 'baitType.spinner',
+  SPOON: 'baitType.spoon',
+  WOBBLER: 'baitType.wobbler',
+  SOFT_BAIT: 'baitType.softBait',
+  FLY: 'baitType.fly',
+}
+
+export const FLY_LABEL: Record<string, Key> = {
+  DRY: 'baitType.flyDry',
+  WET: 'baitType.flyWet',
+  NYMPH: 'baitType.flyNymph',
+  STREAMER: 'baitType.flyStreamer',
+}
+
 export interface BaitDetailProps {
   baitKey: string
   onBack: () => void
@@ -59,9 +75,15 @@ export function BaitDetail({ baitKey, onBack, onOpenSpecies }: BaitDetailProps) 
           </h1>
           <span className="ufs-muted">{lang === 'en' ? bait.de : bait.en}</span>
           {KIND_LABEL[bait.kind] ? <Badge tone="cyan">{t(KIND_LABEL[bait.kind]!)}</Badge> : null}
+          {bait.type && TYPE_LABEL[bait.type] ? (
+            <Badge tone="violet">{t(TYPE_LABEL[bait.type]!)}</Badge>
+          ) : null}
+          {bait.fly && FLY_LABEL[bait.fly] ? (
+            <Badge tone="amber">{t(FLY_LABEL[bait.fly]!)}</Badge>
+          ) : null}
         </div>
         <p className="ufs-muted" style={{ fontSize: '12.5px', margin: '.4rem 0 0' }}>
-          {t('bait.speciesCount', { n: entries.length })}
+          {bait.noTable ? t('bait.noTableNote') : t('bait.speciesCount', { n: entries.length })}
         </p>
       </div>
 
@@ -86,7 +108,7 @@ export function BaitDetail({ baitKey, onBack, onOpenSpecies }: BaitDetailProps) 
         </div>
         {!entries.length ? (
           <p className="ufs-muted" style={{ fontSize: '12.5px', margin: 0 }}>
-            {t('bait.noSpecies')}
+            {bait.noTable ? t('bait.noTableNote') : t('bait.noSpecies')}
           </p>
         ) : null}
       </div>

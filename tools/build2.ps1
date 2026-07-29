@@ -358,11 +358,12 @@ function BaitNorm($s) {
     return ($x -replace 's$', '')
 }
 # Spellings that drift apart between prefab and localisation. Keys match both
-# the raw base name and the normalised form. Young_Fish_S needs the raw form,
-# because BaitNorm strips the trailing s.
+# the raw base name and the normalised form.
 $BAIT_ALIAS = @{
     'gingerbreadherbal' = 'gingerherbal'
-    'Young_Fish_L' = 'youngfishlarge'; 'Young_Fish_M' = 'youngfishmedium'; 'Young_Fish_S' = 'youngfishsmall'
+    # The three young-fish prefabs are one item in the game, and the game calls
+    # it plain live bait.
+    'Young_Fish'   = 'livebait'
 }
 # Fly types carry no equipment name, only the type
 $FLY_NAMES = @{
@@ -410,11 +411,15 @@ function BaitSpeciesKey($k) {
 # baittypes.ps1 reads it per prefab. Prefabs without that component are
 # natural baits – they go onto a hook as pieces of bait.
 $baitKindOf = @{}
+$baitFactsOf = @{}
 $typeFile = Join-Path $sp 'baittypes.json'
 if (Test-Path $typeFile) {
     $bt = Get-Content $typeFile -Raw | ConvertFrom-Json
     foreach ($p in $bt.PSObject.Properties) {
         $baitKindOf[$p.Name] = if ($p.Value.type -eq 'FLY') { 'fly' } else { 'lure' }
+        # The same component also states what kind of lure it is and which hook
+        # it carries – both are worth showing, so keep them.
+        $baitFactsOf[$p.Name] = $p.Value
     }
 }
 function BaitKind($prefab) {
@@ -433,8 +438,12 @@ if (Test-Path $baitFile) {
     $raw = Get-Content $baitFile -Raw | ConvertFrom-Json
     foreach ($p in $raw.PSObject.Properties) {
         $base = $p.Name -replace '^(Bait_|Boilie_)', '' -replace '_\d+$', ''
+        # The game offers live bait in one size. Small, medium and large are
+        # three prefabs of the same item, so they become one entry and the
+        # highest interest per species wins.
+        if ($base -match '^Young_Fish_[SML]$') { $base = 'Young_Fish' }
         $kind = BaitKind $p.Name
-        if ($baits.Contains($base)) { continue }
+        if ($baits.Contains($base)) { $merge = $true } else { $merge = $false }
 
         $n = BaitNorm $base
         if ($BAIT_ALIAS.ContainsKey($base)) { $n = $BAIT_ALIAS[$base] }
@@ -458,17 +467,61 @@ if (Test-Path $baitFile) {
             if (-not $sk) { $baitDropped[$f.Name] = $true; continue }
             if (-not $merged.Contains($sk) -or $merged[$sk] -lt $v) { $merged[$sk] = $v }
         }
-        $pairs = @()
+        # String keys on purpose: an [ordered] dictionary reads an int in
+        # brackets as a position, not as a key.
+        $byIdx = @{}
+        $order = New-Object System.Collections.ArrayList
+        if ($merge) {
+            foreach ($old in ($baits[$base].i -split ',')) {
+                if (-not $old) { continue }
+                $kv = $old -split ':'
+                $byIdx[$kv[0]] = [int]$kv[1]
+                [void]$order.Add($kv[0])
+            }
+        }
         foreach ($sk in $merged.Keys) {
             if (-not $baitSpeciesIdx.ContainsKey($sk)) {
                 $baitSpeciesIdx[$sk] = $baitSpecies.Count
                 $baitSpecies += $sk
             }
-            $pairs += ('{0}:{1}' -f $baitSpeciesIdx[$sk], [int][Math]::Round($merged[$sk] * 100))
+            $ix = [string]$baitSpeciesIdx[$sk]
+            $pct = [int][Math]::Round($merged[$sk] * 100)
+            if (-not $byIdx.ContainsKey($ix)) { [void]$order.Add($ix) }
+            if (-not $byIdx.ContainsKey($ix) -or $byIdx[$ix] -lt $pct) { $byIdx[$ix] = $pct }
         }
+        $pairs = @($order | ForEach-Object { '{0}:{1}' -f $_, $byIdx[$_] })
         if ($pairs.Count -eq 0) { continue }
-        $baits[$base] = [ordered]@{ en = $en; de = $de; kind = $kind; i = ($pairs -join ',') }
+        $e = [ordered]@{ en = $en; de = $de; kind = $kind }
+        $facts = $baitFactsOf[$p.Name]
+        if ($facts) {
+            # HOOK is the naked hook of a natural-bait rig and says nothing about
+            # a lure, so it is not worth a badge.
+            if ($facts.type -and $facts.type -ne 'HOOK') { $e.type = $facts.type }
+            if ($facts.fly) { $e.fly = $facts.fly }
+            # hookSize is deliberately left out: the int behind the type reads 8
+            # for every one of the 50 lures, so it is a default and not the hook
+            # the lure carries. A constant is not a figure worth printing.
+        }
+        $e.i = ($pairs -join ',')
+        $baits[$base] = $e
     }
+    # Cut bait comes in small and large and both prefabs carry a
+    # FishLikesParams list of 154 zeroes: the game does not take its interest
+    # from the prefab, it works it out from the fish the fillet came off. The
+    # entry belongs in the overview all the same, with no table and a note.
+    foreach ($cb in @(
+            @{ key = 'CutbaitSmall'; term = 'CUTBAIT_SMALL' },
+            @{ key = 'CutbaitBig'; term = 'CUTBAIT_BIG' })) {
+        $t = $baitTerm[(BaitNorm $cb.term)]
+        $baits[$cb.key] = [ordered]@{
+            en      = if ($t) { $t.en } else { $cb.key }
+            de      = if ($t) { $t.de } else { $cb.key }
+            kind    = 'natural'
+            noTable = $true
+            i       = ''
+        }
+    }
+
     Write-Host "Baits: $($baits.Count)   species in the tables: $($baitSpecies.Count)"
     if ($baitDropped.Count) {
         Write-Host ("  without a match in the species list: " + (($baitDropped.Keys | Sort-Object) -join ', '))
@@ -545,11 +598,18 @@ if (Test-Path $hookFile) {
 # (skill_unlocked_MORE_EXP_2). How many steps a skill has is counted from the
 # save file, not from here: the localisation names only the first step of
 # Hunter Vision although the game has three.
+#
+# Craft hooks, fillet and fry are in SkillsManager.SkillType and are named in
+# the localisation, but the game never unlocks them: they stay false in save
+# files at maximum level with no points left. They are left out rather than
+# shown as a step nobody can take.
+$SKILLS_UNUSED = @('CRAFT_HOOKS', 'FILLET', 'FRY')
 $skills = @()
 $skillSeen = @{}
 foreach ($t in $terms.GetEnumerator()) {
     if ($t.Key -notmatch '^SKILLS/(.+)_(\d+)_NAME$') { continue }
     $base = $Matches[1]
+    if ($SKILLS_UNUSED -contains $base) { continue }
     $step = [int]$Matches[2]
     if (-not $skillSeen.ContainsKey($base)) {
         $skillSeen[$base] = [ordered]@{ key = $base; en = ''; de = ''; descEn = ''; descDe = '' }

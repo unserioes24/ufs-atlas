@@ -113,11 +113,17 @@ export function MethodList({ m }: { m: Species['m'] }) {
 
 // -------------------------------------------------------------- Retrieve
 
-/** Follows the SpinningMethod enum, without its first entry NONE. */
-const SPIN: Key[] = [
+/**
+ * Follows the SpinningMethod enum, without its first entry NONE. STRAIGHT_FAST
+ * is null: the enum and an old HUD label still carry it, but the game's own
+ * tutorial says "there are 5 luring methods" and lists it nowhere, so its
+ * column is data the game never lets you fish. It stays in the array to keep
+ * every other index where the game put it.
+ */
+const SPIN: Array<Key | null> = [
   'spin.straightSlow',
   'spin.straight',
-  'spin.straightFast',
+  null,
   'spin.liftDrop',
   'spin.stopGo',
   'spin.twitching',
@@ -126,9 +132,13 @@ const SPIN: Key[] = [
 export function spinTop(spin: number[] | undefined): { names: Key[]; value: number } | null {
   if (!spin) return null
   let best = -1
-  for (const v of spin) if (v > best) best = v
+  for (let i = 0; i < spin.length; i++) {
+    if (!SPIN[i]) continue
+    const v = spin[i]
+    if (v !== undefined && v > best) best = v
+  }
   if (best <= 0) return null
-  const names = SPIN.filter((_n, i) => spin[i] === best)
+  const names = SPIN.filter((n, i): n is Key => !!n && spin[i] === best)
   return { names, value: best }
 }
 
@@ -136,7 +146,8 @@ export function RetrieveList({ spin }: { spin: number[] | undefined }) {
   const { t } = useI18n()
   if (!spin) return null
   const rows = spin
-    .map((v, i) => ({ name: SPIN[i] as Key, v }))
+    .map((v, i) => ({ name: SPIN[i], v }))
+    .filter((r): r is { name: Key; v: number } => !!r.name)
     .sort((a, b) => b.v - a.v)
 
   return (
