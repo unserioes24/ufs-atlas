@@ -239,6 +239,12 @@ export const de = {
   'sync.uploadedN': 'Übernommen: {n} Arten stehen jetzt in deinem Konto.',
   'sync.title': 'Spielstand hochladen',
 
+  // Wo die Spielstände liegen, je System
+  'paths.windows': 'Windows',
+  'paths.mac': 'macOS',
+  'paths.linux': 'Linux · Proton',
+  'paths.copy': 'Ordnerpfad kopieren',
+
   // ------------------------------------------------------- Save-file import
   'import.title': 'Spielstand einlesen',
   'import.lead':

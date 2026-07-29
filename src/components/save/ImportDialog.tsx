@@ -9,6 +9,7 @@ import { useI18n } from '../../i18n'
 import { parseProfile, profileToCatches } from '../../lib/savegame'
 import type { SaveSummary } from '../../lib/savegame'
 import { Icon } from '../primitives'
+import SavePathList from './SavePaths'
 
 export interface ImportDialogProps {
   me: { name: string } | null
@@ -81,9 +82,7 @@ export function ImportDialog({ me, onImport, onReset, onClose }: ImportDialogPro
         <h2>{t('import.title')}</h2>
         <p>{t('import.lead')}</p>
         <p>{t('import.whereLead')}</p>
-        <p>
-          <code>%UserProfile%\AppData\LocalLow\PlayWay\UltimateFishing\PROFILE_0</code>
-        </p>
+        <SavePathList />
         <p style={{ color: '#64748b' }}>{t('import.slots')}</p>
         <div className="ufs-row" style={{ marginTop: '1rem' }}>
           <input ref={inputRef} type="file" className="ufs-file" onChange={onFile} />

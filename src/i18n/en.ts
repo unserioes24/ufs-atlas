@@ -238,6 +238,12 @@ export const en: Partial<Dict> = {
   'sync.uploadedN': 'Taken over: {n} species are now in your account.',
   'sync.title': 'Upload a save file',
 
+  // Where the save files live, per system
+  'paths.windows': 'Windows',
+  'paths.mac': 'macOS',
+  'paths.linux': 'Linux · Proton',
+  'paths.copy': 'Copy the folder path',
+
   'import.title': 'Read a save file',
   'import.lead':
     'The guide reads your save file and ticks off every species you have already caught. The file stays in the browser and is sent nowhere.',
