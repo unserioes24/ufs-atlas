@@ -26,6 +26,32 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    version: '1.1.1',
+    date: '2026-07-29',
+    de: {
+      general: [
+        'Der Schnittköder hat sehr wohl Interessenwerte – 150 Arten, bis 90 %. Die Extraktion hatte seine Liste verworfen, weil vier Arten darin doppelt vorkommen; sie steht jetzt drin, klein und groß getrennt.',
+        'Damit kamen vier weitere Köder zum Vorschein, die vorher fehlten: Gnome Mikado, Holo Reflex Slim, Sakura Pop’N’Dog und das eigentliche Lebendköder-Prefab. 81 Köder statt 79.',
+        'Aus dem Speicherstand werden jetzt 18 statt 12 abweichende Artennamen erkannt, unter anderem Koi-Karpfen, Mahi-Mahi, Rotfeuerfisch und die vier Florida-Modelle. Der Riesenzackenbarsch war dabei falsch zugeordnet – er wäre mit dem Goliath-Zackenbarsch verrechnet worden.',
+        'Die Fischschwärme auf der Revierkarte sind von Anfang an sichtbar, statt hinter einem Klick zu warten.',
+      ],
+      server: [
+        'Beim Upload per curl oder geplantem Auftrag fehlte die Dickkopf-Stachelmakrele weiter: der Server hat seinen eigenen Parser, und die Namensliste steckte nur im Browser. Beide führen jetzt dieselbe Tabelle – ebenso beim Ausblenden der drei Fähigkeiten, die das Spiel nie freischaltet.',
+      ],
+    },
+    en: {
+      general: [
+        'Cut bait does have interest values – 150 species, up to 90 %. The extraction had thrown its list away because four species appear in it twice; it is in now, small and large kept apart.',
+        'That brought four more baits to light that were missing before: Gnome Mikado, Holo Reflex Slim, Sakura Pop’N’Dog and the actual live-bait prefab. 81 baits instead of 79.',
+        'The save file now resolves 18 differing species names instead of 12, among them koi carp, mahi-mahi, red lionfish and the four Florida models. The giant grouper was mapped wrongly – it would have been counted as the goliath grouper.',
+        'Fish shoals on the fishery map are visible from the start instead of waiting behind a click.',
+      ],
+      server: [
+        'Uploading through curl or a scheduled job still lost the Giant Trevally: the server has a parser of its own, and the name table was only in the browser. Both carry the same table now – the same goes for hiding the three skills the game never unlocks.',
+      ],
+    },
+  },
+  {
     version: '1.1.0',
     date: '2026-07-28',
     de: {

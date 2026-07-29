@@ -71,17 +71,29 @@ foreach ($k in $keys) {
             $list = [ordered]@{}
             $ok = $true
             $nonZero = 0
+            $dupes = 0
             $seen = @{}
             for ($i = 0; $i -lt $n; $i++) {
                 $q = $p + 8 + $i * 8
                 $sp = [BitConverter]::ToInt32($d, $q)
                 $iv = [BitConverter]::ToSingle($d, $q + 4)
-                if ($sp -lt 0 -or $sp -gt 160 -or $seen.ContainsKey($sp)) { $ok = $false; break }
+                if ($sp -lt 0 -or $sp -gt 160) { $ok = $false; break }
                 if ($iv -lt 0 -or $iv -gt 1) { $ok = $false; break }
+                # A species can appear twice in the list – the cut bait has four
+                # such entries. That is the prefab's business, not a sign of a
+                # wrong offset, so the higher value wins and only a list that is
+                # mostly duplicates is treated as misread.
+                if ($seen.ContainsKey($sp)) { $dupes++ }
                 $seen[$sp] = $true
                 if ($iv -gt 0.02) { $nonZero++ }
-                if ($enum.ContainsKey($sp)) { $list[$enum[$sp]] = [Math]::Round($iv, 3) }
+                if ($enum.ContainsKey($sp)) {
+                    $name = $enum[$sp]
+                    if (-not $list.Contains($name) -or $list[$name] -lt $iv) {
+                        $list[$name] = [Math]::Round($iv, 3)
+                    }
+                }
             }
+            if ($dupes -gt [Math]::Max(6, [int]($n * 0.15))) { $ok = $false }
             if (-not $ok -or $nonZero -lt 1) { continue }
             $best = [ordered]@{ defaultValue = [Math]::Round($def, 3); fish = $list }
             break

@@ -230,6 +230,9 @@ final class SaveParser
             if (!preg_match('/^skill_unlocked_(.+)_(\d+)$/', $k, $m)) {
                 continue;
             }
+            if (\in_array($m[1], self::SKILLS_UNUSED, true)) {
+                continue;
+            }
             $steps[$m[1]][] = $v === true ? (int) $m[2] : 0;
         }
         $skills = [];
@@ -255,6 +258,49 @@ final class SaveParser
     }
 
     /**
+     * The save file counts by the name in Fish.Species; the guide's keys come
+     * from the prefabs, and for twelve species the two disagree. Every entry was
+     * read out of that enum in Assembly-CSharp.dll - including GIANT_TRAVELLY,
+     * the game's own typo for the Giant Trevally, which sits beside a retired
+     * old_GIANT_TREVALLY.
+     *
+     * Same table as SAVE_ALIAS in src/lib/savegame.ts: an upload through the API
+     * has to end up with the same species as a file read in the browser.
+     */
+    /**
+     * Craft hooks, fillet and fry sit in SkillsManager.SkillType and the game
+     * names them, but it never unlocks them: they stay false in save files at
+     * maximum level with no points left. Kept in step with SKILLS_UNUSED in
+     * src/lib/savegame.ts.
+     */
+    private const SKILLS_UNUSED = ['CRAFT_HOOKS', 'FILLET', 'FRY'];
+
+    private const SAVE_ALIAS = [
+        'GIANT_TRAVELLY' => 'GIANT_TREVALLY',
+        'BLACK_DRUM' => 'DRUM_BLACK_D',
+        'RED_DRUM' => 'RED_DRUM_D',
+        'TIGER_SHARK' => 'TIGER_SHARK_D',
+        'BLACKTIP_SHARK' => 'BLACKTIP_SHARK_D',
+        'SPINNER_SHARK' => 'SPINNER_SHARK_D',
+        'ATLANTIC_TARPON' => 'ATLANTIC_TARPON_D',
+        'BLACK_SEABASS' => 'BLACK_SEABASS_DM',
+        'LITTLE_TUNNY' => 'LITTLE_TUNNY_C',
+        'BLACKFIN_TUNA' => 'BLACKFIN_TUNA_C',
+        'GRAY_SNAPPER' => 'GRAY_SNAPPER_C',
+        // GIANT_GROUPER_D is the goliath grouper here - the Giant Grouper is a
+        // species of its own and needs no alias, or both would count as one.
+        'ATLANTIC_GOLIATH_GROUPER' => 'GIANT_GROUPER_D',
+        // Words the other way round, or another common name for the same fish.
+        'KOI_CARP' => 'CARP_KOI',
+        'MAHI_MAHI' => 'DORADO',
+        'RED_LIONFISH' => 'COMMON_LIONFISH',
+        // Florida has its own model of four species; the fish is the same.
+        'YELLOWFIN_TUNA_FLORIDA' => 'YELLOWFIN_TUNA',
+        'BLUE_MARLIN_FLORIDA' => 'BLUE_MARLIN',
+        'GREAT_BARRACUDA_FLORIDA' => 'GREAT_BARRACUDA',
+    ];
+
+    /**
      * Fold model variants onto the base species (BROWN_TROUT_B -> BROWN_TROUT),
      * but only where the base key really exists.
      *
@@ -264,6 +310,10 @@ final class SaveParser
     {
         if (isset($knownSpecies[$key])) {
             return $key;
+        }
+        $alias = self::SAVE_ALIAS[$key] ?? null;
+        if ($alias !== null && isset($knownSpecies[$alias])) {
+            return $alias;
         }
         if (preg_match('/^(.*)_[A-Z]{1,2}$/', $key, $m) && isset($knownSpecies[$m[1]])) {
             return $m[1];

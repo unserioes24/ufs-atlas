@@ -361,9 +361,15 @@ function BaitNorm($s) {
 # the raw base name and the normalised form.
 $BAIT_ALIAS = @{
     'gingerbreadherbal' = 'gingerherbal'
-    # The three young-fish prefabs are one item in the game, and the game calls
-    # it plain live bait.
+    # The young-fish prefabs and Bait_LiveBait are one item in the game, and the
+    # game calls it plain live bait.
     'Young_Fish'   = 'livebait'
+    'CutbaitSmall' = 'cutbaitsmall'
+    'CutbaitBig'   = 'cutbaitbig'
+}
+# Product names the CamelCase split gets wrong on its own.
+$BAIT_NAMES = @{
+    'Sakura PopNDog' = @("Sakura Pop'N'Dog", "Sakura Pop'N'Dog")
 }
 # Fly types carry no equipment name, only the type
 $FLY_NAMES = @{
@@ -438,10 +444,16 @@ if (Test-Path $baitFile) {
     $raw = Get-Content $baitFile -Raw | ConvertFrom-Json
     foreach ($p in $raw.PSObject.Properties) {
         $base = $p.Name -replace '^(Bait_|Boilie_)', '' -replace '_\d+$', ''
-        # The game offers live bait in one size. Small, medium and large are
-        # three prefabs of the same item, so they become one entry and the
-        # highest interest per species wins.
-        if ($base -match '^Young_Fish_[SML]$') { $base = 'Young_Fish' }
+        # The game offers live bait in one size. Bait_LiveBait is that item;
+        # small, medium and large are three older prefabs of the same thing, so
+        # all four become one entry and the highest interest per species wins.
+        if ($base -match '^Young_Fish_[SML]$' -or $base -eq 'LiveBait') { $base = 'Young_Fish' }
+        # Cut bait, on the other hand, really is two items: _01 is the small one,
+        # _02 the large one, in the order the prefabs sit in. Their interest
+        # tables are identical, only the name differs.
+        if ($base -eq 'Cutbait') {
+            $base = if ($p.Name -match '_02$') { 'CutbaitBig' } else { 'CutbaitSmall' }
+        }
         $kind = BaitKind $p.Name
         if ($baits.Contains($base)) { $merge = $true } else { $merge = $false }
 
@@ -450,6 +462,7 @@ if (Test-Path $baitFile) {
         elseif ($BAIT_ALIAS.ContainsKey($n)) { $n = $BAIT_ALIAS[$n] }
         $t = $baitTerm[$n]
         if ($t) { $en = $t.en; $de = $t.de }
+        elseif ($BAIT_NAMES.ContainsKey($base)) { $en = $BAIT_NAMES[$base][0]; $de = $BAIT_NAMES[$base][1] }
         elseif ($FLY_NAMES.ContainsKey($base)) { $en = $FLY_NAMES[$base][0]; $de = $FLY_NAMES[$base][1] }
         else {
             # Produktname: CamelCase auftrennen, Unterstriche zu Leerzeichen
@@ -505,23 +518,6 @@ if (Test-Path $baitFile) {
         $e.i = ($pairs -join ',')
         $baits[$base] = $e
     }
-    # Cut bait comes in small and large and both prefabs carry a
-    # FishLikesParams list of 154 zeroes: the game does not take its interest
-    # from the prefab, it works it out from the fish the fillet came off. The
-    # entry belongs in the overview all the same, with no table and a note.
-    foreach ($cb in @(
-            @{ key = 'CutbaitSmall'; term = 'CUTBAIT_SMALL' },
-            @{ key = 'CutbaitBig'; term = 'CUTBAIT_BIG' })) {
-        $t = $baitTerm[(BaitNorm $cb.term)]
-        $baits[$cb.key] = [ordered]@{
-            en      = if ($t) { $t.en } else { $cb.key }
-            de      = if ($t) { $t.de } else { $cb.key }
-            kind    = 'natural'
-            noTable = $true
-            i       = ''
-        }
-    }
-
     Write-Host "Baits: $($baits.Count)   species in the tables: $($baitSpecies.Count)"
     if ($baitDropped.Count) {
         Write-Host ("  without a match in the species list: " + (($baitDropped.Keys | Sort-Object) -join ', '))

@@ -32,7 +32,9 @@ export function FisheryMap({
   const { t, lang } = useI18n()
   const [hover, setHover] = useState<number | null>(null)
   const [dotTip, setDotTip] = useState<{ s: string; u: number; v: number } | null>(null)
-  const [showDots, setShowDots] = useState(false)
+  // On by default: the shoal points are the part of the map the game does not
+  // show you, so hiding them behind a click was the wrong way round.
+  const [showDots, setShowDots] = useState(true)
 
   const spots = fishery.spots.filter((s): s is Spot & { u: number; v: number } =>
     typeof s.u === 'number' && typeof s.v === 'number',

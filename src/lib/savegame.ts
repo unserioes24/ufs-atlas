@@ -88,11 +88,21 @@ const SAVE_ALIAS: Record<string, string> = {
   BLACKTIP_SHARK: 'BLACKTIP_SHARK_D',
   SPINNER_SHARK: 'SPINNER_SHARK_D',
   ATLANTIC_TARPON: 'ATLANTIC_TARPON_D',
-  GIANT_GROUPER: 'GIANT_GROUPER_D',
   BLACK_SEABASS: 'BLACK_SEABASS_DM',
   LITTLE_TUNNY: 'LITTLE_TUNNY_C',
   BLACKFIN_TUNA: 'BLACKFIN_TUNA_C',
   GRAY_SNAPPER: 'GRAY_SNAPPER_C',
+  // Our GIANT_GROUPER_D is the goliath grouper – the Giant Grouper is a species
+  // of its own and needs no alias, or the two would be counted as one.
+  ATLANTIC_GOLIATH_GROUPER: 'GIANT_GROUPER_D',
+  // Words in the other order, or a different common name for the same fish.
+  KOI_CARP: 'CARP_KOI',
+  MAHI_MAHI: 'DORADO',
+  RED_LIONFISH: 'COMMON_LIONFISH',
+  // Florida has its own model of four species; the fish is the same one.
+  YELLOWFIN_TUNA_FLORIDA: 'YELLOWFIN_TUNA',
+  BLUE_MARLIN_FLORIDA: 'BLUE_MARLIN',
+  GREAT_BARRACUDA_FLORIDA: 'GREAT_BARRACUDA',
 }
 
 /**
