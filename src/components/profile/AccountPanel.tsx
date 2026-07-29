@@ -25,13 +25,15 @@ export interface AccountPanelProps {
   local: LocalState | null
   onMe: (user: Account) => void
   onLogout: () => void
+  /** Hands the server's timestamp back, so the page stops calling this browser ahead. */
+  onSynced: (when: string) => void
   onOpenUser: (name: string) => void
 }
 
 const FIELD =
   'rounded-2xl border border-white/10 bg-white/[.045] py-2 px-4 text-sm outline-none focus:border-cyan-400/50'
 
-export function AccountPanel({ me, local, onMe, onLogout, onOpenUser }: AccountPanelProps) {
+export function AccountPanel({ me, local, onMe, onLogout, onOpenUser, onSynced }: AccountPanelProps) {
   const { t } = useI18n()
   const state = local ?? { caught: {}, bests: {}, stats: null, updatedAt: null }
   const [token, setToken] = useState(me.apiToken)
@@ -189,7 +191,8 @@ export function AccountPanel({ me, local, onMe, onLogout, onOpenUser }: AccountP
       <h3>{t('sync.title')}</h3>
       <div style={{ marginBottom: '1.1rem' }}>
         <SaveUpload
-          onDone={() => {
+          onDone={(when) => {
+            onSynced(when)
             say(t('account.uploadDone'))
             void api<{ user: Account }>('/auth/me').then((d) => onMe(d.user))
           }}

@@ -26,6 +26,22 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    version: '1.1.2',
+    date: '2026-07-30',
+    de: {
+      server: [
+        'Der Hinweis „Hier liegt der neuere Stand“ blieb auch nach dem Hochladen stehen. Der Browser hat den Zeitpunkt mit seiner eigenen Uhr gestempelt und lag damit hinter dem Server, der seine Zeile Millisekunden früher geschrieben hatte – beim nächsten Laden galt der lokale Stand wieder als der neuere. Jetzt übernimmt der Browser den Zeitstempel des Servers, und der Vergleich lässt anderthalb Minuten Spielraum, weil zwei Uhren nie genau gleich laufen.',
+        'Ein Upload aus den Kontoeinstellungen lässt den Hinweis ebenfalls verschwinden – bisher blieb er bis zum nächsten Laden stehen.',
+      ],
+    },
+    en: {
+      server: [
+        'The note “the newer state is here” stayed up even after uploading. The browser stamped the moment with its own clock and so fell behind the server, which had written its row milliseconds earlier – on the next page load the local state counted as the newer one again. The browser now takes the server’s timestamp, and the comparison allows a minute and a half of slack, because two clocks never run exactly alike.',
+        'An upload from the account settings clears the note as well; until now it stayed until the next page load.',
+      ],
+    },
+  },
+  {
     version: '1.1.1',
     date: '2026-07-29',
     de: {

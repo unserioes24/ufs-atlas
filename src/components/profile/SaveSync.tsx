@@ -35,9 +35,15 @@ export function AheadNote({ serverAt, local, onDone }: AheadNoteProps) {
     setBusy(true)
     setError(null)
     try {
-      await api('/profile/import', { method: 'POST', json: local })
+      const res = await api<{ profile?: { updatedAt?: string } }>('/profile/import', {
+        method: 'POST',
+        json: local,
+      })
       setHidden(true)
-      onDone(new Date().toISOString())
+      // The server's own timestamp, not this browser's clock: stamping it with
+      // new Date() lands a few milliseconds after the server wrote its row, and
+      // the next page load would call this state the newer one all over again.
+      onDone(res.profile?.updatedAt ?? new Date().toISOString())
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {

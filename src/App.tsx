@@ -113,8 +113,9 @@ export default function App() {
           if (!newerThan(st.updatedAt, mine)) {
             // The state in this browser is the newer one. Overwriting it with
             // the account would throw away the newer save file, so it stays and
-            // the offer is to push it up.
-            if (newerThan(mine, st.updatedAt)) setAheadOfServer(st.updatedAt)
+            // the offer is to push it up. A minute and a half of slack, because
+            // the two timestamps come off two different clocks.
+            if (newerThan(mine, st.updatedAt, 90_000)) setAheadOfServer(st.updatedAt)
             return
           }
           setLocal({
@@ -355,6 +356,12 @@ export default function App() {
               onMe={setMe}
               onLogout={() => {
                 void api('/auth/logout', { method: 'POST' }).then(() => setMe(null))
+              }}
+              onSynced={(when) => {
+                // The account now holds this state, so the "you are ahead" note
+                // has nothing left to offer.
+                patchLocal({ updatedAt: when })
+                setAheadOfServer(undefined)
               }}
               onOpenUser={openUser}
               onOpenGroups={() => {

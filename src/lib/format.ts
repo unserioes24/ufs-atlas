@@ -69,12 +69,23 @@ export function fmtAgo(iso: string | null | undefined): string {
   return rel.format(Math.round(sec / 31536000), 'year')
 }
 
-/** Is a later than b? A missing timestamp counts as ancient. */
-export function newerThan(a: string | null | undefined, b: string | null | undefined): boolean {
+/**
+ * Is a later than b? A missing timestamp counts as ancient.
+ *
+ * `skewMs` is the head start b gets. One of the two timestamps is written by
+ * this browser and the other by the server, and their clocks are never exactly
+ * in step - without a little slack a browser running a few seconds fast would
+ * call its own state the newer one forever.
+ */
+export function newerThan(
+  a: string | null | undefined,
+  b: string | null | undefined,
+  skewMs = 0,
+): boolean {
   const ta = Date.parse(a ?? '')
   if (Number.isNaN(ta)) return false
   const tb = Date.parse(b ?? '')
-  return Number.isNaN(tb) || ta > tb
+  return Number.isNaN(tb) || ta > tb + skewMs
 }
 
 /** Join class names, dropping anything falsy. */

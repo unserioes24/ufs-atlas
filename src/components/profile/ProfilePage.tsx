@@ -28,6 +28,8 @@ export interface ProfilePageProps {
   local: LocalState | null
   onMe: (user: Account) => void
   onLogout: () => void
+  /** A save file went to the server; the stamp comes from the server. */
+  onSynced: (when: string) => void
   onBack: () => void
   onOpenGroups: () => void
   onOpenUser: (name: string) => void
@@ -41,6 +43,7 @@ export function ProfilePage({
   local,
   onMe,
   onLogout,
+  onSynced,
   onBack,
   onOpenGroups,
   onOpenUser,
@@ -286,6 +289,7 @@ export function ProfilePage({
             local={local}
             onMe={onMe}
             onLogout={onLogout}
+            onSynced={onSynced}
             onOpenUser={onOpenUser}
           />
         ) : active === 'vergleich' && duel && p && mine ? (
