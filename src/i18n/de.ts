@@ -247,6 +247,7 @@ export const de = {
 
   // Changelog
   'changelog.title': 'Änderungen',
+  'legal.version': 'Version {v}',
   'changelog.lead':
     'Was sich mit jeder Fassung geändert hat. „Allgemein“ gilt überall, „Offline-Version“ betrifft den Download, „Serverversion“ die Seite mit Konto.',
   'changelog.general': 'Allgemein',

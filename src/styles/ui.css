@@ -127,6 +127,12 @@
   padding-left: .55rem; padding-right: .55rem;
   margin-left: -.45rem; margin-right: -.45rem;
 }
+/* A species the game spreads at runtime instead of giving it spawn points:
+   amber, because there is nothing on the map to point at. */
+.ufs-spline.free .n { color: var(--ufs-amber); }
+.ufs-spline.free .q { color: #fbbf24; }
+.ufs-spline.free .d { color: #a16207; }
+
 /* Skill rows carry a hint under the name and a row of pips for the steps. */
 .ufs-skill { grid-template-columns: 1fr auto auto; align-items: center; }
 .ufs-skill .n .hint {

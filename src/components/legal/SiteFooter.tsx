@@ -25,7 +25,12 @@ export function SiteFooter({
 
   return (
     <footer className="ufs-footer no-print">
-      <p>{t('map.footer', { guide: GUIDE.generated, game: GAME.generated || DASH })}</p>
+      <p>
+        {t('map.footer', { guide: GUIDE.generated, game: GAME.generated || DASH })}{' '}
+        <button type="button" className="ufs-link" onClick={onChangelog}>
+          {t('legal.version', { v: __APP_VERSION__ })}
+        </button>
+      </p>
       <p className="links">
         <button type="button" className="ufs-link" onClick={onChangelog}>
           {t('changelog.title')}

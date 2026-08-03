@@ -306,7 +306,14 @@ export function FisheryView({
                   {panelList.slice(0, 18).map((g) => (
                     <div
                       key={g.s}
-                      className={cn('ufs-spline', pinned === g.s && 'pin')}
+                      // Amber for a species without spawn points of its own:
+                      // hovering it highlights nothing on the map, and that
+                      // should be visible before the click, not after.
+                      className={cn(
+                        'ufs-spline',
+                        pinned === g.s && 'pin',
+                        (g.dlc || g.guideOnly) && 'free',
+                      )}
                       style={{ cursor: 'pointer' }}
                       onMouseEnter={() => {
                         if (!g.guideOnly) setHighlight(g.s)

@@ -1,17 +1,26 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 /**
- * Der Guide ist eine einzelne Seite ohne Server-Rendering. Ausgeliefert wird
- * das Ergebnis aus `dist/`; im Betrieb landet es im selben Verzeichnis wie die
- * API, deshalb bleiben die Pfade relativ zum Wurzelverzeichnis.
+ * The guide is a single page without server rendering. What ships is the result
+ * in `dist/`; in production it lands in the same directory as the API, so the
+ * paths stay relative to the root.
  *
- * Die Spieldaten sind groß und ändern sich selten. Sie kommen deshalb in
- * eigene Bündel, damit ein Codewechsel nicht den ganzen Datenblock erneut
- * über die Leitung schickt.
+ * The game data is large and rarely changes. It goes into bundles of its own, so
+ * a code change does not send the whole block over the wire again.
  */
+
+/** The version from package.json, so the footer can name the release. */
+export const VERSION = String(
+  (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+    version?: string
+  }).version ?? '0.0.0',
+)
+
 export default defineConfig({
   plugins: [react()],
+  define: { __APP_VERSION__: JSON.stringify(VERSION) },
   // Absolute asset paths. Every view is a path of its own (/fisheries/moraine),
   // and a relative path would send the browser looking for the bundle inside
   // that folder. The offline build in vite.config.offline.ts keeps them

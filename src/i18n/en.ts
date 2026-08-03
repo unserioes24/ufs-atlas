@@ -246,6 +246,7 @@ export const en: Partial<Dict> = {
 
   // Changelog
   'changelog.title': 'Changes',
+  'legal.version': 'Version {v}',
   'changelog.lead':
     'What changed with each release. “General” holds everywhere, “Offline version” is about the download, “Server version” about the site with an account.',
   'changelog.general': 'General',

@@ -26,6 +26,22 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    version: '1.1.4',
+    date: '2026-07-30',
+    de: {
+      general: [
+        'Arten ohne eigene Spawnpunkte stehen jetzt gelb in der Artenliste eines Reviers. Sie zeigen beim Überfahren nichts auf der Karte, weil es nichts zu zeigen gibt – das sieht man ihnen jetzt vorher an.',
+        'Die Versionsnummer steht in der Fußzeile und führt zu dieser Liste.',
+      ],
+    },
+    en: {
+      general: [
+        'Species without spawn points of their own are now amber in a fishery’s species list. Hovering them highlights nothing on the map because there is nothing to highlight – now you can tell before the click.',
+        'The version number sits in the footer and leads to this list.',
+      ],
+    },
+  },
+  {
     version: '1.1.3',
     date: '2026-07-30',
     de: {
