@@ -296,16 +296,31 @@ foreach ($k in $ORDER) {
         $sl += [pscustomobject][ordered]@{ s = $dk; points = 0; fish = 0; spots = @(); dlc = $true }
     }
 
+    # One point per species and spawner. A spawner usually holds several species
+    # - at Kariba the tilapias share theirs - and taking only the first left the
+    # others without a single shoal on the map. The thinning counts points, not
+    # spawners, so a fishery whose spawners carry four species each does not end
+    # up four times as heavy.
     $dots = @()
     if ($f.fitOk) {
-        $step = [Math]::Max(1, [Math]::Ceiling($f.spawners.Count / 900))
-        for ($i = 0; $i -lt $f.spawners.Count; $i += $step) {
+        $total = 0
+        foreach ($ks in $swKeys) { $total += $ks.Count }
+        $step = [Math]::Max(1, [Math]::Ceiling($total / 1200))
+        # Counted per species, so thinning takes the same share off each of them
+        # instead of always hitting whichever one sits last in a spawner.
+        $seen = @{}
+        for ($i = 0; $i -lt $f.spawners.Count; $i++) {
             $sw = $f.spawners[$i]
             if ($null -eq $sw.u) { continue }
             if ($sw.u -lt -0.05 -or $sw.u -gt 1.05 -or $sw.v -lt -0.05 -or $sw.v -gt 1.05) { continue }
-            $ks = $swKeys[$i]
-            if ($ks.Count -eq 0) { continue }
-            $dots += , @($ks[0], [Math]::Round($sw.u, 3), [Math]::Round($sw.v, 3))
+            $u = [Math]::Round($sw.u, 3)
+            $v = [Math]::Round($sw.v, 3)
+            foreach ($key in $swKeys[$i]) {
+                $n = [int]$seen[$key]
+                $seen[$key] = $n + 1
+                if ($n % $step -ne 0) { continue }
+                $dots += , @($key, $u, $v)
+            }
         }
     }
 

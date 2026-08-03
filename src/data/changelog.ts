@@ -26,6 +26,22 @@ export interface ChangeEntry {
 
 export const CHANGELOG: ChangeEntry[] = [
   {
+    version: '1.1.3',
+    date: '2026-07-30',
+    de: {
+      general: [
+        'Vielen Arten fehlten die Fischschwärme auf der Karte – am Kariba Dam der Hälfte, darunter Rotpunkt-Fransenlipper und Large-scaled Yellowfish. Ein Spawner im Spiel führt mehrere Arten, die Extraktion hat aber nur die erste übernommen; alle weiteren standen ohne einen einzigen Punkt da. Jetzt bekommt jede Art ihre Punkte: am Kariba 575 statt 245, und in jedem Revier haben alle Arten mit eigenen Spawnern auch Schwärme.',
+        'Ohne Schwärme bleiben nur noch die Arten des New-Fish-Species-DLC – das Spiel gibt ihnen keine eigenen Spawnpunkte, sondern hängt sie zur Laufzeit an die vorhandenen.',
+      ],
+    },
+    en: {
+      general: [
+        'Many species had no shoals on the map – half of them at Kariba Dam, the redbreasted tilapia and the large-scaled yellowfish among them. A spawner in the game holds several species, but the extraction kept only the first; every other one was left without a single point. Each species now gets its own: 575 points at Kariba instead of 245, and in every fishery all species with spawners of their own have shoals.',
+        'The only ones still without are the species of the New Fish Species DLC – the game gives them no spawn points and attaches them to the existing ones at runtime.',
+      ],
+    },
+  },
+  {
     version: '1.1.2',
     date: '2026-07-30',
     de: {
