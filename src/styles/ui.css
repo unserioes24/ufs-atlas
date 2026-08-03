@@ -80,7 +80,13 @@
   cursor: help; transition: transform .1s ease, background .1s ease;
 }
 .ufs-dot:hover { background: #fff; transform: scale(1.7); z-index: 6; }
-.ufs-dot.hl { background: #fbbf24; box-shadow: 0 0 7px rgba(251, 191, 36, .95); width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; }
+/* Species that share a spawner sit on the very same coordinates, one point per
+   species. The highlighted one has to be on top, or a blue point of a species
+   nobody asked about covers it. */
+.ufs-dot.hl {
+  background: #fbbf24; box-shadow: 0 0 7px rgba(251, 191, 36, .95);
+  width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; z-index: 3;
+}
 
 .ufs-tip {
   position: absolute; z-index: 20; transform: translate(-50%, -110%);
